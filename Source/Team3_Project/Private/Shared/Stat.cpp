@@ -1,4 +1,4 @@
-﻿#include "Stat.h"
+﻿#include "Shared/Stat.h"
 
 FStat::FStat()
     :BaseValue(0.0f),
