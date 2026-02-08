@@ -4,6 +4,7 @@
 #include "Item/BaseItem.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/SphereComponent.h"
+#include "Item/InventoryComponent.h"
 #include "Core/ItemDataSubsystem.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -23,6 +24,33 @@ ABaseItem::ABaseItem()
 
 void ABaseItem::Interact(AActor* Interactor)
 {
+	// 상호작용하는 액터가 유효한지 확인
+	if (!Interactor)
+	{
+		return;
+	}
+
+	// 상호작용하는 액터의 인벤토리 컴포넌트 가져오기
+	UInventoryComponent* Inventory = Interactor->FindComponentByClass<UInventoryComponent>();
+
+	if (Inventory)
+	{
+		int32 Leftover = Inventory->AddItem(ItemID, Quantity);
+
+		if (Leftover <= 0)
+		{
+			Destroy();
+		}
+		else
+		{
+			Quantity = Leftover;
+			UE_LOG(LogTemp, Warning, TEXT("Not all items were added to inventory. Leftover quantity: %d"), Leftover);
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Interactor has no InventoryComponent"));
+	}
 }
 
 void ABaseItem::BeginPlay()
