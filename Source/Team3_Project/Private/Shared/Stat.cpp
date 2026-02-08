@@ -53,11 +53,6 @@ void FStat::SetCurrentValue(float Value)
     CurrentValue = FMath::Clamp(CurrentValue, MinValue, MaxValue);
 }
 
-void FStat::ModifyCurrentValue(float Delta)
-{
-    // Todo 이 함수가 어쩌다 만들어졌는 지 다시 파악할 필요가 있음.
-}
-
 void FStat::ResetToMax()
 {
     CurrentValue = MaxValue;

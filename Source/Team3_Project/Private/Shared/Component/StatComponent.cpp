@@ -25,25 +25,39 @@ bool UStatComponent::HasStat(FName StatName) const
 	return Stats.Contains(StatName);
 }
 
-float UStatComponent::GetCuurrentStatValue(FName StatName) const
+float UStatComponent::GetCurrentStatValue(FName StatName) const
 {
-	if (Stats.Contains(StatName)) return Stats[StatName].GetCurrentValue();
+	if (!Stats.Contains(StatName)) return 0.f;
 
-	return 0.0f;
+	return Stats[StatName].GetCurrentValue();
 }
 
 float UStatComponent::GetBaseStatValue(FName StatName) const
 {
-	if (Stats.Contains(StatName)) return Stats[StatName].GetBaseValue();
+	if (!Stats.Contains(StatName)) return 0.f;
 
-	return 0.0f;
+	return Stats[StatName].GetBaseValue();
+}
+
+float UStatComponent::GetMinStatValue(FName StatName) const
+{
+	if (!Stats.Contains(StatName)) return 0.f;
+
+	return Stats[StatName].GetMinValue();
+}
+
+float UStatComponent::GetMaxStatValue(FName StatName) const
+{
+	if (!Stats.Contains(StatName)) return 0.f;
+
+	return Stats[StatName].GetMaxValue();
 }
 
 float UStatComponent::GeteStatPercentage(FName StatName) const
 {
-	if (Stats.Contains(StatName)) return Stats[StatName].GetPercentage();
+	if (!Stats.Contains(StatName)) return 0.f;
 
-	return 0.0f;
+	return Stats[StatName].GetPercentage();
 }
 
 FStat UStatComponent::GetStat(FName StatName)

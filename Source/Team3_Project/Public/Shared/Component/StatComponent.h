@@ -27,9 +27,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Stats")
 	bool HasStat(FName StatName) const;
 	UFUNCTION(BlueprintCallable, Category = "Stats")
-	float GetCuurrentStatValue(FName StatName) const;
+	float GetCurrentStatValue(FName StatName) const;
 	UFUNCTION(BlueprintCallable, Category = "Stats")
 	float GetBaseStatValue(FName StatName) const;
+	UFUNCTION(BlueprintCallable, Category = "Stats")
+	float GetMinStatValue(FName StatName) const;
+	UFUNCTION(BlueprintCallable, Category = "Stats")
+	float GetMaxStatValue(FName StatName) const;
 	UFUNCTION(BlueprintCallable, Category = "Stats")
 	float GeteStatPercentage(FName StatName) const;
 

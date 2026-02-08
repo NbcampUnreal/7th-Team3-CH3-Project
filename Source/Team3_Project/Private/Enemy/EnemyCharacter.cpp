@@ -19,13 +19,19 @@ void AEnemyCharacter::BeginPlay()
 	Super::BeginPlay();
 	
 	// Todo Timer로 DetectPlayer 호출
+	GetWorld()->GetTimerManager().SetTimer(DetectionTimerHandle, this, &AEnemyCharacter::DetectPlayer, 0.1f, true);
 }
 
 void AEnemyCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (IsValid(DetectedTarget))
+	// 이동 or 공격 (임시)
+	if (IsValid(DetectedTarget) || GetDistanceTo(DetectedTarget) < AttackRadius)
+	{
+		Attack();
+	}
+	else if (IsValid(DetectedTarget) || GetDistanceTo(DetectedTarget) < ChaseRadius )
 	{
 		ChasePlayer();
 	}
@@ -33,7 +39,38 @@ void AEnemyCharacter::Tick(float DeltaTime)
 
 void AEnemyCharacter::DetectPlayer()
 {
+	if (!IsValid(DetectedTarget)) return;
+
 	// Todo SphereTrace로 주변 탐색
+	FVector Start = GetActorLocation();
+	FVector Forward = GetActorForwardVector();
+
+	TArray<FHitResult> HitResults;
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(this);
+
+	bool bHit = GetWorld()->SweepMultiByObjectType(
+		HitResults,
+		Start,
+		Start,
+		FQuat::Identity,
+		FCollisionObjectQueryParams(ECC_Pawn),
+		FCollisionShape::MakeSphere(DetectionRadius),
+		Params
+	);
+
+	DrawDebugSphere(GetWorld(), Start, DetectionRadius, 12, FColor::Red, false, 1.0f);
+
+	if (bHit)
+	{
+		for (const FHitResult& Hit : HitResults)
+		{
+			AActor* HitActor = Hit.GetActor();
+			if (!HitActor) continue;
+			
+			// PlayerCharacter로 Cast 후 DetectedTarget에 저장하기
+		}
+	}
 }
 
 void AEnemyCharacter::ChasePlayer()
@@ -46,12 +83,28 @@ void AEnemyCharacter::ChasePlayer()
 
 void AEnemyCharacter::Attack()
 {
+	if (CurrentState == EEnemyState::Attacking ||
+		CurrentState == EEnemyState::Dead) return;
 	// Todo 공격 몽타주 재생
+
+	ChangeState(EEnemyState::Attacking);
 }
 
 void AEnemyCharacter::SpecialAttack()
 {
+	if (CurrentState == EEnemyState::Attacking ||
+		CurrentState == EEnemyState::Dead) return;
 	// Todo 특수 공격 몽타주 재생
+
+	ChangeState(EEnemyState::Attacking);
+}
+
+
+void AEnemyCharacter::OnFinishAttack()
+{
+	// Todo 공격 종료 처리
+
+	ChangeState(EEnemyState::Idle);
 }
 
 float AEnemyCharacter::TakeDamage(
@@ -73,22 +126,28 @@ float AEnemyCharacter::GetCurrentHealth() const
 {
 	if (StatComp == nullptr) return 0.f;
 
-	return StatComp->GetCuurrentStatValue(TEXT("Health"));
+	return StatComp->GetCurrentStatValue(TEXT("Health"));
 }
 
 float AEnemyCharacter::GetMaxHealth() const
 {
-	return 0.0f;
+	if (StatComp == nullptr) return 0.f;
+
+	return StatComp->GetMaxStatValue(TEXT("Health"));
 }
 
 float AEnemyCharacter::GetAttack() const
 {
-	return 0.0f;
+	if (StatComp == nullptr) return 0.f;
+
+	return StatComp->GetCurrentStatValue(TEXT("Attack"));
 }
 
 float AEnemyCharacter::GetDefence() const
 {
-	return 0.0f;
+	if (StatComp == nullptr) return 0.f;
+
+	return StatComp->GetCurrentStatValue(TEXT("Defence"));
 }
 
 EEnemyState AEnemyCharacter::GetState() const
@@ -107,5 +166,6 @@ void AEnemyCharacter::ChangeState(EEnemyState NewState)
 
 	EEnemyState OldState = CurrentState;
 	CurrentState = NewState;
+
 	OnEnemyStateChanged.Broadcast(CurrentState, NewState);
 }

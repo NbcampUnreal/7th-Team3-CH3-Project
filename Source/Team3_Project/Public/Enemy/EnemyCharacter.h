@@ -45,6 +45,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void SpecialAttack();
 
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void OnFinishAttack();
+
 	virtual float TakeDamage(
 		float DamageAmount,
 		FDamageEvent const& DamageEvent,
@@ -93,4 +96,6 @@ protected:
 	
 	UPROPERTY(BlueprintAssignable, Category = "Enemy")
 	FEnemyStateChanged OnEnemyStateChanged;
+	
+	FTimerHandle DetectionTimerHandle;
 };

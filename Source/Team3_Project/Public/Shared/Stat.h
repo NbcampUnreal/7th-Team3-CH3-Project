@@ -24,7 +24,6 @@ public:
     void SetBaseValue(float Value);
     void SetCurrentValue(float Value);
 
-    void ModifyCurrentValue(float Delta);
     void ResetToMax();
     void ResetToBase();
 
