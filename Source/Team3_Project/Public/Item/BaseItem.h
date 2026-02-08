@@ -19,7 +19,7 @@ public:
 
 	virtual void Interact(AActor* Interactor) override;
 
-	virtual void OnConstruction(const FTransform& Transform) override;
+	virtual void BeginPlay() override;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item")
