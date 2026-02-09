@@ -8,7 +8,10 @@
 #include "Enemy/EnemyCharacter.h"
 
 AEnemyController::AEnemyController()
-    :BehaviorTree(nullptr)
+    :BehaviorTree(nullptr),
+    AIPerceptionComponent(nullptr),
+    SightConfig(nullptr),
+    HearingConfig(nullptr)
 {
     AIPerceptionComponent = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("AIPerception"));
     SetPerceptionComponent(*AIPerceptionComponent);
@@ -34,16 +37,16 @@ AEnemyController::AEnemyController()
     HearingConfig->SetMaxAge(5.f);                  // 소리 기억 시간
 
     // 청각 감지 대상 설정
-    SightConfig->DetectionByAffiliation.bDetectEnemies = true;          // 적 감지
-    SightConfig->DetectionByAffiliation.bDetectNeutrals = true;         // 중립 감지
-    SightConfig->DetectionByAffiliation.bDetectFriendlies = false;      // 아군 감지
+    HearingConfig->DetectionByAffiliation.bDetectEnemies = true;          // 적 감지
+    HearingConfig->DetectionByAffiliation.bDetectNeutrals = true;         // 중립 감지
+    HearingConfig->DetectionByAffiliation.bDetectFriendlies = false;      // 아군 감지
 
     PerceptionComponent->ConfigureSense(*HearingConfig);
 
     // 주 감각을 시야로 설정
     PerceptionComponent->SetDominantSense(SightConfig->GetSenseImplementation());
 
-    PerceptionComponent->OnTargetPerceptionInfoUpdated.AddDynamic(
+    PerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(
         this,
         &AEnemyController::OnTargetPerceptionUpdated
     );
@@ -86,7 +89,7 @@ void AEnemyController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stim
     {
         if (Stimulus.WasSuccessfullySensed()) // 성곡적으로 감지됨
         {
-            UE_LOG(LogTemp, Log, TEXT("%s: Player detected by sight!"), Enemy->GetName());
+            UE_LOG(LogTemp, Log, TEXT("%s: Player detected by sight!"), *Enemy->GetName().ToString());
 
             if (UBlackboardComponent* BB = GetBlackboardComponent())
             {
@@ -98,7 +101,7 @@ void AEnemyController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stim
         }
         else
         {
-            UE_LOG(LogTemp, Log, TEXT("%s: Player lost form sight!"), Enemy->GetName());
+            UE_LOG(LogTemp, Log, TEXT("%s: Player lost form sight!"), *Enemy->GetName().ToString());
         }
     }
     // 청각에 걸린 것인지 확인

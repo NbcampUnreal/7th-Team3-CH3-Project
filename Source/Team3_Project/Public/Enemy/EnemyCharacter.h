@@ -30,12 +30,7 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-public:	
-	/*virtual void Tick(float DeltaTime) override;*/
-
-	/*UFUNCTION(BlueprintCallable, Category = "AI")
-	void DetectPlayer();*/
-
+public:
 	UFUNCTION(BlueprintCallable, Category = "AI")
 	void ChasePlayer();
 
@@ -47,6 +42,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void OnFinishAttack();
+
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void OnHitted();
+
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void OnDead();
 
 	virtual float TakeDamage(
 		float DamageAmount,
@@ -85,12 +86,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy")
 	EEnemyState CurrentState;
 
-	/*UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI")
-	float DetectionRadius;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI")
-	float ChaseRadius;*/
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI")
-	float AttackRadius;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI")
 	TObjectPtr<ACharacter> DetectedTarget;
 	
