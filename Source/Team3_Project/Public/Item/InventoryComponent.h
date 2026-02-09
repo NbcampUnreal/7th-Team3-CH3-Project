@@ -9,6 +9,8 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryUpdated);
 
+
+
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class TEAM3_PROJECT_API UInventoryComponent : public UActorComponent
 {

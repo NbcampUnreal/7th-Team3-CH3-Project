@@ -7,6 +7,8 @@
 #include "Shared/InteractionInterface.h"
 #include "CraftingStation.generated.h"
 
+class UStaticMeshComponent;
+
 UCLASS()
 class TEAM3_PROJECT_API ACraftingStation : public AActor, public IInteractionInterface
 {

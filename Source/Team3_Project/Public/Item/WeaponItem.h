@@ -7,6 +7,9 @@
 #include "Shared/ItemTypes.h"
 #include "WeaponItem.generated.h"
 
+class USkeletalMeshComponent;
+class UStaticMeshComponent;
+class ABaseProjectile;
 
 UCLASS()
 class TEAM3_PROJECT_API AWeaponItem : public ABaseItem
@@ -15,6 +18,12 @@ class TEAM3_PROJECT_API AWeaponItem : public ABaseItem
 
 public:
 	AWeaponItem();
+
+    UFUNCTION(BlueprintCallable, Category = "Weapon|Input")
+	void StartFire();
+
+	UFUNCTION(BlueprintCallable, Category = "Weapon|Input")
+	void StopFire();
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon|Combat")
 	virtual void FireWeapon();
@@ -54,7 +63,7 @@ protected:
 	int32 CurrentAmmo;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Stats")
-	float FireRate;
+	float TimeBetweenShots;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Stats")
 	float CurrentRecoil;
@@ -62,6 +71,28 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Stats")
 	float ReloadTime;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Stats")
+	float WeaponRange = 5000.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Stats")
+	float BaseDamage = 20.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Stats")
+	int32 Pellets = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Stats")
+	float SpreadAngle = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Stats")
+	bool bIsProjectile = false;
+	
+	void FireHitScan();
+	void FireProjectile();
+
 private:
 	UStaticMeshComponent* GetAttachmentComponentByType(EAttachmentType Type) const;
+
+	FTimerHandle AutoFireTimerHandle;
+
+	float LastFireTime = 0.0f;
 };

@@ -2,13 +2,87 @@
 
 
 #include "Item/WeaponItem.h"
+#include "Kismet/GameplayStatics.h"
+#include "Item/BaseProjectile.h"
+#include "DrawDebugHelpers.h"
+
 
 AWeaponItem::AWeaponItem()
 {
+	PrimaryActorTick.bCanEverTick = false;
+
+	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponMesh"));
+	RootComponent = WeaponMesh;
+
+	ScopeMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ScopeMesh"));
+	ScopeMesh->SetupAttachment(WeaponMesh);
+
+	BarrelMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BarrelMesh"));
+	BarrelMesh->SetupAttachment(WeaponMesh);
+
+	MagazineMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MagazineMesh"));
+	MagazineMesh->SetupAttachment(WeaponMesh);
+
+	UnderbarrelMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("UnderbarrelMesh"));
+	UnderbarrelMesh->SetupAttachment(WeaponMesh);
+
+	StockMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StockMesh"));
+	StockMesh->SetupAttachment(WeaponMesh);
+
+	MaxAmmo = 30;
+	CurrentAmmo = 30;
+	TimeBetweenShots = 0.1f;
+	bIsAutomatic = true;
+	WeaponRange = 5000.0f;
+	BaseDamage = 20.0f;
+	Pellets = 1;
+	SpreadAngle = 1.0f;
+	bIsProjectile = false;
+	LastFireTime = 0.0f;
+}
+
+void AWeaponItem::StartFire()
+{
+	// 기본 딜레이 계산
+	float FirstDelay = FMath::Max(LastFireTime + TimeBetweenShots - GetWorld()->TimeSeconds, 0.0f);
+
+	// 타이머 설정
+	GetWorldTimerManager().SetTimer(
+		AutoFireTimerHandle,
+		this,
+		&AWeaponItem::FireWeapon,
+		TimeBetweenShots,
+		bIsAutomatic,
+		FirstDelay
+	);
+}
+
+void AWeaponItem::StopFire()
+{
+	GetWorldTimerManager().ClearTimer(AutoFireTimerHandle);
 }
 
 void AWeaponItem::FireWeapon()
 {
+	if (CurrentAmmo <= 0)
+	{
+		StopFire();
+		return;
+	}
+
+	CurrentAmmo--;
+	LastFireTime = GetWorld()->TimeSeconds;
+
+	if (bIsProjectile)
+	{
+		FireProjectile();
+	}
+	else
+	{
+		FireHitScan();
+	}
+
+	//발사 이펙트 및 사운드 재생 등 추가 구현 가능
 }
 
 void AWeaponItem::ReloadWeapon()
@@ -22,6 +96,97 @@ void AWeaponItem::EquipAttachment()
 
 void AWeaponItem::UnequipAttachment()
 {
+}
+
+void AWeaponItem::FireHitScan()
+{
+	//총구 위치와 방향 계산
+	FVector Start = WeaponMesh->GetSocketLocation(FName("Muzzle"));
+	FVector End = Start + (WeaponMesh->GetForwardVector() * WeaponRange);
+
+	for (int32 i = 0; i < Pellets; i++)
+	{
+		//스프레드 적용
+		FRotator SpreadRot = FRotator(
+			FMath::RandRange(-SpreadAngle, SpreadAngle),
+			FMath::RandRange(-SpreadAngle, SpreadAngle),
+			0.0f
+		);
+		FVector SpreadDirection = SpreadRot.RotateVector(WeaponMesh->GetForwardVector());
+		FVector SpreadEnd = Start + (SpreadDirection * WeaponRange);
+		//라인 트레이스 수행
+		FHitResult HitResult;
+		FCollisionQueryParams QueryParams;
+		QueryParams.AddIgnoredActor(this);
+		QueryParams.AddIgnoredActor(GetOwner());
+		bool bHit = GetWorld()->LineTraceSingleByChannel(
+			HitResult,
+			Start,
+			SpreadEnd,
+			ECC_Visibility,
+			QueryParams
+		);
+		if (bHit)
+		{
+			//피해 적용
+			AActor* HitActor = HitResult.GetActor();
+			if (HitActor)
+			{
+				UGameplayStatics::ApplyPointDamage(
+					HitActor,
+					BaseDamage,
+					SpreadDirection,
+					HitResult,
+					GetInstigatorController(),
+					this,
+					nullptr
+				);
+			}
+			//디버그용 점 그리기
+			DrawDebugPoint(
+				GetWorld(),
+				HitResult.ImpactPoint,
+				10.0f,
+				FColor::Red,
+				false,
+				2.0f
+			);
+			//디버그용 라인 그리기
+			DrawDebugLine(
+				GetWorld(),
+				Start,
+				bHit ? HitResult.ImpactPoint : SpreadEnd,
+				FColor::Green,
+				false,
+				2.0f,
+				0,
+				1.0f
+			);
+			//임팩트 이펙트 재생 등 추가 구현 가능
+		}
+	}
+}
+
+void AWeaponItem::FireProjectile()
+{
+	if (ProjectileClass)
+	{
+		FTransform SpawnTransform = WeaponMesh->GetSocketTransform(FName("Muzzle"));
+
+		ABaseProjectile* NewProjectile = GetWorld()->SpawnActorDeferred<ABaseProjectile>(
+			ProjectileClass,
+			SpawnTransform,
+			this,
+			GetInstigator(),
+			ESpawnActorCollisionHandlingMethod::AlwaysSpawn
+		);
+
+		if (NewProjectile)
+		{
+			NewProjectile->Damage = this->BaseDamage;
+			UGameplayStatics::FinishSpawningActor(NewProjectile, SpawnTransform);
+		}
+	}
 }
 
 UStaticMeshComponent* AWeaponItem::GetAttachmentComponentByType(EAttachmentType Type) const

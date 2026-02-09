@@ -85,6 +85,7 @@ int32 UInventoryComponent::AddItem(FName ItemID, int32 Quantity)
 		RemainingQuantity -= ToAdd;
 	}
 
+	// 인벤토리가 변경되었음을 알림
 	if (RemainingQuantity < Quantity)
 	{
 		OnInventoryUpdated.Broadcast();
@@ -95,10 +96,64 @@ int32 UInventoryComponent::AddItem(FName ItemID, int32 Quantity)
 
 bool UInventoryComponent::RemoveItem(FName ItemID, int32 Quantity)
 {
-	return false;
+	// 입력 유효성 검사
+	if (!HasItem(ItemID, Quantity))
+	{
+		return false;
+	}	
+
+	int32 RemainingToRemove = Quantity;
+	// 인벤토리에서 해당 아이템 제거
+	// 뒤에서부터 제거하여 인덱스 문제 방지
+	for (int32 i = InventoryContents.Num() - 1; i >= 0 && RemainingToRemove > 0; --i)
+	{
+		if (InventoryContents[i].ItemID == ItemID)
+		{
+			int32 AmountInSlot = InventoryContents[i].Quantity;
+			int32 AmountTaken = FMath::Min(AmountInSlot, RemainingToRemove);
+
+			InventoryContents[i].Quantity -= AmountTaken;
+			RemainingToRemove -= AmountTaken;
+
+			if (InventoryContents[i].Quantity <= 0)
+			{
+				InventoryContents.RemoveAt(i);
+			}
+
+			if (RemainingToRemove <= 0)
+			{
+				break;
+			}
+		}
+	}
+
+	// 인벤토리가 변경되었음을 알림
+	OnInventoryUpdated.Broadcast();
+
+	return true;
 }
 
+// 조합 시스템 등에서 아이템 존재 여부와 수량을 확인할 때 사용
 bool UInventoryComponent::HasItem(FName ItemID, int32 Quantity) const
 {
-	return false;
+	
+	// 입력 유효성 검사
+	if (ItemID.IsNone() || Quantity <= 0)
+	{
+		return false;
+	}
+
+	int32 TotalQuantity = 0;
+	// 인벤토리에서 해당 아이템의 총 수량 계산
+	for (const FInventoryItem& InventoryItem : InventoryContents)
+	{
+		if (InventoryItem.ItemID == ItemID)
+		{
+			TotalQuantity += InventoryItem.Quantity;
+		}
+	}
+
+	// 해당 아이템의 총 수량이 필요한 수량 이상인지 확인
+	return TotalQuantity >= Quantity;
 }
+

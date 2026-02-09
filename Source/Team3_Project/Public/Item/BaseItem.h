@@ -8,6 +8,7 @@
 #include "BaseItem.generated.h"
 
 class USphereComponent;
+class UStaticMeshComponent;
 
 UCLASS()
 class TEAM3_PROJECT_API ABaseItem : public AActor, public IInteractionInterface
