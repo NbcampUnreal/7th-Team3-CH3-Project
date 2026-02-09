@@ -13,8 +13,9 @@ bool UStatComponent::InitializeStat(FName StatName, float Base, float Min, float
 {
 	if (Stats.Contains(StatName)) return false;
 
-	Stats[StatName] = FStat(Base, Min, Max);
-	SubOperations[StatName] = TArray<UStatOperation*>();
+	FStat NewStat(Base, Min, Max);
+	Stats.Add(StatName, NewStat);
+	SubOperations.Add(StatName, TArray<UStatOperation*>());
 
 	return true;
 }
