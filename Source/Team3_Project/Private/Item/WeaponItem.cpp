@@ -6,11 +6,34 @@
 #include "Item/BaseProjectile.h"
 #include "DrawDebugHelpers.h"
 #include "Item/InventoryComponent.h"
+#include "Core/ItemDataSubsystem.h"
 
 
 AWeaponItem::AWeaponItem()
 {
 	PrimaryActorTick.bCanEverTick = false;
+
+	UGameInstance* GameInstance = UGameplayStatics::GetGameInstance(this);
+	if (!GameInstance)
+	{
+		return;
+	}
+
+	UItemDataSubsystem* ItemDataSubsystem = GameInstance->GetSubsystem<UItemDataSubsystem>();
+	if (!ItemDataSubsystem)
+	{
+		return;
+	}
+
+	if (!ItemID.IsNone())
+	{
+		FItemData ItemData = ItemDataSubsystem->GetItemDataByID(ItemID);
+		this->AmmoItemID = ItemData.RequiredAmmoID;
+		if (ItemData.PowerAmount > 0)
+		{
+			this->BaseDamage = ItemData.PowerAmount;
+		}
+	}
 
 	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponMesh"));
 	RootComponent = WeaponMesh;
@@ -35,12 +58,19 @@ AWeaponItem::AWeaponItem()
 	TimeBetweenShots = 0.1f;
 	bIsAutomatic = true;
 	WeaponRange = 5000.0f;
-	BaseDamage = 20.0f;
 	Pellets = 1;
 	SpreadAngle = 1.0f;
 	bIsProjectile = false;
 	LastFireTime = 0.0f;
 }
+
+
+
+
+
+
+
+
 
 void AWeaponItem::StartFire()
 {
@@ -62,6 +92,19 @@ void AWeaponItem::StopFire()
 {
 	GetWorldTimerManager().ClearTimer(AutoFireTimerHandle);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 void AWeaponItem::FireWeapon()
 {
@@ -129,13 +172,103 @@ void AWeaponItem::ReloadWeapon()
 }
 
 
-void AWeaponItem::EquipAttachment()
+
+
+
+
+
+
+
+
+
+
+void AWeaponItem::EquipAttachment(FName AttachmentID)
 {
+	UGameInstance* GameInstance = UGameplayStatics::GetGameInstance(this);
+	if (!GameInstance)
+	{
+		return;
+	}
+
+	UItemDataSubsystem* ItemDataSubsystem = GameInstance->GetSubsystem<UItemDataSubsystem>();
+	if (!ItemDataSubsystem)
+	{
+		return;
+	}
+
+	FItemData AttachmentData = ItemDataSubsystem->GetItemDataByID(AttachmentID);
+	// 유효성 검사
+	if (AttachmentData.ItemType != EItemType::IT_Attachment)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ItemID %s is not an attachment"), *AttachmentID.ToString());
+		return;
+	}
+
+	UStaticMeshComponent* TargetMesh = GetAttachmentComponentByType(AttachmentData.AttachmentType);
+
+	if (TargetMesh)
+	{
+		UStaticMesh* AttachmentMesh = AttachmentData.PickupMesh.LoadSynchronous();
+		if (AttachmentMesh)
+		{
+			TargetMesh->SetStaticMesh(AttachmentMesh);
+			TargetMesh->SetVisibility(true);
+			TargetMesh->SetHiddenInGame(false);
+			UE_LOG(LogTemp, Log, TEXT("Equipped attachment %s"), *AttachmentID.ToString());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Failed to load mesh for attachment %s"), *AttachmentID.ToString());
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("No valid attachment component for type %d"), (int32)AttachmentData.AttachmentType);
+	}
 }
 
-void AWeaponItem::UnequipAttachment()
+void AWeaponItem::UnequipAttachment(FName AttachmentID)
 {
+	UGameInstance* GameInstance = UGameplayStatics::GetGameInstance(this);
+	if (!GameInstance)
+	{
+		return;
+	}
+
+	UItemDataSubsystem* ItemDataSubsystem = GameInstance->GetSubsystem<UItemDataSubsystem>();
+	if (!ItemDataSubsystem)
+	{
+		return;
+	}
+
+	FItemData AttachmentData = ItemDataSubsystem->GetItemDataByID(AttachmentID);
+
+	UStaticMeshComponent* TargetMesh = GetAttachmentComponentByType(AttachmentData.AttachmentType);
+
+	if (TargetMesh)
+	{
+		TargetMesh->SetStaticMesh(nullptr);
+		TargetMesh->SetVisibility(false);
+		TargetMesh->SetHiddenInGame(true);
+		UE_LOG(LogTemp, Log, TEXT("Unequipped attachment %s"), *AttachmentID.ToString());
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("No valid attachment component for type %d"), (int32)AttachmentData.AttachmentType);
+	}
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 void AWeaponItem::FireHitScan()
 {
@@ -228,7 +361,37 @@ void AWeaponItem::FireProjectile()
 	}
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 UStaticMeshComponent* AWeaponItem::GetAttachmentComponentByType(EAttachmentType Type) const
 {
-	return nullptr;
+	switch (Type)
+	{
+	case EAttachmentType::AT_Scope:
+		return ScopeMesh;
+	case EAttachmentType::AT_Barrel:
+		return BarrelMesh;
+	case EAttachmentType::AT_Magazine:
+		return MagazineMesh;
+	case EAttachmentType::AT_Underbarrel:
+		return UnderbarrelMesh;
+	case EAttachmentType::AT_Stock:
+		return StockMesh;
+	case EAttachmentType::AT_None:
+		return nullptr;
+	default:
+		return nullptr;
+	}
 }
