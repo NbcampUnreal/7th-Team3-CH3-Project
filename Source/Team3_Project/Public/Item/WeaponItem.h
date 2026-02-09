@@ -63,7 +63,10 @@ protected:
 	int32 CurrentAmmo;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Stats")
-	float TimeBetweenShots;
+	float TimeBetweenShots = 0.1f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Stats")
+	FName AmmoItemID;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Stats")
 	float CurrentRecoil;
@@ -84,7 +87,14 @@ protected:
 	float SpreadAngle = 1.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Stats")
+	bool bIsAutomatic = true;
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Config")
 	bool bIsProjectile = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Config")
+	TSubclassOf<ABaseProjectile> ProjectileClass;
 	
 	void FireHitScan();
 	void FireProjectile();

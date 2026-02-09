@@ -5,6 +5,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Item/BaseProjectile.h"
 #include "DrawDebugHelpers.h"
+#include "Item/InventoryComponent.h"
 
 
 AWeaponItem::AWeaponItem()
@@ -87,6 +88,44 @@ void AWeaponItem::FireWeapon()
 
 void AWeaponItem::ReloadWeapon()
 {
+	if (CurrentAmmo >= MaxAmmo)
+	{
+		return;
+	}
+
+	AActor* OwnerActor = GetOwner();
+	if (!OwnerActor)
+	{
+		return;
+	}
+
+	UInventoryComponent* InventoryComp = OwnerActor->FindComponentByClass<UInventoryComponent>();
+	if (!InventoryComp)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("InventoryComponent not found on OwnerActor"));
+		return;
+	}
+
+	int32 AmmoNeeded = MaxAmmo - CurrentAmmo;
+
+	int32 AmmoAvailable = InventoryComp->GetItemQuantity(AmmoItemID);
+
+	if (AmmoAvailable <= 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("No ammo available in inventory"));
+		//총알이 부족한 경우 처리 추가 가능
+		return;
+	}
+
+	int32 AmountToReload = FMath::Min(AmmoNeeded, AmmoAvailable);
+
+	if (InventoryComp->RemoveItem(AmmoItemID, AmountToReload))
+	{
+		CurrentAmmo += AmountToReload;
+		UE_LOG(LogTemp, Log, TEXT("Reloaded %d ammo. CurrentAmmo: %d"), AmountToReload, CurrentAmmo);
+
+		//재장전 애니메이션 및 사운드 재생 등 추가 구현 가능
+	}
 }
 
 

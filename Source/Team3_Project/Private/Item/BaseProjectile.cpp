@@ -30,6 +30,11 @@ ABaseProjectile::ABaseProjectile()
 	ProjectileMovementComponent->bRotationFollowsVelocity = true;
 	ProjectileMovementComponent->bShouldBounce = false;
 
+	ExplosionEffect = nullptr;
+	ExplosionRadius = 0.0f;
+	Damage = 0.0f;
+	bExplodeOnHit = true;
+
 	InitialLifeSpan = 3.0f;
 }
 

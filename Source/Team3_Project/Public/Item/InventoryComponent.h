@@ -31,6 +31,9 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	const TArray<FInventoryItem>& GetInventoryContents() const { return InventoryContents; }
 
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	int32 GetItemQuantity(FName ItemID) const;
+
 	UPROPERTY(BlueprintAssignable, Category = "Inventory")
 	FOnInventoryUpdated OnInventoryUpdated;
 

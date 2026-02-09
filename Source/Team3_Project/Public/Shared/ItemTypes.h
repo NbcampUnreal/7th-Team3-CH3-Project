@@ -58,6 +58,12 @@ public:
 	EWeaponType WeaponType;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName RequiredAmmoID;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EAttachmentType AttachmentType;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FText DisplayName;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)

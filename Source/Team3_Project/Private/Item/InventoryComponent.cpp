@@ -157,3 +157,22 @@ bool UInventoryComponent::HasItem(FName ItemID, int32 Quantity) const
 	return TotalQuantity >= Quantity;
 }
 
+int32 UInventoryComponent::GetItemQuantity(FName ItemID) const
+{
+	// 입력 유효성 검사
+	if (ItemID.IsNone())
+	{
+		return 0;
+	}
+	int32 TotalQuantity = 0;
+
+	// 인벤토리에서 해당 아이템의 총 수량 계산
+	for (const FInventoryItem& InventoryItem : InventoryContents)
+	{
+		if (InventoryItem.ItemID == ItemID)
+		{
+			TotalQuantity += InventoryItem.Quantity;
+		}
+	}
+	return TotalQuantity;
+}
