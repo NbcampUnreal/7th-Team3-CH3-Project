@@ -127,3 +127,63 @@ void ATeam3_ProjectCharacter::Look(const FInputActionValue& Value)
 		AddControllerPitchInput(LookAxisVector.Y);
 	}
 }
+
+void ATeam3_ProjectCharacter::StartSprint()
+{
+}
+
+void ATeam3_ProjectCharacter::StopSprint()
+{
+}
+
+void ATeam3_ProjectCharacter::OnStateEnter(ECharacterState NewState)
+{
+}
+
+void ATeam3_ProjectCharacter::OnStateExit(ECharacterState OldState)
+{
+}
+
+void ATeam3_ProjectCharacter::SetCharacterState(ECharacterState NewState)
+{
+	// 상태가 같으면 변경하지 않음
+	if (CurrentState == NewState)
+	{
+		return;
+	}
+
+	CurrentState = NewState;
+}
+
+void ATeam3_ProjectCharacter::StartAiming()
+{
+}
+
+void ATeam3_ProjectCharacter::StopAiming()
+{
+}
+
+void ATeam3_ProjectCharacter::Attack()
+{
+}
+
+void ATeam3_ProjectCharacter::Reload()
+{
+}
+
+void ATeam3_ProjectCharacter::EquipWeapon(FName ItemID)
+{
+}
+
+void ATeam3_ProjectCharacter::TryInteract()
+{
+}
+
+float ATeam3_ProjectCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	return 0.0f;
+}
+
+void ATeam3_ProjectCharacter::Die()
+{
+}
