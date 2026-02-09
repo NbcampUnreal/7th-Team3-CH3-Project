@@ -31,10 +31,10 @@ protected:
 	virtual void BeginPlay() override;
 
 public:	
-	virtual void Tick(float DeltaTime) override;
+	/*virtual void Tick(float DeltaTime) override;*/
 
-	UFUNCTION(BlueprintCallable, Category = "AI")
-	void DetectPlayer();
+	/*UFUNCTION(BlueprintCallable, Category = "AI")
+	void DetectPlayer();*/
 
 	UFUNCTION(BlueprintCallable, Category = "AI")
 	void ChasePlayer();
@@ -85,10 +85,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy")
 	EEnemyState CurrentState;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI")
+	/*UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI")
 	float DetectionRadius;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI")
-	float ChaseRadius;
+	float ChaseRadius;*/
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI")
 	float AttackRadius;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI")
