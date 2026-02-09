@@ -32,10 +32,10 @@ public:
 	virtual void ReloadWeapon();
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon|Attachment")
-	virtual void EquipAttachment();
+	virtual void EquipAttachment(FName AttachmentID);
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon|Attachment")
-	virtual void UnequipAttachment();
+	virtual void UnequipAttachment(FName AttachmentID);
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon|Components")
