@@ -13,52 +13,27 @@ AEnemyCharacter::AEnemyCharacter()
 		StatComp->InitializeStat(FName("Attack"), 50.f, 0.f, 200.f);
 		StatComp->InitializeStat(FName("Defence"), 50.f, 0.f, 200.f);
 	}
-
-	CurrentState = EEnemyState::Idle;
 }
 
 void AEnemyCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	ChangeState(EEnemyState::Idle);
-	// Todo Timer로 DetectPlayer 호출
-	// GetWorld()->GetTimerManager().SetTimer(DetectionTimerHandle, this, &AEnemyCharacter::DetectPlayer, 0.1f, true);
-}
-
-void AEnemyCharacter::ChasePlayer()
-{
-	if (IsValid(DetectedTarget))
-	{
-		// Todo MoveToPlayer
-	}
 }
 
 void AEnemyCharacter::Attack()
 {
-	if (CurrentState == EEnemyState::Attacking ||
-		CurrentState == EEnemyState::Dead) return;
 	// Todo 공격 몽타주 재생
-
-	ChangeState(EEnemyState::Attacking);
 }
 
 void AEnemyCharacter::SpecialAttack()
 {
-	if (CurrentState == EEnemyState::Attacking ||
-		CurrentState == EEnemyState::Dead) return;
-	// Todo 특수 공격 몽타주 재생
-
-	ChangeState(EEnemyState::Attacking);
+	//// Todo 특수 공격 몽타주 재생
 }
-
 
 void AEnemyCharacter::OnFinishAttack()
 {
-	// Todo 공격 종료 처리
-
-	ChangeState(EEnemyState::Idle);
 }
+
 
 void AEnemyCharacter::OnHitted()
 {
@@ -109,24 +84,4 @@ float AEnemyCharacter::GetDefence() const
 	if (StatComp == nullptr) return 0.f;
 
 	return StatComp->GetCurrentStatValue(TEXT("Defence"));
-}
-
-EEnemyState AEnemyCharacter::GetState() const
-{
-	return CurrentState;
-}
-
-ACharacter* AEnemyCharacter::GetDetectedTarget() const
-{
-	return IsValid(DetectedTarget) ? DetectedTarget.Get() : nullptr;
-}
-
-void AEnemyCharacter::ChangeState(EEnemyState NewState)
-{
-	if (CurrentState == NewState) return;
-
-	EEnemyState OldState = CurrentState;
-	CurrentState = NewState;
-
-	OnEnemyStateChanged.Broadcast(CurrentState, NewState);
 }

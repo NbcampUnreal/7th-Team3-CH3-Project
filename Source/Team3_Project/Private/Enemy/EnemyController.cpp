@@ -6,21 +6,28 @@
 #include "Perception/AISenseConfig_Sight.h"
 #include "Perception/AISenseConfig_Hearing.h"
 #include "Enemy/EnemyCharacter.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Enemy/StateBase.h"
 
 AEnemyController::AEnemyController()
     :BehaviorTree(nullptr),
     AIPerceptionComponent(nullptr),
     SightConfig(nullptr),
-    HearingConfig(nullptr)
+    HearingConfig(nullptr),
+    TargetActor(nullptr),
+    CurrentState(nullptr),
+    SightRange(1000.f),
+    ChaseRange(1500.f),
+    AttackRadius(300.f)
 {
     AIPerceptionComponent = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("AIPerception"));
     SetPerceptionComponent(*AIPerceptionComponent);
 
     // 시야 감각 설정
     SightConfig = CreateDefaultSubobject<UAISenseConfig_Sight>(TEXT("SightConfig"));
-    SightConfig->SightRadius = 1000.f;          // 시야 범위
-    SightConfig->LoseSightRadius = 1500.f;      // 시야에서 벗어나는 범위
-    SightConfig->PeripheralVisionAngleDegrees = 90.f;       // 시야각 좌우 x도 = 총 2x
+    SightConfig->SightRadius = SightRange;          // 시야 범위
+    SightConfig->LoseSightRadius = ChaseRange;      // 시야에서 벗어나는 범위
+    SightConfig->PeripheralVisionAngleDegrees = 90.f;       // 시야각 좌우 x도 = 총 2x, 중앙 기준 반각
     SightConfig->SetMaxAge(5.f);                            // 시각 기억 시간
     SightConfig->AutoSuccessRangeFromLastSeenLocation = 500.f;
 
@@ -29,7 +36,7 @@ AEnemyController::AEnemyController()
     SightConfig->DetectionByAffiliation.bDetectNeutrals = true;         // 중립 감지
     SightConfig->DetectionByAffiliation.bDetectFriendlies = false;      // 아군 감지
     
-    PerceptionComponent->ConfigureSense(*SightConfig);
+    AIPerceptionComponent->ConfigureSense(*SightConfig);
 
     // 청각 감각 설정
     HearingConfig = CreateDefaultSubobject<UAISenseConfig_Hearing>(TEXT("HearingConfig"));
@@ -41,17 +48,17 @@ AEnemyController::AEnemyController()
     HearingConfig->DetectionByAffiliation.bDetectNeutrals = true;         // 중립 감지
     HearingConfig->DetectionByAffiliation.bDetectFriendlies = false;      // 아군 감지
 
-    PerceptionComponent->ConfigureSense(*HearingConfig);
+    AIPerceptionComponent->ConfigureSense(*HearingConfig);
 
     // 주 감각을 시야로 설정
-    PerceptionComponent->SetDominantSense(SightConfig->GetSenseImplementation());
+    AIPerceptionComponent->SetDominantSense(SightConfig->GetSenseImplementation());
 
-    PerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(
+    AIPerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(
         this,
         &AEnemyController::OnTargetPerceptionUpdated
     );
 
-    PerceptionComponent->OnTargetPerceptionForgotten.AddDynamic(
+    AIPerceptionComponent->OnTargetPerceptionForgotten.AddDynamic(
         this,
         &AEnemyController::OnTargetPerceptionForgotten
     );
@@ -60,6 +67,15 @@ AEnemyController::AEnemyController()
 void AEnemyController::OnPossess(APawn* InPawn)
 {
     Super::OnPossess(InPawn);
+
+    if (ACharacter* PossessedCharacter = Cast<ACharacter>(InPawn))
+    {
+        PossessedCharacter->bUseControllerRotationYaw = false;
+        if (UCharacterMovementComponent* MoveComp = PossessedCharacter->GetCharacterMovement())
+        {
+            MoveComp->bOrientRotationToMovement = true;
+        }
+    }
 
     if (IsValid(BehaviorTree))
     {
@@ -73,6 +89,46 @@ void AEnemyController::UpdateAI()
     {
         // Todo AI 업데이트 로직 작성
     }
+}
+
+void AEnemyController::ChangeState(UStateBase* NewState)
+{
+    if (CurrentState == NewState) return;
+
+    if (CurrentState)
+    {
+        CurrentState->ExitState();
+    }
+
+    CurrentState = NewState;
+
+    if (CurrentState)
+    {
+        CurrentState->EnterState();
+    }
+}
+
+bool AEnemyController::IsPlayerInRange(float Range) const
+{
+    if (!IsValid(TargetActor)) return false;
+    if (GetPawn() == nullptr) return false;
+
+    const float Distance = GetPawn()->GetDistanceTo(TargetActor);
+
+    return Distance <= Range;
+}
+
+void AEnemyController::MoveToRandomLocation()
+{
+}
+
+void AEnemyController::MoveToPlayer()
+{
+}
+
+bool AEnemyController::IsMoving() const
+{
+    return false;
 }
 
 void AEnemyController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
@@ -97,7 +153,8 @@ void AEnemyController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stim
                 BB->SetValueAsVector(FName("TargetLocation"), PlayerCharacter->GetActorLocation());
             }
 
-            Enemy->ChangeState(EEnemyState::Chasing);
+            TargetActor = PlayerCharacter;
+            ChangeState(ChaseState);
         }
         else
         {
@@ -118,6 +175,10 @@ void AEnemyController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stim
                 BB->SetValueAsVector(FName(""), Stimulus.StimulusLocation);
             }
         }
+        else
+        {
+            OnTargetPerceptionForgotten(PlayerCharacter);
+        }
     }
 }
 
@@ -130,6 +191,8 @@ void AEnemyController::OnTargetPerceptionForgotten(AActor* Actor)
 
     if (AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(GetPawn()))
     {
-        Enemy->ChangeState(EEnemyState::Idle);
+        ChangeState(IdleState);
     }
+
+    TargetActor = nullptr;
 }
