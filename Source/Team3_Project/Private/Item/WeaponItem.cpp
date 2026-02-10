@@ -15,28 +15,6 @@ AWeaponItem::AWeaponItem()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	UGameInstance* GameInstance = UGameplayStatics::GetGameInstance(this);
-	if (!GameInstance)
-	{
-		return;
-	}
-
-	UItemDataSubsystem* ItemDataSubsystem = GameInstance->GetSubsystem<UItemDataSubsystem>();
-	if (!ItemDataSubsystem)
-	{
-		return;
-	}
-
-	if (!ItemID.IsNone())
-	{
-		FItemData ItemData = ItemDataSubsystem->GetItemDataByID(ItemID);
-		this->AmmoItemID = ItemData.RequiredAmmoID;
-		if (ItemData.PowerAmount > 0)
-		{
-			this->BaseDamage = ItemData.PowerAmount;
-		}
-	}
-
 	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponMesh"));
 	WeaponMesh->SetupAttachment(RootComponent);
 
@@ -89,11 +67,29 @@ void AWeaponItem::StartFire()
 		bIsAutomatic,
 		FirstDelay
 	);
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			1.5f,
+			FColor::Green,
+			FString::Printf(TEXT("Start Fire Triggered"))
+		);
+	}
 }
 
 void AWeaponItem::StopFire()
 {
 	GetWorldTimerManager().ClearTimer(AutoFireTimerHandle);
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			1.5f,
+			FColor::Red,
+			FString::Printf(TEXT("Stop Fire Triggered"))
+		);
+	}
 }
 
 
@@ -129,19 +125,32 @@ void AWeaponItem::FireWeapon()
 		FireHitScan();
 	}
 
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			1.5f,
+			FColor::Red,
+			FString::Printf(TEXT("Fired! Current Ammo: %d"), CurrentAmmo)
+		);
+	}
 	//발사 이펙트 및 사운드 재생 등 추가 구현 가능
 }
+
+
 
 void AWeaponItem::ReloadWeapon()
 {
 	if (CurrentAmmo >= MaxAmmo)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("Ammo is already full"));
 		return;
 	}
 
 	AActor* OwnerActor = GetOwner();
 	if (!OwnerActor)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("Weapon has no owner"));
 		return;
 	}
 
@@ -169,9 +178,10 @@ void AWeaponItem::ReloadWeapon()
 	{
 		CurrentAmmo += AmountToReload;
 		UE_LOG(LogTemp, Log, TEXT("Reloaded %d ammo. CurrentAmmo: %d"), AmountToReload, CurrentAmmo);
-
+		UE_LOG(LogTemp, Log, TEXT("Remaining ammo in inventory: %d"), InventoryComp->GetItemQuantity(AmmoItemID));
 		//재장전 애니메이션 및 사운드 재생 등 추가 구현 가능
 	}
+	
 }
 
 
@@ -277,7 +287,8 @@ void AWeaponItem::FireHitScan()
 {
 	//총구 위치와 방향 계산
 	FVector Start = WeaponMesh->GetSocketLocation(FName("Muzzle"));
-	FVector End = Start + (WeaponMesh->GetForwardVector() * WeaponRange);
+	FVector MuzzleDirection = WeaponMesh->GetSocketRotation(FName("Muzzle")).Vector();
+	FVector End = Start + (MuzzleDirection * WeaponRange);
 
 	for (int32 i = 0; i < Pellets; i++)
 	{
@@ -287,7 +298,7 @@ void AWeaponItem::FireHitScan()
 			FMath::RandRange(-SpreadAngle, SpreadAngle),
 			0.0f
 		);
-		FVector SpreadDirection = SpreadRot.RotateVector(WeaponMesh->GetForwardVector());
+		FVector SpreadDirection = SpreadRot.RotateVector(MuzzleDirection);
 		FVector SpreadEnd = Start + (SpreadDirection * WeaponRange);
 		//라인 트레이스 수행
 		FHitResult HitResult;
@@ -326,19 +337,19 @@ void AWeaponItem::FireHitScan()
 				false,
 				2.0f
 			);
-			//디버그용 라인 그리기
-			DrawDebugLine(
-				GetWorld(),
-				Start,
-				bHit ? HitResult.ImpactPoint : SpreadEnd,
-				FColor::Green,
-				false,
-				2.0f,
-				0,
-				1.0f
-			);
 			//임팩트 이펙트 재생 등 추가 구현 가능
 		}
+		//디버그용 라인 그리기
+		DrawDebugLine(
+			GetWorld(),
+			Start,
+			bHit ? HitResult.ImpactPoint : SpreadEnd,
+			bHit ? FColor::Green : FColor::Red,
+			false,
+			2.0f,
+			0,
+			1.0f
+		);
 	}
 }
 
