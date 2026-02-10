@@ -11,7 +11,7 @@ class USkeletalMeshComponent;
 class UStaticMeshComponent;
 class ABaseProjectile;
 
-UCLASS()
+UCLASS(Blueprintable)
 class TEAM3_PROJECT_API AWeaponItem : public ABaseItem
 {
 	GENERATED_BODY()
