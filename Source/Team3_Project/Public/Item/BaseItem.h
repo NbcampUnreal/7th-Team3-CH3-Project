@@ -10,7 +10,7 @@
 class USphereComponent;
 class UStaticMeshComponent;
 
-UCLASS()
+UCLASS(Blueprintable)
 class TEAM3_PROJECT_API ABaseItem : public AActor, public IInteractionInterface
 {
 	GENERATED_BODY()
