@@ -18,6 +18,9 @@ class TEAM3_PROJECT_API AEnemyController : public AAIController
 public:
 	AEnemyController();
 
+	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaTime) override;
+
 	UFUNCTION(BlueprintCallable, Category = "Controller")
 	virtual void OnPossess(APawn* InPawn) override;
 
@@ -64,12 +67,19 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI")
 	UBehaviorTree* BehaviorTree;
 
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI")
-	float AttackRadius;
+	float SightRange;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI")
+	float ChaseRange;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI")
+	float AttackRange;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI")
 	TObjectPtr<ACharacter> TargetActor;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI")
+	FVector TargetLocation;
 private:
 	UPROPERTY()
 	UStateBase* CurrentState;
@@ -80,8 +90,4 @@ private:
 	UStateBase* ChaseState;
 	UPROPERTY()
 	UStateBase* AttackState;
-
-	float SightRange;
-	float ChaseRange;
-	float AttackRange;
 };

@@ -2,22 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Enemy/EnemyTypeData.h"
 #include "EnemyCharacter.generated.h"
 
 class UStatComponent;
-
-//UENUM(BlueprintType)
-//enum class EEnemyState : uint8
-//{
-//	Idle,
-//	Moving,
-//	Chasing,
-//	Attacking,
-//	Hitting,
-//	Dead
-//};
-//
-//DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FEnemyStateChanged, EEnemyState, OldState, EEnemyState, NewState);
 
 UCLASS()
 class TEAM3_PROJECT_API AEnemyCharacter : public ACharacter
@@ -31,11 +19,13 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
+	virtual void Tick(float DeltaTime) override;
+
 	UFUNCTION(BlueprintCallable, Category = "Combat")
-	void Attack();
+	bool Attack();
 	
 	UFUNCTION(BlueprintCallable, Category = "Combat")
-	void SpecialAttack();
+	bool SpecialAttack();
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void OnFinishAttack();
@@ -65,10 +55,25 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Stat")
 	float GetDefence() const;
 
+	UFUNCTION(BlueprintPure, Category = "Combat")
+	bool IsAttackable();
+
+	float GetAttackCoolTime() const;
+	UAnimMontage* GetAttackMontage() const;
+	UAnimMontage* GetSpecialAttackMontage() const;
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
 	UStatComponent* StatComp;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy")
 	FName EnemyName;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Data")
+	TObjectPtr<UEnemyTypeData> TypeData;
+
+	float LeftAttackCoolTime;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
+	bool bIsAttacking;
 };

@@ -1,5 +1,6 @@
 ﻿#include "Enemy/AttackState.h"
 #include "Enemy/EnemyController.h"
+#include "Enemy/EnemyCharacter.h"
 
 void UAttackState::EnterState()
 {
@@ -15,7 +16,17 @@ void UAttackState::TickState()
 		return;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("[AI] Attacking!"));
+	if (AEnemyCharacter* EnemyCharacter = Cast<AEnemyCharacter>(OwnerController->GetPawn()))
+	{
+		if (EnemyCharacter->Attack())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[AI] Attacking!"));
+		}
+		if (EnemyCharacter->SpecialAttack())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[AI] Special Attacking!"));
+		}
+	}
 }
 
 void UAttackState::ExitState()

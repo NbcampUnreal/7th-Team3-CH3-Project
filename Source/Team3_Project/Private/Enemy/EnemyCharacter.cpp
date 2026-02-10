@@ -7,12 +7,18 @@ AEnemyCharacter::AEnemyCharacter()
 	PrimaryActorTick.bCanEverTick = true;
 
 	StatComp = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
-	if (StatComp)
+	if (StatComp && TypeData)
 	{
-		StatComp->InitializeStat(FName("Healh"), 100.f, 0.f, 100.f);
-		StatComp->InitializeStat(FName("Attack"), 50.f, 0.f, 200.f);
-		StatComp->InitializeStat(FName("Defence"), 50.f, 0.f, 200.f);
+		float Health = TypeData->BaseHP;
+		float Attack = TypeData->BaseAttack;
+		float Defense = TypeData->BaseDefense;
+		StatComp->InitializeStat(FName("Healh"), Health, 0.f, Health);
+		StatComp->InitializeStat(FName("Attack"), Attack, 0.f, 200.f);
+		StatComp->InitializeStat(FName("Defence"), Defense, 0.f, 200.f);
 	}
+
+	LeftAttackCoolTime = 0.f;
+	bIsAttacking = false;
 }
 
 void AEnemyCharacter::BeginPlay()
@@ -20,23 +26,49 @@ void AEnemyCharacter::BeginPlay()
 	Super::BeginPlay();
 }
 
-void AEnemyCharacter::Attack()
+void AEnemyCharacter::Tick(float DeltaTime)
 {
-	// Todo 공격 몽타주 재생
+	Super::Tick(DeltaTime);
+
+	if (LeftAttackCoolTime > 0.f)
+	{
+		LeftAttackCoolTime = LeftAttackCoolTime - DeltaTime;
+		if (LeftAttackCoolTime < 0.f) LeftAttackCoolTime = 0.f;
+	}
 }
 
-void AEnemyCharacter::SpecialAttack()
+bool AEnemyCharacter::Attack()
 {
-	//// Todo 특수 공격 몽타주 재생
+	if (IsAttackable())
+	{
+		LeftAttackCoolTime = GetAttackCoolTime();
+		PlayAnimMontage(GetAttackMontage());
+		return true;
+	}
+
+	return false;
+}
+
+bool AEnemyCharacter::SpecialAttack()
+{
+	if (IsAttackable())
+	{
+		LeftAttackCoolTime = GetAttackCoolTime();
+		PlayAnimMontage(GetSpecialAttackMontage());
+		return true;
+	}
+	return false;
 }
 
 void AEnemyCharacter::OnFinishAttack()
 {
+	bIsAttacking = false;
 }
 
 
 void AEnemyCharacter::OnHitted()
 {
+	StopAnimMontage();
 }
 
 void AEnemyCharacter::OnDead()
@@ -84,4 +116,26 @@ float AEnemyCharacter::GetDefence() const
 	if (StatComp == nullptr) return 0.f;
 
 	return StatComp->GetCurrentStatValue(TEXT("Defence"));
+}
+
+bool AEnemyCharacter::IsAttackable()
+{
+	if (!FMath::IsNearlyZero(LeftAttackCoolTime)) return false;
+	
+	return bIsAttacking;
+}
+
+UAnimMontage* AEnemyCharacter::GetAttackMontage() const
+{
+	return TypeData ? TypeData->AttackMontage : nullptr;
+}
+
+UAnimMontage* AEnemyCharacter::GetSpecialAttackMontage() const
+{
+	return TypeData ? TypeData->SpecialAttackMontage : nullptr;
+}
+
+float AEnemyCharacter::GetAttackCoolTime() const
+{
+	return TypeData ? TypeData->AttackCoolTime : 5.f;
 }

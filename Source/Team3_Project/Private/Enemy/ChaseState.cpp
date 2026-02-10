@@ -21,6 +21,10 @@ void UChaseState::TickState()
 	}
 
 	// Todo 이동 중인 지 체크 후 이동중이 아니라면 이동
+	if (!(OwnerController->IsMoving()))
+	{
+		OwnerController->MoveToPlayer();
+	}
 }
 
 void UChaseState::ExitState()

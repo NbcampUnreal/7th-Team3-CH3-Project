@@ -8,6 +8,9 @@
 #include "Enemy/EnemyCharacter.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Enemy/StateBase.h"
+#include "Enemy/IdleState.h"
+#include "Enemy/ChaseState.h"
+#include "Enemy/AttackState.h"
 
 AEnemyController::AEnemyController()
     :BehaviorTree(nullptr),
@@ -18,8 +21,13 @@ AEnemyController::AEnemyController()
     CurrentState(nullptr),
     SightRange(1000.f),
     ChaseRange(1500.f),
-    AttackRadius(300.f)
+    AttackRange(300.f),
+    IdleState(nullptr),
+    ChaseState(nullptr),
+    AttackState(nullptr)
 {
+    PrimaryActorTick.bCanEverTick = true;
+
     AIPerceptionComponent = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("AIPerception"));
     SetPerceptionComponent(*AIPerceptionComponent);
 
@@ -62,6 +70,31 @@ AEnemyController::AEnemyController()
         this,
         &AEnemyController::OnTargetPerceptionForgotten
     );
+}
+
+void AEnemyController::BeginPlay()
+{
+    Super::BeginPlay();
+
+    // State 생성
+    IdleState = NewObject<UIdleState>(this);
+    IdleState->Init(this);
+    ChaseState = NewObject<UChaseState>(this);
+    ChaseState->Init(this);
+    AttackState = NewObject<UAttackState>(this);
+    AttackState->Init(this);
+
+    ChangeState(IdleState);
+}
+
+void AEnemyController::Tick(float DeltaTime)
+{
+    Super::Tick(DeltaTime);
+
+    if (CurrentState != nullptr)
+    {
+        CurrentState->TickState();
+    }
 }
 
 void AEnemyController::OnPossess(APawn* InPawn)
@@ -120,15 +153,35 @@ bool AEnemyController::IsPlayerInRange(float Range) const
 
 void AEnemyController::MoveToRandomLocation()
 {
+    FVector CharacterLocation = GetPawn()->GetActorLocation();
+    float Dist = (CharacterLocation - TargetLocation).Size();
+    if (FMath::IsNearlyZero(Dist))
+    {
+        TargetLocation = CharacterLocation + FVector(FMath::FRandRange(-100.f, 100.f));
+    }
+
+    MoveToLocation(TargetLocation);
 }
 
 void AEnemyController::MoveToPlayer()
 {
+    if (IsValid(TargetActor))
+    {
+        MoveToActor(TargetActor);
+    }
 }
 
 bool AEnemyController::IsMoving() const
 {
-    return false;
+    UCharacterMovementComponent* MovementComp =
+        GetPawn()->GetComponentByClass<UCharacterMovementComponent>();
+    if (!MovementComp) return false;
+    else if (FMath::IsNearlyZero(MovementComp->GetLastUpdateVelocity().Size()))
+    {
+        return false;
+    }
+
+    return true;
 }
 
 void AEnemyController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
@@ -174,6 +227,7 @@ void AEnemyController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stim
             {
                 BB->SetValueAsVector(FName(""), Stimulus.StimulusLocation);
             }
+            TargetLocation = Stimulus.StimulusLocation;
         }
         else
         {
