@@ -32,10 +32,14 @@ public:
 	virtual void ReloadWeapon();
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon|Attachment")
-	virtual void EquipAttachment(FName AttachmentID);
+	virtual FName EquipAttachment(FName AttachmentID);
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon|Attachment")
 	virtual void UnequipAttachment(FName AttachmentID);
+
+	const TMap<EAttachmentType, FName>& GetAttachmentState() const { return EquippedAttachments; }
+
+	void ApplyAttachmentState(const TMap<EAttachmentType, FName>& InAttachments);
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon|Components")
@@ -90,11 +94,32 @@ protected:
 	bool bIsAutomatic = true;
 
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon|State")
+	bool bIsSilenced = false;
+
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Config")
 	bool bIsProjectile = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Config")
 	TSubclassOf<ABaseProjectile> ProjectileClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Config")
+	USoundBase* DefaultFireSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Config")
+	USoundBase* SilencedFireSound;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon|Attachment")
+	TMap<EAttachmentType, FName> EquippedAttachments;
+
+	void RecalculateStats();
+
+	float OriginalRecoil;
+	float OriginalRange;
+	int32 OriginalMaxAmmo;
+	float OriginalSpread;
+	float OriginalDamage;
 	
 	void FireHitScan();
 	void FireProjectile();

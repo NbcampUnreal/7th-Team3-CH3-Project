@@ -17,6 +17,7 @@ enum class EItemType : uint8
 	IT_Ammo UMETA(DisplayName = "Ammo"),
 	IT_Attachment UMETA(DisplayName = "Attachment"),
 	IT_Ingredient UMETA(DisplayName = "Ingredient"),
+	IT_QuestItem UMETA(DisplayName = "Quest Item"),
 	IT_None UMETA(DisplayName = "None")
 };
 
@@ -76,6 +77,9 @@ public:
 	TSoftObjectPtr<UStaticMesh> PickupMesh;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSoftObjectPtr<UStaticMesh> AttachmentMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSoftClassPtr<ABaseItem> ItemClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -96,6 +100,9 @@ struct FInventoryItem
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 Quantity;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TMap<EAttachmentType, FName> AttachmentState;
 
 };
 

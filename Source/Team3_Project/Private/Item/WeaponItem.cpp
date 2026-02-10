@@ -43,6 +43,13 @@ AWeaponItem::AWeaponItem()
 	SpreadAngle = 1.0f;
 	bIsProjectile = false;
 	LastFireTime = 0.0f;
+
+	// 원래 값 저장
+	OriginalDamage = BaseDamage;
+	OriginalSpread = SpreadAngle;
+	OriginalRecoil = CurrentRecoil;
+	OriginalMaxAmmo = MaxAmmo;
+	OriginalRange = WeaponRange;
 }
 
 
@@ -194,19 +201,19 @@ void AWeaponItem::ReloadWeapon()
 
 
 
-
-void AWeaponItem::EquipAttachment(FName AttachmentID)
+//반환값 : 이전에 장착된 부착물의 ItemID, 없으면 NAME_None
+FName AWeaponItem::EquipAttachment(FName AttachmentID)
 {
 	UGameInstance* GameInstance = UGameplayStatics::GetGameInstance(this);
 	if (!GameInstance)
 	{
-		return;
+		return NAME_None;
 	}
 
 	UItemDataSubsystem* ItemDataSubsystem = GameInstance->GetSubsystem<UItemDataSubsystem>();
 	if (!ItemDataSubsystem)
 	{
-		return;
+		return NAME_None;
 	}
 
 	FItemData AttachmentData = ItemDataSubsystem->GetItemDataByID(AttachmentID);
@@ -214,14 +221,36 @@ void AWeaponItem::EquipAttachment(FName AttachmentID)
 	if (AttachmentData.ItemType != EItemType::IT_Attachment)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("ItemID %s is not an attachment"), *AttachmentID.ToString());
-		return;
+		return NAME_None;
 	}
 
-	UStaticMeshComponent* TargetMesh = GetAttachmentComponentByType(AttachmentData.AttachmentType);
+	EAttachmentType SlotType = AttachmentData.AttachmentType;
+	FName ReturnedItem = NAME_None;
+
+	// 이미 해당 슬롯에 장착된 부착물이 있는 경우 처리
+	if (EquippedAttachments.Contains(SlotType))
+	{
+		ReturnedItem = EquippedAttachments[SlotType];
+		UStaticMeshComponent* TargetMesh = GetAttachmentComponentByType(SlotType);
+		if (TargetMesh)
+		{
+			TargetMesh->SetStaticMesh(nullptr);
+			TargetMesh->SetVisibility(false);
+			TargetMesh->SetHiddenInGame(true);
+			UE_LOG(LogTemp, Log, TEXT("Unequipped attachment %s"), *ReturnedItem.ToString());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("No valid attachment component for type %d"), (int32)AttachmentData.AttachmentType);
+		}
+		EquippedAttachments.Remove(SlotType);
+	}
+
+	UStaticMeshComponent* TargetMesh = GetAttachmentComponentByType(SlotType);
 
 	if (TargetMesh)
 	{
-		UStaticMesh* AttachmentMesh = AttachmentData.PickupMesh.LoadSynchronous();
+		UStaticMesh* AttachmentMesh = AttachmentData.AttachmentMesh.LoadSynchronous();
 		if (AttachmentMesh)
 		{
 			TargetMesh->SetStaticMesh(AttachmentMesh);
@@ -233,11 +262,15 @@ void AWeaponItem::EquipAttachment(FName AttachmentID)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Failed to load mesh for attachment %s"), *AttachmentID.ToString());
 		}
+		EquippedAttachments.Add(SlotType, AttachmentID);
+		RecalculateStats();
 	}
 	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("No valid attachment component for type %d"), (int32)AttachmentData.AttachmentType);
 	}
+
+	return ReturnedItem;
 }
 
 void AWeaponItem::UnequipAttachment(FName AttachmentID)
@@ -256,6 +289,10 @@ void AWeaponItem::UnequipAttachment(FName AttachmentID)
 
 	FItemData AttachmentData = ItemDataSubsystem->GetItemDataByID(AttachmentID);
 
+	EAttachmentType SlotType = AttachmentData.AttachmentType;
+
+
+
 	UStaticMeshComponent* TargetMesh = GetAttachmentComponentByType(AttachmentData.AttachmentType);
 
 	if (TargetMesh)
@@ -269,6 +306,47 @@ void AWeaponItem::UnequipAttachment(FName AttachmentID)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("No valid attachment component for type %d"), (int32)AttachmentData.AttachmentType);
 	}
+}
+
+
+
+void AWeaponItem::ApplyAttachmentState(const TMap<EAttachmentType, FName>& InAttachments)
+{
+
+	EquippedAttachments = InAttachments;
+
+	for (const auto& Pair : EquippedAttachments)
+	{
+		EAttachmentType Type = Pair.Key;
+		FName AttachmentItemID = Pair.Value;
+
+		UGameInstance* GameInstance = UGameplayStatics::GetGameInstance(this);
+		if (!GameInstance)
+		{
+			continue;
+		}
+		UItemDataSubsystem* ItemDataSubsystem = GameInstance->GetSubsystem<UItemDataSubsystem>();
+		if (!ItemDataSubsystem)
+		{
+			continue;
+		}
+
+		FItemData AttachmentData = ItemDataSubsystem->GetItemDataByID(AttachmentItemID);
+		UStaticMeshComponent* TargetMesh = GetAttachmentComponentByType(Type);
+
+		if (TargetMesh)
+		{
+			UStaticMesh* AttachmentMesh = AttachmentData.AttachmentMesh.LoadSynchronous();
+			if (AttachmentMesh)
+			{
+				TargetMesh->SetStaticMesh(AttachmentMesh);
+				TargetMesh->SetVisibility(true);
+				TargetMesh->SetHiddenInGame(false);
+				UE_LOG(LogTemp, Log, TEXT("Applied attachment %s"), *AttachmentItemID.ToString());
+			}
+		}
+	}
+	RecalculateStats();
 }
 
 
@@ -379,16 +457,6 @@ void AWeaponItem::FireProjectile()
 
 
 
-
-
-
-
-
-
-
-
-
-
 UStaticMeshComponent* AWeaponItem::GetAttachmentComponentByType(EAttachmentType Type) const
 {
 	switch (Type)
@@ -407,5 +475,66 @@ UStaticMeshComponent* AWeaponItem::GetAttachmentComponentByType(EAttachmentType 
 		return nullptr;
 	default:
 		return nullptr;
+	}
+}
+
+
+
+void AWeaponItem::RecalculateStats()
+{
+	// 원래 값 복원
+	BaseDamage = OriginalDamage;
+	SpreadAngle = OriginalSpread;
+	CurrentRecoil = OriginalRecoil;
+	MaxAmmo = OriginalMaxAmmo;
+	WeaponRange = OriginalRange;
+
+	UGameInstance* GameInstance = UGameplayStatics::GetGameInstance(this);
+	if (!GameInstance)
+	{
+		return;
+	}
+	UItemDataSubsystem* ItemDataSubsystem = GameInstance->GetSubsystem<UItemDataSubsystem>();
+	if (!ItemDataSubsystem)
+	{
+		return;
+	}
+
+	for (const auto& Pair : EquippedAttachments)
+	{
+		EAttachmentType Type = Pair.Key;
+		FName AttachmentItemID = Pair.Value;
+
+		FItemData Data = ItemDataSubsystem->GetItemDataByID(AttachmentItemID);
+
+		// 타입에 따른 스탯 보정 적용
+		switch (Type)
+		{
+		case EAttachmentType::AT_Scope:
+			WeaponRange += Data.PowerAmount;
+			UE_LOG(LogTemp, Log, TEXT("Scope attached, new WeaponRange: %f"), WeaponRange);
+			break;
+		case EAttachmentType::AT_Barrel:
+			SpreadAngle -= Data.PowerAmount;
+			UE_LOG(LogTemp, Log, TEXT("Barrel attached, new SpreadAngle: %f"), SpreadAngle);
+
+			if (ItemID.ToString().Contains("Silencer"))
+			{
+				bIsSilenced = true;
+			}
+			break;
+		case EAttachmentType::AT_Magazine:
+			MaxAmmo += FMath::RoundToInt(Data.PowerAmount);
+			UE_LOG(LogTemp, Log, TEXT("Magazine attached, new MaxAmmo: %d"), MaxAmmo);
+			break;
+		case EAttachmentType::AT_Underbarrel:
+			CurrentRecoil *= (1.0f - Data.PowerAmount);
+			UE_LOG(LogTemp, Log, TEXT("Underbarrel attached, new CurrentRecoil: %f"), CurrentRecoil);
+			break;
+		case EAttachmentType::AT_Stock:
+			BaseDamage += Data.PowerAmount;
+			UE_LOG(LogTemp, Log, TEXT("Stock attached, new BaseDamage: %f"), BaseDamage);
+			break;
+		}
 	}
 }
