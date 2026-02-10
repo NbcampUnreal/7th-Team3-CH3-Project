@@ -28,45 +28,20 @@ class ATeam3_ProjectCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
-	/** Camera boom positioning the camera behind the character */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-	USpringArmComponent* CameraBoom;
-
-	/** Follow camera */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-	UCameraComponent* FollowCamera;
-	
-	/** MappingContext */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputMappingContext* DefaultMappingContext;
-
-	/** Jump Input Action */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* JumpAction;
-
-	/** Move Input Action */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* MoveAction;
-
-	/** Look Input Action */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* LookAction;
 
 public:
 	ATeam3_ProjectCharacter();
 
 public:
-	/** Returns CameraBoom subobject **/
-	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
-	/** Returns FollowCamera subobject **/
-	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
-
-public:
 	// --- 상태 변경 ---
 	UFUNCTION(BlueprintCallable, Category = "State")
 	void SetCharacterState(ECharacterState NewState);
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State")
 	ECharacterState CurrentState;
+
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnStateChanged OnStateChanged;
 
@@ -120,36 +95,12 @@ public:
 	UInputAction* InteractAction;
 
 protected:
-	UPROPERTY(EditAnywhere, Category = "Movement")
-	float WalkSpeed = 300.f;
-
-	UPROPERTY(EditAnywhere, Category = "Movement")
-	float SprintSpeed = 600.f;
-
-	UPROPERTY(EditAnywhere, Category = "Movement")
-	float AimWalkSpeed = 200.f; // 조준하며 걸을 때
-
 	// 조준 중인지 확인 (상태와 별개로 체크 - 추후 상하체 동작 분리 위해..아마..?)
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State")
 	bool bIsAiming;
-
-	void Move(const FInputActionValue& Value);
-	void Look(const FInputActionValue& Value);
-	void StartSprint();
-	void StopSprint();
-
-	void OnStateEnter(ECharacterState NewState);
-	void OnStateExit(ECharacterState OldState);
-
-			
+	
 protected:
 	virtual void NotifyControllerChanged() override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	
-private:
-	// 조준시 카메라 길이 및 시야각
-	float DefaultBaseLookUpRate = 45.f;
-	float AimArmLength = 150.f; // 조준 시 카메라 지지대 길이
-	float DefaultArmLength = 300.f; // 평소 길이
 };
-
