@@ -15,6 +15,28 @@ AWeaponItem::AWeaponItem()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
+	UGameInstance* GameInstance = UGameplayStatics::GetGameInstance(this);
+	if (!GameInstance)
+	{
+		return;
+	}
+
+	UItemDataSubsystem* ItemDataSubsystem = GameInstance->GetSubsystem<UItemDataSubsystem>();
+	if (!ItemDataSubsystem)
+	{
+		return;
+	}
+
+	if (!ItemID.IsNone())
+	{
+		FItemData ItemData = ItemDataSubsystem->GetItemDataByID(ItemID);
+		this->AmmoItemID = ItemData.RequiredAmmoID;
+		if (ItemData.PowerAmount > 0)
+		{
+			this->BaseDamage = ItemData.PowerAmount;
+		}
+	}
+
 	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponMesh"));
 	WeaponMesh->SetupAttachment(RootComponent);
 
