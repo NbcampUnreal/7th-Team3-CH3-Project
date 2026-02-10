@@ -39,23 +39,22 @@ void ATeam3_ProjectCharacter::NotifyControllerChanged()
 
 void ATeam3_ProjectCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
-	// 1. 여기서 Cast를 해서 'EnhancedInputComponent'라는 변수를 만들어줘야 합니다!
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
-		// 조준 (Aim)
+		// 조준
 		if (AimAction)
 		{
 			EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Started, this, &ATeam3_ProjectCharacter::StartAiming);
 			EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Completed, this, &ATeam3_ProjectCharacter::StopAiming);
 		}
 
-		// 공격 (Attack)
+		// 공격
 		if (AttackAction)
 		{
 			EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &ATeam3_ProjectCharacter::Attack);
 		}
 
-		// 상호작용 (Interact)
+		// 상호작용
 		if (InteractAction)
 		{
 			EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &ATeam3_ProjectCharacter::TryInteract);
