@@ -117,18 +117,9 @@ void AWeaponItem::StopFire()
 
 
 
-
-
-
-
-
-
-
-
-
 void AWeaponItem::FireWeapon()
 {
-	if (bIsReloading && CurrentAmmo <= 0)
+	if (bIsReloading || CurrentAmmo <= 0)
 	{
 		StopFire();
 		return;
@@ -440,10 +431,49 @@ void AWeaponItem::ApplyAttachmentState(const TMap<EAttachmentType, FName>& InAtt
 
 void AWeaponItem::FireHitScan()
 {
-	//총구 위치와 방향 계산
+	AActor* OwnerActor = GetOwner();
+	if (!OwnerActor)
+	{
+		return;
+	}
+
+	APawn* OwnerPawn = Cast<APawn>(OwnerActor);
+	if (!OwnerPawn)
+	{
+		return;
+	}
+
+	APlayerController* PC = Cast<APlayerController>(OwnerPawn->GetController());
+	if (!PC)
+	{
+		return;
+	}
+
+	FVector CameraLocation;
+	FRotator CameraRotation;
+	PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
+
+	FVector CameraTraceEnd = CameraLocation + (CameraRotation.Vector() * WeaponRange);
+
+	FCollisionQueryParams CameraQueryParams;
+	CameraQueryParams.AddIgnoredActor(this);
+	CameraQueryParams.AddIgnoredActor(OwnerActor);
+
+	FHitResult CameraHit;
+	FVector TargetPoint = CameraTraceEnd;
+	if (GetWorld()->LineTraceSingleByChannel(
+		CameraHit,
+		CameraLocation,
+		CameraTraceEnd,
+		ECC_Visibility,
+		CameraQueryParams
+	))
+	{
+		TargetPoint = CameraHit.ImpactPoint;
+	}
+
 	FVector Start = WeaponMesh->GetSocketLocation(FName("Muzzle"));
-	FVector MuzzleDirection = WeaponMesh->GetSocketRotation(FName("Muzzle")).Vector();
-	FVector End = Start + (MuzzleDirection * WeaponRange);
+	FVector MuzzleDirection = (TargetPoint - Start).GetSafeNormal();
 
 	for (int32 i = 0; i < Pellets; i++)
 	{
@@ -456,16 +486,18 @@ void AWeaponItem::FireHitScan()
 		FVector SpreadDirection = SpreadRot.RotateVector(MuzzleDirection);
 		FVector SpreadEnd = Start + (SpreadDirection * WeaponRange);
 		//라인 트레이스 수행
+
 		FHitResult HitResult;
-		FCollisionQueryParams QueryParams;
-		QueryParams.AddIgnoredActor(this);
-		QueryParams.AddIgnoredActor(GetOwner());
+		FCollisionQueryParams BulletQueryParams;
+		BulletQueryParams.AddIgnoredActor(this);
+		BulletQueryParams.AddIgnoredActor(OwnerActor);
+
 		bool bHit = GetWorld()->LineTraceSingleByChannel(
 			HitResult,
 			Start,
 			SpreadEnd,
 			ECC_Visibility,
-			QueryParams
+			BulletQueryParams
 		);
 		if (bHit)
 		{
@@ -508,11 +540,58 @@ void AWeaponItem::FireHitScan()
 	}
 }
 
+
+
 void AWeaponItem::FireProjectile()
 {
 	if (ProjectileClass)
 	{
-		FTransform SpawnTransform = WeaponMesh->GetSocketTransform(FName("Muzzle"));
+		AActor* OwnerActor = GetOwner();
+		if (!OwnerActor)
+		{
+			return;
+		}
+
+		APawn* OwnerPawn = Cast<APawn>(OwnerActor);
+		if (!OwnerPawn)
+		{
+			return;
+		}
+
+		APlayerController* PC = Cast<APlayerController>(OwnerPawn->GetController());
+		if (!PC)
+		{
+			return;
+		}
+
+		FVector CameraLocation;
+		FRotator CameraRotation;
+		PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
+
+		FVector CameraTraceEnd = CameraLocation + (CameraRotation.Vector() * WeaponRange);
+
+		FCollisionQueryParams CameraQueryParams;
+		CameraQueryParams.AddIgnoredActor(this);
+		CameraQueryParams.AddIgnoredActor(OwnerActor);
+
+		FHitResult CameraHit;
+		FVector TargetPoint = CameraTraceEnd;
+		if (GetWorld()->LineTraceSingleByChannel(
+			CameraHit,
+			CameraLocation,
+			CameraTraceEnd,
+			ECC_Visibility,
+			CameraQueryParams
+		))
+		{
+			TargetPoint = CameraHit.ImpactPoint;
+		}
+
+		FVector Start = WeaponMesh->GetSocketLocation(FName("Muzzle"));
+		FVector MuzzleDirection = (TargetPoint - Start).GetSafeNormal();
+		FRotator SpawnRotation = MuzzleDirection.Rotation();
+
+		FTransform SpawnTransform(SpawnRotation, Start);
 
 		ABaseProjectile* NewProjectile = GetWorld()->SpawnActorDeferred<ABaseProjectile>(
 			ProjectileClass,
