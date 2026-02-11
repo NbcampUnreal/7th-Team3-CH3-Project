@@ -9,7 +9,7 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryUpdated);
 
-
+class AWeaponItem;
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class TEAM3_PROJECT_API UInventoryComponent : public UActorComponent
@@ -22,8 +22,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	int32 AddItem(FName ItemID, int32 Quantity);
 
+	int32 AddItem(FName ItemID, int32 Quantity, const TMap<EAttachmentType, FName>& InAttachments);
+
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool RemoveItem(FName ItemID, int32 Quantity);
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	bool RequestUseItem(FName ItemID);
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	bool HasItem(FName ItemID, int32 Quantity) const;
@@ -43,4 +48,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 Capacity = 20;
+
+private:
+	AWeaponItem* FindEquippedWeapon() const;
+
+	bool HandleWeaponEquip(const FItemData& Data, FName ItemID);
+	bool HandleAttachmentEquip(const FItemData& Data, FName ItemID);
+	bool HandleArmorEquip(const FItemData& Data, FName ItemID);
+	bool HandleConsumableUse(const FItemData& Data, FName ItemID);
 };

@@ -43,6 +43,13 @@ AWeaponItem::AWeaponItem()
 	SpreadAngle = 1.0f;
 	bIsProjectile = false;
 	LastFireTime = 0.0f;
+
+	// 원래 값 저장
+	OriginalDamage = BaseDamage;
+	OriginalSpread = SpreadAngle;
+	OriginalRecoil = CurrentRecoil;
+	OriginalMaxAmmo = MaxAmmo;
+	OriginalRange = WeaponRange;
 }
 
 
@@ -55,6 +62,20 @@ AWeaponItem::AWeaponItem()
 
 void AWeaponItem::StartFire()
 {
+	if (bIsReloading)
+	{
+		if(GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(
+				-1,
+				1.5f,
+				FColor::Yellow,
+				FString::Printf(TEXT("Cannot fire while reloading!"))
+			);
+		}	
+		return;
+	}
+
 	// 기본 딜레이 계산
 	float FirstDelay = FMath::Max(LastFireTime + TimeBetweenShots - GetWorld()->TimeSeconds, 0.0f);
 
@@ -107,7 +128,7 @@ void AWeaponItem::StopFire()
 
 void AWeaponItem::FireWeapon()
 {
-	if (CurrentAmmo <= 0)
+	if (bIsReloading && CurrentAmmo <= 0)
 	{
 		StopFire();
 		return;
@@ -141,6 +162,12 @@ void AWeaponItem::FireWeapon()
 
 void AWeaponItem::ReloadWeapon()
 {
+	if (bIsReloading)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Already reloading"));
+		return;
+	}
+
 	if (CurrentAmmo >= MaxAmmo)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Ammo is already full"));
@@ -172,16 +199,75 @@ void AWeaponItem::ReloadWeapon()
 		return;
 	}
 
+	bIsReloading = true;
+	StopFire();
+
+	GetWorldTimerManager().SetTimer(
+		ReloadTimerHandle,
+		this,
+		&AWeaponItem::FinishReloading,
+		ReloadTime,
+		false
+	);
+	
+	UE_LOG(LogTemp, Log, TEXT("Reloading started"));
+
+}
+
+void AWeaponItem::StopReload()
+{
+	if (!bIsReloading)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Not currently reloading"));
+		return;
+	}
+
+	bIsReloading = false;
+	GetWorldTimerManager().ClearTimer(ReloadTimerHandle);
+	UE_LOG(LogTemp, Log, TEXT("Reloading stopped"));
+
+	//추후 추가 로직 사용 가능(애니메이션 캔슬 등)
+}
+
+void AWeaponItem::FinishReloading()
+{
+	bIsReloading = false;
+
+	AActor* OwnerActor = GetOwner();
+	if (!OwnerActor)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Weapon has no owner"));
+		return;
+	}
+	UInventoryComponent* InventoryComp = OwnerActor->FindComponentByClass<UInventoryComponent>();
+	if (!InventoryComp)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("InventoryComponent not found on OwnerActor"));
+		return;
+	}
+
+	int32 AmmoNeeded = MaxAmmo - CurrentAmmo;
+	if (AmmoNeeded <= 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("No ammo needed for reload"));
+		return;
+	}
+	int32 AmmoAvailable = InventoryComp->GetItemQuantity(AmmoItemID);
+	int32 AmmoToReload = FMath::Min(AmmoNeeded, AmmoAvailable);
+
+
 	int32 AmountToReload = FMath::Min(AmmoNeeded, AmmoAvailable);
 
-	if (InventoryComp->RemoveItem(AmmoItemID, AmountToReload))
+	if (AmountToReload > 0 && InventoryComp->RemoveItem(AmmoItemID, AmountToReload))
 	{
 		CurrentAmmo += AmountToReload;
 		UE_LOG(LogTemp, Log, TEXT("Reloaded %d ammo. CurrentAmmo: %d"), AmountToReload, CurrentAmmo);
 		UE_LOG(LogTemp, Log, TEXT("Remaining ammo in inventory: %d"), InventoryComp->GetItemQuantity(AmmoItemID));
-		//재장전 애니메이션 및 사운드 재생 등 추가 구현 가능
 	}
-	
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Failed to reload ammo"));
+	}
 }
 
 
@@ -192,21 +278,19 @@ void AWeaponItem::ReloadWeapon()
 
 
 
-
-
-
-void AWeaponItem::EquipAttachment(FName AttachmentID)
+//반환값 : 이전에 장착된 부착물의 ItemID, 없으면 NAME_None
+FName AWeaponItem::EquipAttachment(FName AttachmentID)
 {
 	UGameInstance* GameInstance = UGameplayStatics::GetGameInstance(this);
 	if (!GameInstance)
 	{
-		return;
+		return NAME_None;
 	}
 
 	UItemDataSubsystem* ItemDataSubsystem = GameInstance->GetSubsystem<UItemDataSubsystem>();
 	if (!ItemDataSubsystem)
 	{
-		return;
+		return NAME_None;
 	}
 
 	FItemData AttachmentData = ItemDataSubsystem->GetItemDataByID(AttachmentID);
@@ -214,14 +298,36 @@ void AWeaponItem::EquipAttachment(FName AttachmentID)
 	if (AttachmentData.ItemType != EItemType::IT_Attachment)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("ItemID %s is not an attachment"), *AttachmentID.ToString());
-		return;
+		return NAME_None;
 	}
 
-	UStaticMeshComponent* TargetMesh = GetAttachmentComponentByType(AttachmentData.AttachmentType);
+	EAttachmentType SlotType = AttachmentData.AttachmentType;
+	FName ReturnedItem = NAME_None;
+
+	// 이미 해당 슬롯에 장착된 부착물이 있는 경우 처리
+	if (EquippedAttachments.Contains(SlotType))
+	{
+		ReturnedItem = EquippedAttachments[SlotType];
+		UStaticMeshComponent* TargetMesh = GetAttachmentComponentByType(SlotType);
+		if (TargetMesh)
+		{
+			TargetMesh->SetStaticMesh(nullptr);
+			TargetMesh->SetVisibility(false);
+			TargetMesh->SetHiddenInGame(true);
+			UE_LOG(LogTemp, Log, TEXT("Unequipped attachment %s"), *ReturnedItem.ToString());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("No valid attachment component for type %d"), (int32)AttachmentData.AttachmentType);
+		}
+		EquippedAttachments.Remove(SlotType);
+	}
+
+	UStaticMeshComponent* TargetMesh = GetAttachmentComponentByType(SlotType);
 
 	if (TargetMesh)
 	{
-		UStaticMesh* AttachmentMesh = AttachmentData.PickupMesh.LoadSynchronous();
+		UStaticMesh* AttachmentMesh = AttachmentData.AttachmentMesh.LoadSynchronous();
 		if (AttachmentMesh)
 		{
 			TargetMesh->SetStaticMesh(AttachmentMesh);
@@ -233,11 +339,15 @@ void AWeaponItem::EquipAttachment(FName AttachmentID)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Failed to load mesh for attachment %s"), *AttachmentID.ToString());
 		}
+		EquippedAttachments.Add(SlotType, AttachmentID);
+		RecalculateStats();
 	}
 	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("No valid attachment component for type %d"), (int32)AttachmentData.AttachmentType);
 	}
+
+	return ReturnedItem;
 }
 
 void AWeaponItem::UnequipAttachment(FName AttachmentID)
@@ -256,6 +366,10 @@ void AWeaponItem::UnequipAttachment(FName AttachmentID)
 
 	FItemData AttachmentData = ItemDataSubsystem->GetItemDataByID(AttachmentID);
 
+	EAttachmentType SlotType = AttachmentData.AttachmentType;
+
+
+
 	UStaticMeshComponent* TargetMesh = GetAttachmentComponentByType(AttachmentData.AttachmentType);
 
 	if (TargetMesh)
@@ -269,6 +383,47 @@ void AWeaponItem::UnequipAttachment(FName AttachmentID)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("No valid attachment component for type %d"), (int32)AttachmentData.AttachmentType);
 	}
+}
+
+
+
+void AWeaponItem::ApplyAttachmentState(const TMap<EAttachmentType, FName>& InAttachments)
+{
+
+	EquippedAttachments = InAttachments;
+
+	for (const auto& Pair : EquippedAttachments)
+	{
+		EAttachmentType Type = Pair.Key;
+		FName AttachmentItemID = Pair.Value;
+
+		UGameInstance* GameInstance = UGameplayStatics::GetGameInstance(this);
+		if (!GameInstance)
+		{
+			continue;
+		}
+		UItemDataSubsystem* ItemDataSubsystem = GameInstance->GetSubsystem<UItemDataSubsystem>();
+		if (!ItemDataSubsystem)
+		{
+			continue;
+		}
+
+		FItemData AttachmentData = ItemDataSubsystem->GetItemDataByID(AttachmentItemID);
+		UStaticMeshComponent* TargetMesh = GetAttachmentComponentByType(Type);
+
+		if (TargetMesh)
+		{
+			UStaticMesh* AttachmentMesh = AttachmentData.AttachmentMesh.LoadSynchronous();
+			if (AttachmentMesh)
+			{
+				TargetMesh->SetStaticMesh(AttachmentMesh);
+				TargetMesh->SetVisibility(true);
+				TargetMesh->SetHiddenInGame(false);
+				UE_LOG(LogTemp, Log, TEXT("Applied attachment %s"), *AttachmentItemID.ToString());
+			}
+		}
+	}
+	RecalculateStats();
 }
 
 
@@ -381,14 +536,6 @@ void AWeaponItem::FireProjectile()
 
 
 
-
-
-
-
-
-
-
-
 UStaticMeshComponent* AWeaponItem::GetAttachmentComponentByType(EAttachmentType Type) const
 {
 	switch (Type)
@@ -407,5 +554,66 @@ UStaticMeshComponent* AWeaponItem::GetAttachmentComponentByType(EAttachmentType 
 		return nullptr;
 	default:
 		return nullptr;
+	}
+}
+
+
+
+void AWeaponItem::RecalculateStats()
+{
+	// 원래 값 복원
+	BaseDamage = OriginalDamage;
+	SpreadAngle = OriginalSpread;
+	CurrentRecoil = OriginalRecoil;
+	MaxAmmo = OriginalMaxAmmo;
+	WeaponRange = OriginalRange;
+
+	UGameInstance* GameInstance = UGameplayStatics::GetGameInstance(this);
+	if (!GameInstance)
+	{
+		return;
+	}
+	UItemDataSubsystem* ItemDataSubsystem = GameInstance->GetSubsystem<UItemDataSubsystem>();
+	if (!ItemDataSubsystem)
+	{
+		return;
+	}
+
+	for (const auto& Pair : EquippedAttachments)
+	{
+		EAttachmentType Type = Pair.Key;
+		FName AttachmentItemID = Pair.Value;
+
+		FItemData Data = ItemDataSubsystem->GetItemDataByID(AttachmentItemID);
+
+		// 타입에 따른 스탯 보정 적용
+		switch (Type)
+		{
+		case EAttachmentType::AT_Scope:
+			WeaponRange += Data.PowerAmount;
+			UE_LOG(LogTemp, Log, TEXT("Scope attached, new WeaponRange: %f"), WeaponRange);
+			break;
+		case EAttachmentType::AT_Barrel:
+			SpreadAngle -= Data.PowerAmount;
+			UE_LOG(LogTemp, Log, TEXT("Barrel attached, new SpreadAngle: %f"), SpreadAngle);
+
+			if (ItemID.ToString().Contains("Silencer"))
+			{
+				bIsSilenced = true;
+			}
+			break;
+		case EAttachmentType::AT_Magazine:
+			MaxAmmo += FMath::RoundToInt(Data.PowerAmount);
+			UE_LOG(LogTemp, Log, TEXT("Magazine attached, new MaxAmmo: %d"), MaxAmmo);
+			break;
+		case EAttachmentType::AT_Underbarrel:
+			CurrentRecoil *= (1.0f - Data.PowerAmount);
+			UE_LOG(LogTemp, Log, TEXT("Underbarrel attached, new CurrentRecoil: %f"), CurrentRecoil);
+			break;
+		case EAttachmentType::AT_Stock:
+			BaseDamage += Data.PowerAmount;
+			UE_LOG(LogTemp, Log, TEXT("Stock attached, new BaseDamage: %f"), BaseDamage);
+			break;
+		}
 	}
 }
