@@ -43,6 +43,17 @@ enum class EAttachmentType : uint8
 	AT_None UMETA(DisplayName = "None")
 };
 
+UENUM(BlueprintType)
+enum class EConsumableType : uint8
+{
+	CT_Health UMETA(DisplayName = "Health"),
+	CT_Stamina UMETA(DisplayName = "Stamina"),
+	CT_Adrenaline UMETA(DisplayName = "Adrenaline"),
+	CT_WhiteKarma UMETA(DisplayName = "White Karma"),
+	CT_BlackKarma UMETA(DisplayName = "Black Karma"),
+	CT_None UMETA(DisplayName = "None")
+};
+
 USTRUCT(BlueprintType)
 struct FItemData : public FTableRowBase
 {
@@ -63,6 +74,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	EAttachmentType AttachmentType;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EConsumableType ConsumableType;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FText DisplayName;
@@ -88,6 +102,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float PowerAmount;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float Cooldown;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float Duration;
 };
 
 USTRUCT(BlueprintType)
