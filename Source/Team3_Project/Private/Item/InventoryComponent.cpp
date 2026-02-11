@@ -275,10 +275,9 @@ bool UInventoryComponent::HandleWeaponEquip(const FItemData& Data, FName ItemID)
 	// 기존에 장착된 무기 제거 및 인벤토리에 추가
 	AWeaponItem* OldWeapon = FindEquippedWeapon();
 
-	OldWeapon->StopReload();
-
 	if (OldWeapon)
 	{
+		OldWeapon->StopReload();	
 		TMap<EAttachmentType, FName> OldAttachments = OldWeapon->GetAttachmentState();
 		FName OldWeaponID = OldWeapon->GetItemID();
 

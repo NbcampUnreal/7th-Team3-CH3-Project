@@ -64,6 +64,15 @@ void AWeaponItem::StartFire()
 {
 	if (bIsReloading)
 	{
+		if(GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(
+				-1,
+				1.5f,
+				FColor::Yellow,
+				FString::Printf(TEXT("Cannot fire while reloading!"))
+			);
+		}	
 		return;
 	}
 
