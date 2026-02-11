@@ -21,17 +21,23 @@ public:
 	
 	//변수
 
-	//레벨이 전환되어도 캐릭터의 스탯은 유지
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (PlayerStat))
+	//레벨이 전환되어도 캐릭터의 스탯은 유지 데이터 테이블로 바뀔 예정
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PlayerStat")
 	float MaxPlayerHP;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (PlayerStat))
+	//플레이어 공격력
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PlayerStat")
 	float PlayerAttackDamage;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (PlayerStat))
+	//카르마 스탯
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PlayerStat")
 	int32 KarmaStat;
 
-	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (PlayerStat))
+	
+	//게임종료시점 플레이어가 획득한 총 점수
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PlayerStat")
+	int32 TotalScore;
+
 	
 	//함수
 

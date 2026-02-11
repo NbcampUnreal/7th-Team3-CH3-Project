@@ -18,17 +18,38 @@ public:
 	AMainGameState();
 
 	static AMainGameState* Get(const UWorld* WorldObject);
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (WaveData))
+	
+	//웨이브 전체시간
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "WaveSystem")
 	float MaxWaveTime;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (WaveData))
+	//웨이브 현재시간
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "WaveSystem")
 	float CurrentWaveTime;
-	
+
+	//최대 생성되는 몬스터 수
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "WaveSystem")
+	int32 MaxSpawnCount;
+
+	//현재 생성되어있는 몬스터의 수
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "WaveSystem")
+	int32 CurrentSpawnCount;
+
+	//현재웨이브에서 획득한 점수
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "WaveSystem")
+	int32 CurrentScore;
+
+	FTimerHandle WaveStartTimer;
+	FTimerHandle WaveEndTimer;
+
+	virtual void BeginPlay() override;
+
+	void SpawnMonster();
+	void WaveStart();
+	void WaveEnd();
+
 	void OnGameStart();
 	void OnGameOver();
 	void OnOpenMenu();
-	void OnStartWave();
-	void OnEndWave();
 
 };
