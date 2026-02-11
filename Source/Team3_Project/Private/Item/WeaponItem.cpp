@@ -62,6 +62,11 @@ AWeaponItem::AWeaponItem()
 
 void AWeaponItem::StartFire()
 {
+	if (bIsReloading)
+	{
+		return;
+	}
+
 	// 기본 딜레이 계산
 	float FirstDelay = FMath::Max(LastFireTime + TimeBetweenShots - GetWorld()->TimeSeconds, 0.0f);
 
@@ -114,7 +119,7 @@ void AWeaponItem::StopFire()
 
 void AWeaponItem::FireWeapon()
 {
-	if (CurrentAmmo <= 0)
+	if (bIsReloading && CurrentAmmo <= 0)
 	{
 		StopFire();
 		return;
@@ -148,6 +153,12 @@ void AWeaponItem::FireWeapon()
 
 void AWeaponItem::ReloadWeapon()
 {
+	if (bIsReloading)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Already reloading"));
+		return;
+	}
+
 	if (CurrentAmmo >= MaxAmmo)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Ammo is already full"));
@@ -179,19 +190,76 @@ void AWeaponItem::ReloadWeapon()
 		return;
 	}
 
+	bIsReloading = true;
+	StopFire();
+
+	GetWorldTimerManager().SetTimer(
+		ReloadTimerHandle,
+		this,
+		&AWeaponItem::FinishReloading,
+		ReloadTime,
+		false
+	);
+	
+	UE_LOG(LogTemp, Log, TEXT("Reloading started"));
+
+}
+
+void AWeaponItem::StopReload()
+{
+	if (!bIsReloading)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Not currently reloading"));
+		return;
+	}
+
+	bIsReloading = false;
+	GetWorldTimerManager().ClearTimer(ReloadTimerHandle);
+	UE_LOG(LogTemp, Log, TEXT("Reloading stopped"));
+
+	//추후 추가 로직 사용 가능(애니메이션 캔슬 등)
+}
+
+void AWeaponItem::FinishReloading()
+{
+	bIsReloading = false;
+
+	AActor* OwnerActor = GetOwner();
+	if (!OwnerActor)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Weapon has no owner"));
+		return;
+	}
+	UInventoryComponent* InventoryComp = OwnerActor->FindComponentByClass<UInventoryComponent>();
+	if (!InventoryComp)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("InventoryComponent not found on OwnerActor"));
+		return;
+	}
+
+	int32 AmmoNeeded = MaxAmmo - CurrentAmmo;
+	if (AmmoNeeded <= 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("No ammo needed for reload"));
+		return;
+	}
+	int32 AmmoAvailable = InventoryComp->GetItemQuantity(AmmoItemID);
+	int32 AmmoToReload = FMath::Min(AmmoNeeded, AmmoAvailable);
+
+
 	int32 AmountToReload = FMath::Min(AmmoNeeded, AmmoAvailable);
 
-	if (InventoryComp->RemoveItem(AmmoItemID, AmountToReload))
+	if (AmountToReload > 0 && InventoryComp->RemoveItem(AmmoItemID, AmountToReload))
 	{
 		CurrentAmmo += AmountToReload;
 		UE_LOG(LogTemp, Log, TEXT("Reloaded %d ammo. CurrentAmmo: %d"), AmountToReload, CurrentAmmo);
 		UE_LOG(LogTemp, Log, TEXT("Remaining ammo in inventory: %d"), InventoryComp->GetItemQuantity(AmmoItemID));
-		//재장전 애니메이션 및 사운드 재생 등 추가 구현 가능
 	}
-	
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Failed to reload ammo"));
+	}
 }
-
-
 
 
 
@@ -452,6 +520,8 @@ void AWeaponItem::FireProjectile()
 		}
 	}
 }
+
+
 
 
 

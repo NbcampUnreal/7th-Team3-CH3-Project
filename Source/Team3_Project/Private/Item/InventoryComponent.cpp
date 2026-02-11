@@ -219,6 +219,23 @@ int32 UInventoryComponent::GetItemQuantity(FName ItemID) const
 
 AWeaponItem* UInventoryComponent::FindEquippedWeapon() const
 {
+	// 소유자 액터 가져오기
+	AActor* OwnerActor = GetOwner();
+	if (!OwnerActor)
+	{
+		return nullptr;
+	}
+	// 부착된 액터들 중에서 무기 아이템 찾기
+	TArray<AActor*> AttachedActors;
+	OwnerActor->GetAttachedActors(AttachedActors);
+		for (AActor* AttachedActor : AttachedActors)
+	{
+		AWeaponItem* Weapon = Cast<AWeaponItem>(AttachedActor);
+		if (Weapon && !Weapon->IsHidden())
+		{
+			return Weapon;
+		}
+	}
 	return nullptr;
 }
 
@@ -257,6 +274,9 @@ bool UInventoryComponent::HandleWeaponEquip(const FItemData& Data, FName ItemID)
 
 	// 기존에 장착된 무기 제거 및 인벤토리에 추가
 	AWeaponItem* OldWeapon = FindEquippedWeapon();
+
+	OldWeapon->StopReload();
+
 	if (OldWeapon)
 	{
 		TMap<EAttachmentType, FName> OldAttachments = OldWeapon->GetAttachmentState();

@@ -31,11 +31,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Weapon|Combat")
 	virtual void ReloadWeapon();
 
+	UFUNCTION(BlueprintCallable, Category = "Weapon|Combat")
+	void StopReload();
+
 	UFUNCTION(BlueprintCallable, Category = "Weapon|Attachment")
 	virtual FName EquipAttachment(FName AttachmentID);
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon|Attachment")
 	virtual void UnequipAttachment(FName AttachmentID);
+
 
 	const TMap<EAttachmentType, FName>& GetAttachmentState() const { return EquippedAttachments; }
 
@@ -97,6 +101,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon|State")
 	bool bIsSilenced = false;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon|State")
+	bool bIsReloading = false;
+
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Config")
 	bool bIsProjectile = false;
@@ -123,6 +130,9 @@ protected:
 	
 	void FireHitScan();
 	void FireProjectile();
+
+	FTimerHandle ReloadTimerHandle;
+	void FinishReloading();
 
 private:
 	UStaticMeshComponent* GetAttachmentComponentByType(EAttachmentType Type) const;
