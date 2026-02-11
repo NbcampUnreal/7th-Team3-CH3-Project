@@ -2,6 +2,7 @@
 
 
 #include "Core/MainGameMode.h"
+#include "Core/MainGameInstance.h"
 #include "Enemy/EnemyCharacter.h"
 
 AMainGameMode::AMainGameMode()
