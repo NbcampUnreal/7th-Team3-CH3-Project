@@ -14,6 +14,10 @@ public:
 	TObjectPtr<UAnimMontage> AttackMontage;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Montage")
 	TObjectPtr<UAnimMontage> SpecialAttackMontage;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Montage")
+	TObjectPtr<UAnimMontage> HittedMontage;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Montage")
+	TObjectPtr<UAnimMontage> DeadMontage;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stat")
 	float BaseHP;

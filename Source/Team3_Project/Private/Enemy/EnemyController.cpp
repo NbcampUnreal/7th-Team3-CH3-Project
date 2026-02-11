@@ -9,8 +9,10 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Enemy/StateBase.h"
 #include "Enemy/IdleState.h"
+#include "Enemy/PatrolState.h"
 #include "Enemy/ChaseState.h"
 #include "Enemy/AttackState.h"
+#include "Enemy/HittedState.h"
 
 AEnemyController::AEnemyController()
     :BehaviorTree(nullptr),
@@ -23,8 +25,10 @@ AEnemyController::AEnemyController()
     ChaseRange(1500.f),
     AttackRange(300.f),
     IdleState(nullptr),
+    PatrolState(nullptr),
     ChaseState(nullptr),
-    AttackState(nullptr)
+    AttackState(nullptr),
+    HittedState(nullptr)
 {
     PrimaryActorTick.bCanEverTick = true;
 
@@ -79,10 +83,14 @@ void AEnemyController::BeginPlay()
     // State 생성
     IdleState = NewObject<UIdleState>(this);
     IdleState->Init(this);
+    PatrolState = NewObject<UPatrolState>(this);
+    PatrolState->Init(this);
     ChaseState = NewObject<UChaseState>(this);
     ChaseState->Init(this);
     AttackState = NewObject<UAttackState>(this);
     AttackState->Init(this);
+    HittedState = NewObject<UHittedState>(this);
+    HittedState->Init(this);
 
     ChangeState(IdleState);
 }
@@ -101,12 +109,17 @@ void AEnemyController::OnPossess(APawn* InPawn)
 {
     Super::OnPossess(InPawn);
 
-    if (ACharacter* PossessedCharacter = Cast<ACharacter>(InPawn))
+    if (AEnemyCharacter* PossessedCharacter = Cast<AEnemyCharacter>(InPawn))
     {
         PossessedCharacter->bUseControllerRotationYaw = false;
         if (UCharacterMovementComponent* MoveComp = PossessedCharacter->GetCharacterMovement())
         {
             MoveComp->bOrientRotationToMovement = true;
+        }
+
+        if (PossessedCharacter->IsForWave())
+        {
+            TryApplyWaveSetup();
         }
     }
 
@@ -122,6 +135,31 @@ void AEnemyController::UpdateAI()
     {
         // Todo AI 업데이트 로직 작성
     }
+}
+
+void AEnemyController::TryApplyWaveSetup()
+{
+    AEnemyCharacter* EnemyCharacter = Cast<AEnemyCharacter>(GetPawn());
+    if (!EnemyCharacter) return;
+
+    UWorld* World = GetWorld();
+    if (!World) return;
+
+    ACharacter* PlayerCharacter = Cast<ACharacter>(World->GetFirstPlayerController()->GetPawn());
+    if (!PlayerCharacter) return;
+
+    TargetActor = PlayerCharacter;
+
+    ChangeState(GetChaseState());
+}
+
+bool AEnemyController::IsForWave()
+{
+    if (AEnemyCharacter* EnemyCharacter = Cast<AEnemyCharacter>(GetPawn()))
+    {
+        return EnemyCharacter->IsForWave();
+    }
+    return false;
 }
 
 void AEnemyController::ChangeState(UStateBase* NewState)
@@ -165,6 +203,8 @@ void AEnemyController::MoveToRandomLocation()
 
 void AEnemyController::MoveToPlayer()
 {
+    if (!IsMovable()) return;
+
     if (IsValid(TargetActor))
     {
         MoveToActor(TargetActor);
@@ -176,13 +216,23 @@ bool AEnemyController::IsMoving() const
     UCharacterMovementComponent* MovementComp =
         GetPawn()->GetComponentByClass<UCharacterMovementComponent>();
     if (!MovementComp) return false;
-    else if (FMath::IsNearlyZero(MovementComp->GetLastUpdateVelocity().Size()))
+    else if (FMath::IsNearlyZero(MovementComp->Velocity.Size()))
     {
         return false;
     }
-
     return true;
 }
+
+bool AEnemyController::IsMovable() const
+{
+    if (AEnemyCharacter* EnemyCharacter = Cast<AEnemyCharacter>(GetPawn()))
+    {
+        return EnemyCharacter->IsMovable();
+    }
+
+    return false;
+}
+
 
 void AEnemyController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
@@ -238,6 +288,14 @@ void AEnemyController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stim
 
 void AEnemyController::OnTargetPerceptionForgotten(AActor* Actor)
 {
+    if (AEnemyCharacter* EnemyCharacter = Cast<AEnemyCharacter>(GetPawn()))
+    {
+        if (EnemyCharacter->IsForWave())
+        {
+            return;
+        }
+    }
+
     if (UBlackboardComponent* BB = GetBlackboardComponent())
     {
         BB->ClearValue(FName("TargetActor"));

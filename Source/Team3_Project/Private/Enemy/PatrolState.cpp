@@ -14,7 +14,7 @@ void UPatrolState::TickState()
 		return;
 	}
 
-	if (!OwnerController->IsMoving())
+	if (OwnerController->IsMovable() && !OwnerController->IsMoving())
 	{
 		OwnerController->MoveToRandomLocation();
 	}

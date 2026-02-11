@@ -31,4 +31,8 @@ void UAttackState::TickState()
 
 void UAttackState::ExitState()
 {
+	if (AEnemyCharacter* EnemyCharacter = Cast<AEnemyCharacter>(OwnerController->GetPawn()))
+	{
+		EnemyCharacter->OnFinishAttack();
+	}
 }

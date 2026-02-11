@@ -17,9 +17,8 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
-
-public:
 	virtual void Tick(float DeltaTime) override;
+public:
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	bool Attack();
@@ -32,9 +31,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void OnHitted();
-
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void OnFinishHitted();
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void OnDead();
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void OnFinishDead();
 
 	virtual float TakeDamage(
 		float DamageAmount,
@@ -57,10 +59,21 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Combat")
 	bool IsAttackable();
+	UFUNCTION(BlueprintPure, Category = "Move")
+	bool IsMovable() const;
+	UFUNCTION(BlueprintPure, Category = "Wave")
+	bool IsForWave() const;
+	UFUNCTION(BlueprintCallable, Category = "Wave")
+	void ApplyWaveFlag(bool bInWave);
+
+	void ActiveMove();
+	void DeactiveMove();
 
 	float GetAttackCoolTime() const;
 	UAnimMontage* GetAttackMontage() const;
 	UAnimMontage* GetSpecialAttackMontage() const;
+	UAnimMontage* GetHittedMontage() const;
+	UAnimMontage* GetDeadMontage() const;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
@@ -76,4 +89,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	bool bIsAttacking;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Move")
+	bool bIsMovable;
+
+	bool bIsForWave;
 };

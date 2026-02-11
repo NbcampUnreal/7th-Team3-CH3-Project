@@ -18,38 +18,47 @@ class TEAM3_PROJECT_API AEnemyController : public AAIController
 public:
 	AEnemyController();
 
-	virtual void BeginPlay() override;
-	virtual void Tick(float DeltaTime) override;
-
 	UFUNCTION(BlueprintCallable, Category = "Controller")
 	virtual void OnPossess(APawn* InPawn) override;
 
 	UFUNCTION(BlueprintCallable, Category = "AI")
 	void UpdateAI();
 
+	UFUNCTION(BlueprintCallable, Category = "AI")
+	void TryApplyWaveSetup();
+	UFUNCTION(BlueprintCallable, Category = "AI")
+	bool IsForWave();
 	// FSM
 	void ChangeState(UStateBase* NewState);
 
 	// State Getter
 	UStateBase* GetIdleState() const { return IdleState; }
 	UStateBase* GetChaseState() const { return ChaseState; }
+	UStateBase* GetPatrolState() const { return PatrolState; }
 	UStateBase* GetAttackState() const { return AttackState; }
+	UStateBase* GetHittedState() const { return HittedState; }
 
 	bool IsPlayerInRange(float Range) const;
 	void MoveToRandomLocation();
 	void MoveToPlayer();
 	bool IsMoving() const;
+	bool IsMovable() const;
 
 	float GetSightRange() const { return SightRange; }
 	float GetChaseRange() const { return ChaseRange; }
 	float GetAttackRange() const { return AttackRange; }
+
 protected:
+	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaTime) override;
+
 	// Perception 이벤트 핸들러
 	UFUNCTION()
 	void OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus);
 
 	UFUNCTION()
 	void OnTargetPerceptionForgotten(AActor* Actor);
+	using AController::ChangeState;
 
 protected:
 	// 감각
@@ -80,6 +89,7 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI")
 	FVector TargetLocation;
+
 private:
 	UPROPERTY()
 	UStateBase* CurrentState;
@@ -87,7 +97,11 @@ private:
 	UPROPERTY()
 	UStateBase* IdleState;
 	UPROPERTY()
+	UStateBase* PatrolState;
+	UPROPERTY()
 	UStateBase* ChaseState;
 	UPROPERTY()
 	UStateBase* AttackState;
+	UPROPERTY()
+	UStateBase* HittedState;
 };
