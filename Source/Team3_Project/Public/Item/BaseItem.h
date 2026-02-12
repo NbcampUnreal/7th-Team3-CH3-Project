@@ -22,6 +22,14 @@ public:
 
 	virtual void BeginPlay() override;
 
+	const FName& GetItemID() const { return ItemID; }
+
+	const int32 GetQuantity() const { return Quantity; }
+
+	void SetItemID(FName NewItemID) { ItemID = NewItemID; }
+
+	void SetQuantity(int32 NewQuantity) { Quantity = NewQuantity; }
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item")
 	UStaticMeshComponent* ItemMesh;

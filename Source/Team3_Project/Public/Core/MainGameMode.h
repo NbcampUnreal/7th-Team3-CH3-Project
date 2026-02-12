@@ -17,6 +17,8 @@ class TEAM3_PROJECT_API AMainGameMode : public AGameMode
 public:
 	AMainGameMode();
 
+	//정적 Get함수
 	static AMainGameMode* Get(const UWorld* WorldObject);
 
+	
 };
