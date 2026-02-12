@@ -17,9 +17,7 @@ public:
 	AEnemySpawner();
 
 public:
+	void SpawnEnemy(TSubclassOf<AActor> EnemyClass);
 
-	// 소환할 EnemyActor 목록
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<AEnemyCharacter> EnemyClass;
-	
+	virtual void BeginPlay() override;
 };

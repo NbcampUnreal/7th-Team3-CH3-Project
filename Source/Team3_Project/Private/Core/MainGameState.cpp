@@ -2,6 +2,9 @@
 
 
 #include "Core/MainGameState.h"
+#include "Core/EnemySpawner.h"
+#include "Kismet/GameplayStatics.h"
+#include "Core/DebugHelper.h"
 #include "Core/MainGameInstance.h"
 
 AMainGameState::AMainGameState()
@@ -11,7 +14,6 @@ AMainGameState::AMainGameState()
 	MaxSpawnCount = 10;
 	CurrentSpawnCount = 0;
 	CurrentScore = 0;
-
 }
 
 AMainGameState* AMainGameState::Get(const UWorld* WorldObject)
@@ -34,8 +36,28 @@ AMainGameState* AMainGameState::Get(const UWorld* WorldObject)
 void AMainGameState::BeginPlay()
 {
 	Super::BeginPlay();
+	FindSpawner();
 	OnGameStart();
 
+}
+
+void AMainGameState::FindSpawner()
+{
+	TArray<AActor*> Actors;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AEnemySpawner::StaticClass(), Actors);
+	if (Actors.IsEmpty())
+	{
+		Debug::Print(TEXT("Could not Found EnemySpawner Actors"));
+		return;
+	}
+
+	for (AActor* Values : Actors)
+	{
+		if (AEnemySpawner* EnemySpawner = Cast<AEnemySpawner>(Values))
+		{
+			EnemySpawners.Add(EnemySpawner);
+		}
+	}
 }
 
 void AMainGameState::SpawnMonster()

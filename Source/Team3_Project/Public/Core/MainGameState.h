@@ -6,6 +6,7 @@
 #include "GameFramework/GameState.h"
 #include "MainGameState.generated.h"
 
+
 /**
  * 
  */
@@ -28,7 +29,7 @@ public:
 	float CurrentWaveTime;
 
 	//최대 생성되는 몬스터 수
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "WaveSystem")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WaveSystem")
 	int32 MaxSpawnCount;
 
 	//현재 생성되어있는 몬스터의 수
@@ -39,11 +40,15 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "WaveSystem")
 	int32 CurrentScore;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Spawner")
+	TArray<TObjectPtr<class AEnemySpawner>> EnemySpawners;
+
 	FTimerHandle WaveStartTimer;
 	FTimerHandle WaveEndTimer;
 
 	virtual void BeginPlay() override;
 
+	void FindSpawner();
 	void SpawnMonster();
 	void WaveStart();
 	void WaveEnd();
