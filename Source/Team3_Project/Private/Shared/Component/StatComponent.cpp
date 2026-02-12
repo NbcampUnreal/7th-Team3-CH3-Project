@@ -144,8 +144,29 @@ void UStatComponent::RemoveOperationBySource(UObject* Source)
 
 void UStatComponent::UpdateStat(FName StatName)
 {
+	if (!Stats.Contains(StatName)) return;
+
 	// Reset Stat
 	Stats[StatName].ResetToBase();
 
+	float CurrentValue = Stats[StatName].GetBaseValue();
+
 	// Todo 스탯 계산 공식에 따라 스텟 계산하기
+	// 임시로 곱연산 먼저 처리하고 더하기 처리하기로 작성
+	for (auto& Oper : SubOperations[StatName])
+	{
+		if (Oper->GetOperator() == EStatOperator::Multiply)
+		{
+			CurrentValue *= Oper->GetValue();
+		}
+	}
+
+	for (auto& Oper : SubOperations[StatName])
+	{
+		if (Oper->GetOperator() == EStatOperator::Plus)
+		{
+			CurrentValue += Oper->GetValue();
+		}
+	}
+
 }

@@ -1,70 +1,98 @@
 ﻿#include "Enemy/EnemyCharacter.h"
 #include "Shared/Component/StatComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Enemy/EnemyController.h"
 
 AEnemyCharacter::AEnemyCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
 	StatComp = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
-	if (StatComp)
+	if (StatComp && TypeData)
 	{
-		StatComp->InitializeStat(FName("Healh"), 100.f, 0.f, 100.f);
-		StatComp->InitializeStat(FName("Attack"), 50.f, 0.f, 200.f);
-		StatComp->InitializeStat(FName("Defence"), 50.f, 0.f, 200.f);
+		float Health = TypeData->BaseHP;
+		float Attack = TypeData->BaseAttack;
+		float Defense = TypeData->BaseDefense;
+		StatComp->InitializeStat(FName("Healh"), Health, 0.f, Health);
+		StatComp->InitializeStat(FName("Attack"), Attack, 0.f, 200.f);
+		StatComp->InitializeStat(FName("Defence"), Defense, 0.f, 200.f);
 	}
 
-	CurrentState = EEnemyState::Idle;
+	LeftAttackCoolTime = 0.f;
+	bIsAttacking = false;
+	bIsMovable = true;
+	bIsForWave = false;
 }
 
 void AEnemyCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	ChangeState(EEnemyState::Idle);
-	// Todo Timer로 DetectPlayer 호출
-	// GetWorld()->GetTimerManager().SetTimer(DetectionTimerHandle, this, &AEnemyCharacter::DetectPlayer, 0.1f, true);
 }
 
-void AEnemyCharacter::ChasePlayer()
+void AEnemyCharacter::Tick(float DeltaTime)
 {
-	if (IsValid(DetectedTarget))
+	Super::Tick(DeltaTime);
+
+	if (LeftAttackCoolTime > 0.f)
 	{
-		// Todo MoveToPlayer
+		LeftAttackCoolTime = LeftAttackCoolTime - DeltaTime;
+		if (LeftAttackCoolTime < 0.f) LeftAttackCoolTime = 0.f;
 	}
 }
 
-void AEnemyCharacter::Attack()
+bool AEnemyCharacter::Attack()
 {
-	if (CurrentState == EEnemyState::Attacking ||
-		CurrentState == EEnemyState::Dead) return;
-	// Todo 공격 몽타주 재생
+	if (IsAttackable())
+	{
+		LeftAttackCoolTime = GetAttackCoolTime();
+		DeactiveMove();
+		PlayAnimMontage(GetAttackMontage());
+		
+		return true;
+	}
 
-	ChangeState(EEnemyState::Attacking);
+	return false;
 }
 
-void AEnemyCharacter::SpecialAttack()
+bool AEnemyCharacter::SpecialAttack()
 {
-	if (CurrentState == EEnemyState::Attacking ||
-		CurrentState == EEnemyState::Dead) return;
-	// Todo 특수 공격 몽타주 재생
-
-	ChangeState(EEnemyState::Attacking);
+	if (IsAttackable())
+	{
+		LeftAttackCoolTime = GetAttackCoolTime();
+		PlayAnimMontage(GetSpecialAttackMontage());
+		DeactiveMove();
+		return true;
+	}
+	return false;
 }
-
 
 void AEnemyCharacter::OnFinishAttack()
 {
-	// Todo 공격 종료 처리
-
-	ChangeState(EEnemyState::Idle);
+	bIsAttacking = false;
+	ActiveMove();
 }
+
 
 void AEnemyCharacter::OnHitted()
 {
+	StopAnimMontage();
+	PlayAnimMontage(GetHittedMontage());
+	DeactiveMove();
+}
+
+void AEnemyCharacter::OnFinishHitted()
+{
+	ActiveMove();
 }
 
 void AEnemyCharacter::OnDead()
+{
+	StopAnimMontage();
+	PlayAnimMontage(GetDeadMontage());
+	DeactiveMove();
+}
+
+void AEnemyCharacter::OnFinishDead()
 {
 }
 
@@ -75,7 +103,21 @@ float AEnemyCharacter::TakeDamage(
 	AActor* DamageCauser
 )
 {
-	// Todo 데미지 처리
+	// 피격 상태로 전환
+	if (AEnemyController* EnemyController = Cast<AEnemyController>(GetController()))
+	{
+		EnemyController->ChangeState(EnemyController->GetHittedState());
+	}
+
+	// 데미지 처리
+	StatComp->SetBaseStatValue(FName("Health"),
+		StatComp->GetBaseStatValue(FName("Health")) - DamageAmount);
+
+	// HP가 0이하로 감소한 경우 Dead 처리
+	if (StatComp->GetBaseStatValue(FName("Health")) <= 0.f)
+	{
+		OnDead();
+	}
 	return DamageAmount;
 }
 
@@ -111,22 +153,78 @@ float AEnemyCharacter::GetDefence() const
 	return StatComp->GetCurrentStatValue(TEXT("Defence"));
 }
 
-EEnemyState AEnemyCharacter::GetState() const
+bool AEnemyCharacter::IsAttackable()
 {
-	return CurrentState;
+	if (!FMath::IsNearlyZero(LeftAttackCoolTime)) return false;
+	
+	return !bIsAttacking;
+}
+bool AEnemyCharacter::IsMovable() const
+{
+	return bIsMovable;
 }
 
-ACharacter* AEnemyCharacter::GetDetectedTarget() const
+bool AEnemyCharacter::IsForWave() const
 {
-	return IsValid(DetectedTarget) ? DetectedTarget.Get() : nullptr;
+	return bIsForWave;
 }
 
-void AEnemyCharacter::ChangeState(EEnemyState NewState)
+void AEnemyCharacter::ApplyWaveFlag(bool bInWave)
 {
-	if (CurrentState == NewState) return;
+	bIsForWave = bInWave;
 
-	EEnemyState OldState = CurrentState;
-	CurrentState = NewState;
+	if (AEnemyController* EnemyController = Cast<AEnemyController>(GetController()))
+	{
+		EnemyController->TryApplyWaveSetup();
+	}
+}
 
-	OnEnemyStateChanged.Broadcast(CurrentState, NewState);
+void AEnemyCharacter::ActiveMove()
+{
+	bIsMovable = true;
+}
+
+void AEnemyCharacter::DeactiveMove()
+{
+	bIsMovable = false;
+}
+
+UAnimMontage* AEnemyCharacter::GetAttackMontage() const
+{
+	return TypeData ? TypeData->AttackMontage : nullptr;
+}
+
+UAnimMontage* AEnemyCharacter::GetSpecialAttackMontage() const
+{
+	return TypeData ? TypeData->SpecialAttackMontage : nullptr;
+}
+
+UAnimMontage* AEnemyCharacter::GetHittedMontage() const
+{
+	return TypeData ? TypeData->HittedMontage : nullptr;
+}
+
+UAnimMontage* AEnemyCharacter::GetDeadMontage() const
+{
+	return TypeData ? TypeData->DeadMontage : nullptr;
+}
+
+float AEnemyCharacter::GetAttackCoolTime() const
+{
+	return TypeData ? TypeData->AttackCoolTime : 5.f;
+}
+
+float AEnemyCharacter::GetPatrolSpeed() const
+{
+	return TypeData ? TypeData->PatrolMaxSpeed : 150.f;
+}
+
+float AEnemyCharacter::GetPatrolRadius() const
+{
+	return TypeData ? TypeData->PatrolRadius : 150.f;
+}
+
+float AEnemyCharacter::GetChaseSpeed() const
+{
+	return TypeData ? TypeData->ChaseMaxSpeed : 600.f;
 }

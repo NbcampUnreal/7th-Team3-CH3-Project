@@ -2,22 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Enemy/EnemyTypeData.h"
 #include "EnemyCharacter.generated.h"
 
 class UStatComponent;
-
-UENUM(BlueprintType)
-enum class EEnemyState : uint8
-{
-	Idle,
-	Moving,
-	Chasing,
-	Attacking,
-	Hitting,
-	Dead
-};
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FEnemyStateChanged, EEnemyState, OldState, EEnemyState, NewState);
 
 UCLASS()
 class TEAM3_PROJECT_API AEnemyCharacter : public ACharacter
@@ -29,25 +17,26 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
-
+	virtual void Tick(float DeltaTime) override;
 public:
-	UFUNCTION(BlueprintCallable, Category = "AI")
-	void ChasePlayer();
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
-	void Attack();
+	bool Attack();
 	
 	UFUNCTION(BlueprintCallable, Category = "Combat")
-	void SpecialAttack();
+	bool SpecialAttack();
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void OnFinishAttack();
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void OnHitted();
-
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void OnFinishHitted();
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void OnDead();
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void OnFinishDead();
 
 	virtual float TakeDamage(
 		float DamageAmount,
@@ -68,14 +57,27 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Stat")
 	float GetDefence() const;
 
-	UFUNCTION(BlueprintPure, Category = "Enemy")
-	EEnemyState GetState() const;
+	UFUNCTION(BlueprintPure, Category = "Combat")
+	bool IsAttackable();
+	UFUNCTION(BlueprintPure, Category = "Move")
+	bool IsMovable() const;
+	UFUNCTION(BlueprintPure, Category = "Wave")
+	bool IsForWave() const;
+	UFUNCTION(BlueprintCallable, Category = "Wave")
+	void ApplyWaveFlag(bool bInWave);
 
-	ACharacter* GetDetectedTarget() const;
+	void ActiveMove();
+	void DeactiveMove();
 
-	// Setter
-	UFUNCTION(BlueprintCallable, Category = "Enemy")
-	void ChangeState(EEnemyState NewState);
+	float GetAttackCoolTime() const;
+	UAnimMontage* GetAttackMontage() const;
+	UAnimMontage* GetSpecialAttackMontage() const;
+	UAnimMontage* GetHittedMontage() const;
+	UAnimMontage* GetDeadMontage() const;
+
+	float GetPatrolSpeed() const;
+	float GetPatrolRadius() const;
+	float GetChaseSpeed() const;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
@@ -83,14 +85,17 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy")
 	FName EnemyName;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy")
-	EEnemyState CurrentState;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI")
-	TObjectPtr<ACharacter> DetectedTarget;
-	
-	UPROPERTY(BlueprintAssignable, Category = "Enemy")
-	FEnemyStateChanged OnEnemyStateChanged;
-	
-	FTimerHandle DetectionTimerHandle;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Data")
+	TObjectPtr<UEnemyTypeData> TypeData;
+
+	float LeftAttackCoolTime;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
+	bool bIsAttacking;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Move")
+	bool bIsMovable;
+
+	bool bIsForWave;
 };
