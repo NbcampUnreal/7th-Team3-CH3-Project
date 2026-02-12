@@ -37,6 +37,7 @@ public:
 	UStateBase* GetPatrolState() const { return PatrolState; }
 	UStateBase* GetAttackState() const { return AttackState; }
 	UStateBase* GetHittedState() const { return HittedState; }
+	UStateBase* GetDeadState() const { return DeadState; }
 
 	bool IsPlayerInRange(float Range) const;
 	void MoveToRandomLocation();
@@ -50,6 +51,9 @@ public:
 
 	float GetPatrolSpeed() const;
 	float GetChaseSpeed() const;
+
+	void SetStateLocked(bool bLocked) { bStateLocked = bLocked; }
+	bool IsStateLocked() const { return bStateLocked; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -96,6 +100,7 @@ protected:
 	FVector TargetLocation;
 
 private:
+	// About State
 	UPROPERTY()
 	UStateBase* CurrentState;
 
@@ -109,4 +114,8 @@ private:
 	UStateBase* AttackState;
 	UPROPERTY()
 	UStateBase* HittedState;
+	UPROPERTY()
+	UStateBase* DeadState;
+
+	bool bStateLocked = false;
 };

@@ -29,6 +29,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void OnFinishAttack();
 
+	// 몽타주가 없어서 임시로 사용하는 데미지 처리
+	void TryMeleeHit();
+
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void OnHitted();
 	UFUNCTION(BlueprintCallable, Category = "Combat")
@@ -63,6 +66,8 @@ public:
 	bool IsMovable() const;
 	UFUNCTION(BlueprintPure, Category = "Wave")
 	bool IsForWave() const;
+	UFUNCTION(BlueprintPure, Category="Dead")
+	bool IsDead() const;
 	UFUNCTION(BlueprintCallable, Category = "Wave")
 	void ApplyWaveFlag(bool bInWave);
 
@@ -79,6 +84,8 @@ public:
 	float GetPatrolRadius() const;
 	float GetChaseSpeed() const;
 
+	void ApplyDamageToStat(float DamageAmount);
+	void EnableRagdoll();
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
 	UStatComponent* StatComp;
@@ -98,4 +105,6 @@ protected:
 	bool bIsMovable;
 
 	bool bIsForWave;
+	bool bIsDead;
+	bool bRagdollEnabled;
 };

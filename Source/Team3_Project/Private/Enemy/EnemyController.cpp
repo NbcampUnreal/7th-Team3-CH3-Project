@@ -13,6 +13,7 @@
 #include "Enemy/ChaseState.h"
 #include "Enemy/AttackState.h"
 #include "Enemy/HittedState.h"
+#include "Enemy/DeadState.h"
 #include "NavigationSystem.h"
 #include "Navigation//PathFollowingComponent.h"
 
@@ -95,6 +96,8 @@ void AEnemyController::BeginPlay()
     AttackState->Init(this);
     HittedState = NewObject<UHittedState>(this);
     HittedState->Init(this);
+    DeadState = NewObject<UDeadState>(this);
+    DeadState->Init(this);
 
     ChangeState(IdleState);
 }
@@ -170,6 +173,8 @@ bool AEnemyController::IsForWave()
 
 void AEnemyController::ChangeState(UStateBase* NewState)
 {
+    if (!NewState) return;
+    if (CurrentState == DeadState || bStateLocked) return;
     if (CurrentState == NewState) return;
 
     if (CurrentState)
@@ -200,9 +205,9 @@ void AEnemyController::MoveToRandomLocation()
     AEnemyCharacter* EnemyCharacter = Cast<AEnemyCharacter>(GetPawn());
     if (!EnemyCharacter) return;
 
-    float Dist2D = FVector::Dist2D(GetPawn()->GetActorLocation(),
-        TargetLocation);
-    if (Dist2D >= 50.f) return;
+    // float Dist2D = FVector::Dist2D(GetPawn()->GetActorLocation(),
+    //  TargetLocation);
+    // if (Dist2D >= 50.f) return;
 
     const UNavigationSystemV1* NavSystem = UNavigationSystemV1::GetCurrent(GetWorld());
     if (NavSystem == nullptr)
@@ -214,6 +219,7 @@ void AEnemyController::MoveToRandomLocation()
     const bool bFound = NavSystem->GetRandomReachablePointInRadius(EnemyCharacter->GetActorLocation(), EnemyCharacter->GetPatrolRadius(), RandomLocation);
     if (bFound)
     {
+        UE_LOG(LogTemp, Warning, TEXT("RandomMove! NewLocation is %s"), *(RandomLocation.Location.ToString()));
         MoveToLocation(RandomLocation.Location);
         TargetLocation = RandomLocation.Location;
         DrowFollowingPath(2.f);
@@ -226,7 +232,8 @@ void AEnemyController::MoveToPlayer()
 
     if (IsValid(TargetActor))
     {
-        MoveToActor(TargetActor);
+        EPathFollowingRequestResult::Type MoveResult = MoveToActor(TargetActor);
+        UE_LOG(LogTemp, Warning, TEXT("MoveResult : %s"), *UEnum::GetValueAsString(MoveResult));
     }
 }
 
@@ -255,7 +262,7 @@ float AEnemyController::GetPatrolSpeed() const
 {
     if (AEnemyCharacter* EnemyCharacter = Cast<AEnemyCharacter>(GetPawn()))
     {
-        return EnemyCharacter->IsMovable();
+        return EnemyCharacter->GetPatrolSpeed();
     }
 
     return false;
@@ -265,7 +272,7 @@ float AEnemyController::GetChaseSpeed() const
 {
     if (AEnemyCharacter* EnemyCharacter = Cast<AEnemyCharacter>(GetPawn()))
     {
-        return EnemyCharacter->IsMovable();
+        return EnemyCharacter->GetChaseSpeed();
     }
 
     return false;
@@ -317,11 +324,7 @@ void AEnemyController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stim
                 BB->SetValueAsVector(FName("TargetLocation"), Stimulus.StimulusLocation);
             }
             TargetLocation = Stimulus.StimulusLocation;
-            ChangeState(PatrolState);
-        }
-        else
-        {
-            
+            // ChangeState(PatrolState);
         }
     }
 }
