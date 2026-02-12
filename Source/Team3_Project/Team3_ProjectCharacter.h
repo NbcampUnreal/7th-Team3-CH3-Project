@@ -12,6 +12,7 @@ class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
 class UParkourComponent;
+class UStatComponent;
 struct FInputActionValue;
 
 UENUM(BlueprintType)
@@ -47,9 +48,11 @@ public:
 
 	// --- 컴포넌트 --- 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Component")
-	UParkourComponent* ParkourComponent;
-	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Component")
-	//UStatComponent* StatComponent;
+	UStatComponent* StatComp;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Component")
+	UParkourComponent* ParkourComp;
+
 	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Component")
 	//UInventoryComponent* InventoryComponent;
 
@@ -71,6 +74,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void EquipWeapon(FName ItemID);
+
+	UFUNCTION(BlueprintCallable, Category = "Movement")
+	void StartSprint();
+
+	UFUNCTION(BlueprintCallable, Category = "Movement")
+	void StopSprint();
 
 	// --- 상호작용 ---
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
@@ -94,13 +103,32 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
 	UInputAction* InteractAction;
 
+	// --- 스탯 값들 ---
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat Config")
+	float MaxStamina = 100.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat Config")
+	float SprintCostPerSecond = 10.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat Config")
+	float StaminaRecoveryRate = 20.f; 
+
+	void PrintDebugInfo(); // 임시 디버그용 -> 곧 삭제
+
 protected:
 	// 조준 중인지 확인 (상태와 별개로 체크 - 추후 상하체 동작 분리 위해..아마..?)
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State")
 	bool bIsAiming;
+
+	FTimerHandle SprintTimerHandle;
+	FTimerHandle StaminaRecoveryTimerHandle; // 회복용
+	void HandleSprintCost();
+	void HandleStaminaRecovery();
 	
 protected:
 	virtual void NotifyControllerChanged() override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	
+	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaTime) override;
 };
