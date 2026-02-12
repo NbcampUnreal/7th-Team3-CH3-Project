@@ -45,12 +45,12 @@ float FStat::GetPercentage() const
 // Setter
 void FStat::SetBaseValue(float Value)
 {
-    BaseValue = FMath::Clamp(BaseValue, MinValue, MaxValue);
+    BaseValue = FMath::Clamp(Value, MinValue, MaxValue);
 }
 
 void FStat::SetCurrentValue(float Value)
 {
-    CurrentValue = FMath::Clamp(CurrentValue, MinValue, MaxValue);
+    CurrentValue = FMath::Clamp(Value, MinValue, MaxValue);
 }
 
 void FStat::ResetToMax()
