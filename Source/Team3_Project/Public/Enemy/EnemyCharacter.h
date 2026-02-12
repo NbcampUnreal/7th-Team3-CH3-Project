@@ -75,6 +75,10 @@ public:
 	UAnimMontage* GetHittedMontage() const;
 	UAnimMontage* GetDeadMontage() const;
 
+	float GetPatrolSpeed() const;
+	float GetPatrolRadius() const;
+	float GetChaseSpeed() const;
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
 	UStatComponent* StatComp;

@@ -13,4 +13,8 @@ public:
 	virtual void EnterState() override;
 	virtual void TickState() override;
 	virtual void ExitState() override;
+
+protected:
+	float WaitTime;
+	float ChangeTime = 3.f;
 };

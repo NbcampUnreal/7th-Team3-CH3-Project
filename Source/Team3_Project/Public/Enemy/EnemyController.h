@@ -48,6 +48,9 @@ public:
 	float GetChaseRange() const { return ChaseRange; }
 	float GetAttackRange() const { return AttackRange; }
 
+	float GetPatrolSpeed() const;
+	float GetChaseSpeed() const;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
@@ -59,6 +62,8 @@ protected:
 	UFUNCTION()
 	void OnTargetPerceptionForgotten(AActor* Actor);
 	using AController::ChangeState;
+
+	void DrowFollowingPath(float LifeTime);
 
 protected:
 	// 감각
