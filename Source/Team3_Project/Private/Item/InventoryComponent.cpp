@@ -10,6 +10,7 @@
 UInventoryComponent::UInventoryComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+	InitializeQuickSlots();
 }
 
 int32 UInventoryComponent::AddItem(FName ItemID, int32 Quantity)
@@ -216,6 +217,54 @@ int32 UInventoryComponent::GetItemQuantity(FName ItemID) const
 		}
 	}
 	return TotalQuantity;
+}
+
+void UInventoryComponent::InitializeQuickSlots()
+{
+	QuickSlots.Init(NAME_None, 8);
+}
+
+void UInventoryComponent::AssignToQuickSlot(int32 SlotIndex, FName ItemID)
+{
+	if (QuickSlots.IsValidIndex(SlotIndex))
+	{
+		QuickSlots[SlotIndex] = ItemID;
+		OnQuickSlotUpdated.Broadcast();
+		UE_LOG(LogTemp, Log, TEXT("Assigned ItemID %s to Quick Slot %d"), *ItemID.ToString(), SlotIndex);
+	}
+}
+
+void UInventoryComponent::UseItemFromQuickSlot(int32 SlotIndex)
+{
+	if (!QuickSlots.IsValidIndex(SlotIndex))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Invalid Quick Slot Index: %d"), SlotIndex);
+		return;
+	}
+
+	FName TargetItemID = QuickSlots[SlotIndex];
+	if (TargetItemID.IsNone())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Quick Slot %d is empty"), SlotIndex);
+		return;
+	}
+
+	if (HasItem(TargetItemID, 1))
+	{
+		if (RequestUseItem(TargetItemID))
+		{
+			UE_LOG(LogTemp, Log, TEXT("Used ItemID %s from Quick Slot %d"), *TargetItemID.ToString(), SlotIndex);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Failed to use ItemID %s from Quick Slot %d"), *TargetItemID.ToString(), SlotIndex);
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Not enough quantity of ItemID %s to use from Quick Slot %d"), *TargetItemID.ToString(), SlotIndex);
+	}
+
 }
 
 AWeaponItem* UInventoryComponent::FindEquippedWeapon() const
