@@ -1,9 +1,18 @@
 ﻿#include "Enemy/ChaseState.h"
 #include "Enemy/EnemyController.h"
+#include "Enemy/EnemyCharacter.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 void UChaseState::EnterState()
 {
 	UE_LOG(LogTemp, Warning, TEXT("[AI] Enter Chase"));
+	if (AEnemyCharacter* EnemyCharacter = Cast<AEnemyCharacter>(OwnerController->GetPawn()))
+	{
+		if (UCharacterMovementComponent* MoveComp = EnemyCharacter->GetCharacterMovement())
+		{
+			MoveComp->MaxWalkSpeed = EnemyCharacter->GetChaseSpeed();
+		}
+	}
 	OwnerController->MoveToPlayer();
 }
 

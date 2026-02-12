@@ -13,6 +13,8 @@
 #include "Enemy/ChaseState.h"
 #include "Enemy/AttackState.h"
 #include "Enemy/HittedState.h"
+#include "NavigationSystem.h"
+#include "Navigation//PathFollowingComponent.h"
 
 AEnemyController::AEnemyController()
     :BehaviorTree(nullptr),
@@ -74,6 +76,8 @@ AEnemyController::AEnemyController()
         this,
         &AEnemyController::OnTargetPerceptionForgotten
     );
+
+    TargetLocation = FVector::ZeroVector;
 }
 
 void AEnemyController::BeginPlay()
@@ -115,7 +119,9 @@ void AEnemyController::OnPossess(APawn* InPawn)
         if (UCharacterMovementComponent* MoveComp = PossessedCharacter->GetCharacterMovement())
         {
             MoveComp->bOrientRotationToMovement = true;
+
         }
+        TargetLocation = InPawn->GetActorLocation();
 
         if (PossessedCharacter->IsForWave())
         {
@@ -191,14 +197,27 @@ bool AEnemyController::IsPlayerInRange(float Range) const
 
 void AEnemyController::MoveToRandomLocation()
 {
-    FVector CharacterLocation = GetPawn()->GetActorLocation();
-    float Dist = (CharacterLocation - TargetLocation).Size();
-    if (FMath::IsNearlyZero(Dist))
+    AEnemyCharacter* EnemyCharacter = Cast<AEnemyCharacter>(GetPawn());
+    if (!EnemyCharacter) return;
+
+    float Dist2D = FVector::Dist2D(GetPawn()->GetActorLocation(),
+        TargetLocation);
+    if (Dist2D >= 50.f) return;
+
+    const UNavigationSystemV1* NavSystem = UNavigationSystemV1::GetCurrent(GetWorld());
+    if (NavSystem == nullptr)
     {
-        TargetLocation = CharacterLocation + FVector(FMath::FRandRange(-100.f, 100.f));
+        return;
     }
 
-    MoveToLocation(TargetLocation);
+    FNavLocation RandomLocation;
+    const bool bFound = NavSystem->GetRandomReachablePointInRadius(EnemyCharacter->GetActorLocation(), EnemyCharacter->GetPatrolRadius(), RandomLocation);
+    if (bFound)
+    {
+        MoveToLocation(RandomLocation.Location);
+        TargetLocation = RandomLocation.Location;
+        DrowFollowingPath(2.f);
+    }
 }
 
 void AEnemyController::MoveToPlayer()
@@ -224,6 +243,25 @@ bool AEnemyController::IsMoving() const
 }
 
 bool AEnemyController::IsMovable() const
+{
+    if (AEnemyCharacter* EnemyCharacter = Cast<AEnemyCharacter>(GetPawn()))
+    {
+        return EnemyCharacter->IsMovable();
+    }
+
+    return false;
+}
+float AEnemyController::GetPatrolSpeed() const
+{
+    if (AEnemyCharacter* EnemyCharacter = Cast<AEnemyCharacter>(GetPawn()))
+    {
+        return EnemyCharacter->IsMovable();
+    }
+
+    return false;
+}
+
+float AEnemyController::GetChaseSpeed() const
 {
     if (AEnemyCharacter* EnemyCharacter = Cast<AEnemyCharacter>(GetPawn()))
     {
@@ -262,6 +300,7 @@ void AEnemyController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stim
         else
         {
             UE_LOG(LogTemp, Log, TEXT("%s: Player lost form sight!"), *Enemy->GetName().ToString());
+            OnTargetPerceptionForgotten(PlayerCharacter);
         }
     }
     // 청각에 걸린 것인지 확인
@@ -275,13 +314,14 @@ void AEnemyController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stim
             // 소리 위치로 이동
             if(UBlackboardComponent * BB = GetBlackboardComponent())
             {
-                BB->SetValueAsVector(FName(""), Stimulus.StimulusLocation);
+                BB->SetValueAsVector(FName("TargetLocation"), Stimulus.StimulusLocation);
             }
             TargetLocation = Stimulus.StimulusLocation;
+            ChangeState(PatrolState);
         }
         else
         {
-            OnTargetPerceptionForgotten(PlayerCharacter);
+            
         }
     }
 }
@@ -307,4 +347,58 @@ void AEnemyController::OnTargetPerceptionForgotten(AActor* Actor)
     }
 
     TargetActor = nullptr;
+}
+
+void AEnemyController::DrowFollowingPath(float LifeTime)
+{
+    UPathFollowingComponent* PathComp = GetPathFollowingComponent();
+    if (PathComp == nullptr)
+    {
+        return;
+    }
+
+    FNavPathSharedPtr Path = PathComp->GetPath();
+    if (!Path.IsValid() || !Path->IsValid())
+    {
+        return;
+    }
+
+    const TArray<FNavPathPoint>& Points = Path->GetPathPoints();
+    for (int32 i = 0; i < Points.Num() - 1; ++i)
+    {
+        DrawDebugLine(
+            GetWorld(),
+            Points[i].Location,
+            Points[i + 1].Location,
+            FColor::Green,
+            false,
+            LifeTime,
+            0,
+            3.0f
+        );
+
+        DrawDebugSphere(
+            GetWorld(),
+            Points[i].Location,
+            15.0f,
+            8,
+            FColor::Yellow,
+            false,
+            LifeTime
+        );
+    }
+
+    // 최종 목적지 표시
+    if (Points.Num() > 0)
+    {
+        DrawDebugSphere(
+            GetWorld(),
+            Points.Last().Location,
+            25.0f,
+            12,
+            FColor::Red,
+            false,
+            LifeTime
+        );
+    }
 }

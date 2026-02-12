@@ -45,6 +45,7 @@ bool AEnemyCharacter::Attack()
 	if (IsAttackable())
 	{
 		LeftAttackCoolTime = GetAttackCoolTime();
+		DeactiveMove();
 		PlayAnimMontage(GetAttackMontage());
 		
 		return true;
@@ -59,6 +60,7 @@ bool AEnemyCharacter::SpecialAttack()
 	{
 		LeftAttackCoolTime = GetAttackCoolTime();
 		PlayAnimMontage(GetSpecialAttackMontage());
+		DeactiveMove();
 		return true;
 	}
 	return false;
@@ -67,6 +69,7 @@ bool AEnemyCharacter::SpecialAttack()
 void AEnemyCharacter::OnFinishAttack()
 {
 	bIsAttacking = false;
+	ActiveMove();
 }
 
 
@@ -74,18 +77,19 @@ void AEnemyCharacter::OnHitted()
 {
 	StopAnimMontage();
 	PlayAnimMontage(GetHittedMontage());
-	bIsMovable = false;
+	DeactiveMove();
 }
 
 void AEnemyCharacter::OnFinishHitted()
 {
-	bIsMovable = true;
+	ActiveMove();
 }
 
 void AEnemyCharacter::OnDead()
 {
 	StopAnimMontage();
 	PlayAnimMontage(GetDeadMontage());
+	DeactiveMove();
 }
 
 void AEnemyCharacter::OnFinishDead()
@@ -200,4 +204,19 @@ UAnimMontage* AEnemyCharacter::GetDeadMontage() const
 float AEnemyCharacter::GetAttackCoolTime() const
 {
 	return TypeData ? TypeData->AttackCoolTime : 5.f;
+}
+
+float AEnemyCharacter::GetPatrolSpeed() const
+{
+	return TypeData ? TypeData->PatrolMaxSpeed : 150.f;
+}
+
+float AEnemyCharacter::GetPatrolRadius() const
+{
+	return TypeData ? TypeData->PatrolRadius : 150.f;
+}
+
+float AEnemyCharacter::GetChaseSpeed() const
+{
+	return TypeData ? TypeData->ChaseMaxSpeed : 600.f;
 }
