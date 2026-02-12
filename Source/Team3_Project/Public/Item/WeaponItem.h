@@ -130,6 +130,7 @@ protected:
 	
 	void FireHitScan();
 	void FireProjectile();
+	void ApplyRecoil();
 
 	FTimerHandle ReloadTimerHandle;
 	void FinishReloading();

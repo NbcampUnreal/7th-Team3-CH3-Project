@@ -382,14 +382,52 @@ bool UInventoryComponent::HandleArmorEquip(const FItemData& Data, FName ItemID)
 
 bool UInventoryComponent::HandleConsumableUse(const FItemData& Data, FName ItemID)
 {
-	//캐릭터 상황 봐서 회복 로직 구현
-	//Character
+	ACharacter* Character = Cast<ACharacter>(GetOwner());
+	if (!Character)
+	{
+		return false;
+	}
 
-	if (RemoveItem(ItemID, 1))
-		{
-		UE_LOG(LogTemp, Log, TEXT("Used consumable ItemID %s"), *ItemID.ToString());
+	bool bUseSuccessful = false;
+
+	switch (Data.ConsumableType)
+	{
+	case EConsumableType::CT_Health:
+		// 체력 회복 로직 구현 필요
+		UE_LOG(LogTemp, Log, TEXT("Used Health Consumable ItemID %s"), *ItemID.ToString());
+		bUseSuccessful = true;
+		break;
+	case EConsumableType::CT_Stamina:
+		// 스태미나 회복 로직 구현 필요
+		UE_LOG(LogTemp, Log, TEXT("Used Stamina Consumable ItemID %s"), *ItemID.ToString());
+		bUseSuccessful = true;
+		break;
+	case EConsumableType::CT_Adrenaline:
+		// 아드레날린 회복 로직 구현 필요
+		UE_LOG(LogTemp, Log, TEXT("Used Adrenaline Consumable ItemID %s"), *ItemID.ToString());
+		bUseSuccessful = true;
+		break;
+	case EConsumableType::CT_WhiteKarma:
+		// 화이트 카르마 회복 로직 구현 필요
+		UE_LOG(LogTemp, Log, TEXT("Used White Karma Consumable ItemID %s"), *ItemID.ToString());
+		bUseSuccessful = true;
+		break;
+	case EConsumableType::CT_BlackKarma:
+		// 블랙 카르마 회복 로직 구현 필요
+		UE_LOG(LogTemp, Log, TEXT("Used Black Karma Consumable ItemID %s"), *ItemID.ToString());
+		bUseSuccessful = true;
+		break;
+	default:
+		UE_LOG(LogTemp, Warning, TEXT("Unknown ConsumableType for ItemID %s"), *ItemID.ToString());
+		bUseSuccessful = false;
+		break;
+	}
+
+	if (bUseSuccessful && RemoveItem(ItemID, 1))
+	{
 		return true;
 	}
+
 	UE_LOG(LogTemp, Warning, TEXT("Failed to remove consumable ItemID %s from inventory"), *ItemID.ToString());
 	return false;
 }
