@@ -5,6 +5,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Item/WeaponItem.h"
 #include "GameFramework/Character.h"
+#include "Shared/Component/StatComponent.h"
 
 UInventoryComponent::UInventoryComponent()
 {
@@ -387,13 +388,20 @@ bool UInventoryComponent::HandleConsumableUse(const FItemData& Data, FName ItemI
 	{
 		return false;
 	}
+	
+	UStatComponent* StatComp = Character->FindComponentByClass<UStatComponent>();
+	if (!StatComp)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("StatComponent not found on character for ItemID %s"), *ItemID.ToString());
+		return false;
+	}
 
 	bool bUseSuccessful = false;
 
 	switch (Data.ConsumableType)
 	{
 	case EConsumableType::CT_Health:
-		// 체력 회복 로직 구현 필요
+		// 체력 회복 로직 구현 필요		
 		UE_LOG(LogTemp, Log, TEXT("Used Health Consumable ItemID %s"), *ItemID.ToString());
 		bUseSuccessful = true;
 		break;
