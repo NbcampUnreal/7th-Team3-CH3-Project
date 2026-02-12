@@ -41,5 +41,6 @@ void UChaseState::TickState()
 
 void UChaseState::ExitState()
 {
+	UE_LOG(LogTemp, Warning, TEXT("[AI] Exit Chase"));
 	OwnerController->StopMovement();
 }

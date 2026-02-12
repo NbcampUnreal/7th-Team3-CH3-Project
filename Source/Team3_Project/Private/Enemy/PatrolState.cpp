@@ -36,4 +36,5 @@ void UPatrolState::TickState()
 
 void UPatrolState::ExitState()
 {
+	UE_LOG(LogTemp, Warning, TEXT("[AI] Exit Chase"));
 }

@@ -27,5 +27,6 @@ void UIdleState::TickState()
 
 void UIdleState::ExitState()
 {
+    UE_LOG(LogTemp, Warning, TEXT("[AI] Exit Chase"));
     WaitTime = 0.f;
 }

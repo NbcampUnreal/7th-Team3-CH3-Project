@@ -31,6 +31,7 @@ void UAttackState::TickState()
 
 void UAttackState::ExitState()
 {
+	UE_LOG(LogTemp, Warning, TEXT("[AI] Exit Attack"));
 	if (AEnemyCharacter* EnemyCharacter = Cast<AEnemyCharacter>(OwnerController->GetPawn()))
 	{
 		EnemyCharacter->OnFinishAttack();

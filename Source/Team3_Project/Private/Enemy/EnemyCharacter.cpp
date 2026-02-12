@@ -169,7 +169,7 @@ void AEnemyCharacter::TryMeleeHit()
 			UDamageType::StaticClass()
 		);
 
-		UE_LOG(LogTemp, Warning, TEXT("ApplyDamage To %s"), *(HitActor->GetName()));
+		UE_LOG(LogTemp, Warning, TEXT("ApplyDamage To %s"), *(HitActor->GetActorLabel()));
 	}
 }
 
@@ -178,6 +178,7 @@ void AEnemyCharacter::OnHitted()
 	StopAnimMontage();
 	PlayAnimMontage(GetHittedMontage());
 	DeactiveMove();
+	UE_LOG(LogTemp, Warning, TEXT("%s Hitted!"), *(GetActorLabel()));
 }
 
 void AEnemyCharacter::OnFinishHitted()
@@ -362,6 +363,7 @@ void AEnemyCharacter::ApplyDamageToStat(float DamageAmount)
 	float Damage = FMath::Clamp(DamageAmount - Defence, 1, DamageAmount);
 
 	StatComp->SetBaseStatValue(FName("Health"), CurrentHealth - Damage);
+	UE_LOG(LogTemp, Warning, TEXT("Take %f damage! CurrentHealth : %f"), DamageAmount, StatComp->GetCurrentStatValue(FName("Health")));
 }
 
 void AEnemyCharacter::EnableRagdoll()
