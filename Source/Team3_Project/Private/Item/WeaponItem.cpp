@@ -119,15 +119,17 @@ void AWeaponItem::StopFire()
 
 void AWeaponItem::FireWeapon()
 {
+	//발사 가능 여부 확인
 	if (bIsReloading || CurrentAmmo <= 0)
 	{
 		StopFire();
 		return;
 	}
-
+	//탄	약 감소 및 발사 시간 기록
 	CurrentAmmo--;
 	LastFireTime = GetWorld()->TimeSeconds;
 
+	//발사 방식에 따른 처리
 	if (bIsProjectile)
 	{
 		FireProjectile();
@@ -137,6 +139,10 @@ void AWeaponItem::FireWeapon()
 		FireHitScan();
 	}
 
+	//반동 적용
+	ApplyRecoil();
+
+	//디버그 메시지 출력
 	if (GEngine)
 	{
 		GEngine->AddOnScreenDebugMessage(
@@ -607,6 +613,35 @@ void AWeaponItem::FireProjectile()
 			UGameplayStatics::FinishSpawningActor(NewProjectile, SpawnTransform);
 		}
 	}
+}
+
+void AWeaponItem::ApplyRecoil()
+{
+	AActor* OwnerActor = GetOwner();
+	if (!OwnerActor)
+	{
+		return;
+	}
+
+	APawn* OwnerPawn = Cast<APawn>(OwnerActor);
+	if (!OwnerPawn)
+	{
+		return;
+	}
+
+	APlayerController* PC = Cast<APlayerController>(OwnerPawn->GetController());
+	if (!PC)
+	{
+		return;
+	}
+
+	//임시 반동 구현. 추후 개선 필요
+	float VerticalRecoil = FMath::RandRange(-CurrentRecoil * 0.8f, -CurrentRecoil * 1.2f);
+	float HorizontalRecoil = FMath::RandRange(-CurrentRecoil * 0.5f, CurrentRecoil * 0.5f);
+
+	PC->AddPitchInput(VerticalRecoil);
+	PC->AddYawInput(HorizontalRecoil);
+
 }
 
 
