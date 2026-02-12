@@ -81,6 +81,8 @@ bool UStatComponent::SetBaseStatValue(FName StatName, float Value)
 	if (!Stats.Contains(StatName)) return false;
 
 	Stats[StatName].SetBaseValue(Value);
+	UpdateStat(StatName);
+
 	return true;
 }
 
