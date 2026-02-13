@@ -29,16 +29,16 @@ ATeam3_ProjectCharacter::ATeam3_ProjectCharacter()
 
 void ATeam3_ProjectCharacter::NotifyControllerChanged()
 {
-	Super::NotifyControllerChanged();
+	//Super::NotifyControllerChanged();
 
-	// Add Input Mapping Context
-	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
-	{
-		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
-		{
-			Subsystem->AddMappingContext(DefaultMappingContext, 0);
-		}
-	}
+	//// Add Input Mapping Context
+	//if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
+	//{
+	//	if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
+	//	{
+	//		Subsystem->AddMappingContext(SandboxMappingContext, 0);
+	//	}
+	//}
 }
 
 void ATeam3_ProjectCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
