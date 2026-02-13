@@ -7,6 +7,10 @@
 #include "Components/Button.h"
 #include "Core/ItemDataSubsystem.h"
 #include "Kismet/GameplayStatics.h"
+#include "Input/Reply.h"
+#include "UI/Inventory/InventoryDragDropOperation.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
+#include "Blueprint/UserWidget.h"
 
 void UInventoryItemSlot::InitSlot(const FInventoryItem& Item)
 {
@@ -69,4 +73,67 @@ void UInventoryItemSlot::ClearSlot()
 	{
 		SlotButton->SetIsEnabled(false);
 	}
+}
+
+void UInventoryItemSlot::SetSelectedSlot(bool bSelected)
+{
+	if (SelectionBorder)
+	{
+		SelectionBorder->SetVisibility(bSelected ? ESlateVisibility::Visible : ESlateVisibility::Hidden);
+	}
+}
+
+void UInventoryItemSlot::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	Super::NativeOnMouseEnter(InGeometry, InMouseEvent);
+}
+
+void UInventoryItemSlot::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
+{
+	Super::NativeOnMouseLeave(InMouseEvent);
+}
+
+FReply UInventoryItemSlot::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	if (InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
+	{
+		//우클릭 시 아이템 사용 로직 추가 (예: 아이템 사용, 장착 등)
+		return FReply::Handled();
+	}
+
+	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+	{
+		SetSelectedSlot(true);
+
+		return FReply::Handled().DetectDrag(TakeWidget(), EKeys::LeftMouseButton);
+	}
+
+	return FReply::Unhandled();
+}
+
+void UInventoryItemSlot::NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation)
+{
+	Super::NativeOnDragDetected(InGeometry, InMouseEvent, OutOperation);
+
+	if (CurrentItemID.IsNone())
+	{
+		return;
+	}
+
+	UInventoryDragDropOperation* DragDropOp = NewObject<UInventoryDragDropOperation>();
+	DragDropOp->ItemID = CurrentItemID;
+	DragDropOp->Pivot = EDragPivot::CenterCenter;
+
+	UInventoryItemSlot* DragVisual = CreateWidget<UInventoryItemSlot>(this, this->GetClass());
+	if (DragVisual)
+	{
+		FInventoryItem DragItem;
+		DragItem.ItemID = CurrentItemID;
+		DragItem.Quantity = 1; //드래그 시 1개만 드래그한다고 가정
+		DragVisual->InitSlot(DragItem);
+
+		DragDropOp->DefaultDragVisual = DragVisual;
+	}
+
+	OutOperation = DragDropOp;
 }
