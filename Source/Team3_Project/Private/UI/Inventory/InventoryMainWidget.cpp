@@ -5,6 +5,27 @@
 #include "Components/UniformGridPanel.h"
 #include "Item/InventoryComponent.h"
 #include "UI/Inventory/InventoryItemSlot.h"
+#include "Blueprint/WidgetLayoutLibrary.h"
+#include "Input/Reply.h"
+
+void UInventoryMainWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+	if (ActiveTooltip && ActiveTooltip->GetVisibility() == ESlateVisibility::HitTestInvisible)
+	{
+		UpdateTooltipPosition();
+	}
+}
+
+FReply UInventoryMainWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	if (bIsContextMenuOpen)
+	{
+		CloseContextMenu();
+		return FReply::Handled();
+	}
+	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
+}
 
 void UInventoryMainWidget::InitializeInventory(UInventoryComponent* NewInventoryComp)
 {
@@ -39,6 +60,7 @@ void UInventoryMainWidget::RefreshInventory()
 		UInventoryItemSlot* NewSlot = CreateWidget<UInventoryItemSlot>(this, SlotWidgetClass);
 		if (NewSlot)
 		{
+			NewSlot->ParentInventoryWidget = this;
 			//아이템이 있으면 초기화, 없으면 비우기
 			if (Items.IsValidIndex(i))
 			{
@@ -56,6 +78,26 @@ void UInventoryMainWidget::RefreshInventory()
 			InventoryGrid->AddChildToUniformGrid(NewSlot, Row, Column);
 		}
 	}
+}
+
+void UInventoryMainWidget::HandleSlotHover(UInventoryItemSlot* ItemSlot, const FInventoryItem& Item)
+{
+	if (bIsContextMenuOpen)
+	{
+		return;
+	}
+	ShowTooltip(Item);
+}
+
+void UInventoryMainWidget::HandleSlotUnhover(UInventoryItemSlot* ItemSlot)
+{
+	HideTooltip();
+}
+
+void UInventoryMainWidget::HandleSlotRightClick(UInventoryItemSlot* ItemSlot, const FInventoryItem& Item)
+{
+	HideTooltip();
+	OpenContextMenu(Item);
 }
 
 void UInventoryMainWidget::NativeConstruct()
@@ -80,6 +122,82 @@ void UInventoryMainWidget::NativeConstruct()
 		else
 		{
 			UE_LOG(LogTemp, Warning, TEXT("No InventoryComponent found on owning pawn in NativeConstruct"));
+		}
+	}
+
+	if (TooltipWidgetClass)
+	{
+		ActiveTooltip = CreateWidget<UUserWidget>(this, TooltipWidgetClass);
+		if (ActiveTooltip)
+		{
+			ActiveTooltip->AddToViewport(100);
+			ActiveTooltip->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
+
+	if (ContextMenuWidgetClass)
+	{
+		ActiveContextMenu = CreateWidget<UUserWidget>(this, ContextMenuWidgetClass);
+		if (ActiveContextMenu)
+		{
+			ActiveContextMenu->AddToViewport(110);
+			ActiveContextMenu->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
+}
+
+void UInventoryMainWidget::ShowTooltip(const FInventoryItem& Item)
+{
+	if (ActiveTooltip)
+	{
+		ActiveTooltip->SetVisibility(ESlateVisibility::HitTestInvisible);
+		UpdateTooltipPosition();
+	}
+}
+
+void UInventoryMainWidget::HideTooltip()
+{
+	if (ActiveTooltip)
+	{
+		ActiveTooltip->SetVisibility(ESlateVisibility::Collapsed);
+	}
+}
+
+void UInventoryMainWidget::OpenContextMenu(const FInventoryItem& Item)
+{
+	if (ActiveContextMenu)
+	{
+		bIsContextMenuOpen = true;
+
+		if (APlayerController* PC = GetOwningPlayer())
+		{
+			float MouseX, MouseY;
+			if (PC->GetMousePosition(MouseX, MouseY))
+			{
+				ActiveContextMenu->SetPositionInViewport(FVector2D(MouseX, MouseY));
+				ActiveContextMenu->SetVisibility(ESlateVisibility::Visible);
+			}
+		}
+	}
+}
+
+void UInventoryMainWidget::CloseContextMenu()
+{
+	bIsContextMenuOpen = false;
+	if (ActiveContextMenu)
+	{
+		ActiveContextMenu->SetVisibility(ESlateVisibility::Collapsed);
+	}
+}
+
+void UInventoryMainWidget::UpdateTooltipPosition()
+{
+	if (APlayerController* PC = GetOwningPlayer())
+	{
+		float MouseX, MouseY;
+		if (PC->GetMousePosition(MouseX, MouseY))
+		{
+			ActiveTooltip->SetPositionInViewport(FVector2D(MouseX + 15.f, MouseY + 15.f));
 		}
 	}
 }

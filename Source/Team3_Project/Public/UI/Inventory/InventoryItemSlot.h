@@ -12,6 +12,7 @@
 class UImage;
 class UTextBlock;
 class UButton;
+class UInventoryMainWidget;
 
 UCLASS()
 class TEAM3_PROJECT_API UInventoryItemSlot : public UUserWidget
@@ -26,6 +27,9 @@ public:
 	void ClearSlot();
 
 	void SetSelectedSlot(bool bSelected);
+
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory UI")
+	UInventoryMainWidget* ParentInventoryWidget;
 
 protected:
 

@@ -11,6 +11,7 @@
 #include "UI/Inventory/InventoryDragDropOperation.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Blueprint/UserWidget.h"
+#include "UI/Inventory/InventoryMainWidget.h"
 
 void UInventoryItemSlot::InitSlot(const FInventoryItem& Item)
 {
@@ -86,19 +87,35 @@ void UInventoryItemSlot::SetSelectedSlot(bool bSelected)
 void UInventoryItemSlot::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
 	Super::NativeOnMouseEnter(InGeometry, InMouseEvent);
+
+	if (!CurrentItemID.IsNone() && ParentInventoryWidget)
+	{
+		FInventoryItem DummyItem;
+		DummyItem.ItemID = CurrentItemID;
+		ParentInventoryWidget->HandleSlotHover(this, DummyItem);
+	}
 }
 
 void UInventoryItemSlot::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
 {
 	Super::NativeOnMouseLeave(InMouseEvent);
+	if (ParentInventoryWidget)
+	{
+		ParentInventoryWidget->HandleSlotUnhover(this);
+	}
 }
 
 FReply UInventoryItemSlot::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
 	if (InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
 	{
-		//우클릭 시 아이템 사용 로직 추가 (예: 아이템 사용, 장착 등)
-		return FReply::Handled();
+		if (!CurrentItemID.IsNone() && ParentInventoryWidget)
+		{
+			FInventoryItem DummyItem;
+			DummyItem.ItemID = CurrentItemID;
+			ParentInventoryWidget->HandleSlotRightClick(this, DummyItem);
+			return FReply::Handled();
+		}
 	}
 
 	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
