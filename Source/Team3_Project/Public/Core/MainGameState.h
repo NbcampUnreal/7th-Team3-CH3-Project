@@ -10,7 +10,6 @@ class AEnemySpawner;
 class AEventZone;
 class AEnemyCharacter;
 
-DECLARE_DELEGATE(FSpawnDelegateFunction);
 /**
  *
  */
@@ -56,6 +55,8 @@ public:
 	FTimerHandle WaveStartTimer;
 	FTimerHandle WaveEndTimer;
 
+public:
+
 	UFUNCTION()
 	void SpawnMonster(const int32 Id);
 
@@ -71,4 +72,6 @@ public:
 	void OnGameOver();
 	void OnOpenMenu();
 
+private:
+	bool bIsRunningSpawner = false;
 };
