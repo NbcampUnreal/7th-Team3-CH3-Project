@@ -363,7 +363,7 @@ void AEnemyCharacter::ApplyDamageToStat(float DamageAmount)
 	float Damage = FMath::Clamp(DamageAmount - Defence, 1, DamageAmount);
 
 	StatComp->SetBaseStatValue(FName("Health"), CurrentHealth - Damage);
-	UE_LOG(LogTemp, Warning, TEXT("Take %f damage! Defended %f, total damage: %f, CurrentHealth : %f"), DamageAmount, Defence, Damage, StatComp->GetCurrentStatValue(FName("Health")));
+	UE_LOG(LogTemp, Warning, TEXT("Take %.1f damage! Defended %.1f, total damage: %.1f, CurrentHealth : %.1f"), DamageAmount, Defence, Damage, StatComp->GetCurrentStatValue(FName("Health")));
 }
 
 void AEnemyCharacter::EnableRagdoll()
