@@ -7,6 +7,7 @@
 #include "Item/InventoryComponent.h"
 #include "Core/ItemDataSubsystem.h"
 #include "Kismet/GameplayStatics.h"
+#include "Shared/InteractionInterface.h"
 
 // Sets default values
 ABaseItem::ABaseItem()
@@ -20,6 +21,17 @@ ABaseItem::ABaseItem()
 	SphereComp = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComp"));
 	SphereComp->SetupAttachment(RootComponent);
 	SphereComp->SetSphereRadius(100.f); // 반지름 설정
+
+	LootWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("LootWidget"));
+	LootWidget->SetupAttachment(RootComponent);
+	LootWidget->SetWidgetSpace(EWidgetSpace::Screen);
+	LootWidget->SetDrawAtDesiredSize(true);
+	LootWidget->SetVisibility(false);
+
+	LootWidget->SetRelativeLocation(FVector(0.f, 0.f, 100.f));
+
+	SphereComp->OnComponentBeginOverlap.AddDynamic(this, &ABaseItem::OnSphereOverlap);
+	SphereComp->OnComponentEndOverlap.AddDynamic(this, &ABaseItem::OnSphereEndOverlap);
 }
 
 void ABaseItem::Interact(AActor* Interactor)
@@ -83,6 +95,54 @@ void ABaseItem::BeginPlay()
 				}
 			}
 		}
+	}
+}
+
+FText ABaseItem::GetInteractionPrompt_Implementation()
+{
+	UGameInstance* GameInstance = UGameplayStatics::GetGameInstance(this);
+	if (!GameInstance)
+	{
+		return FText::GetEmpty();
+	}
+	UItemDataSubsystem* ItemDataSubsystem = GameInstance->GetSubsystem<UItemDataSubsystem>();
+	if (ItemDataSubsystem)
+	{
+		FItemData Data = ItemDataSubsystem->GetItemDataByID(ItemID);
+		return FText::Format(NSLOCTEXT("Interaction", "PickupPrompt", "Press E to pick up {0}"), Data.DisplayName);
+	}
+	else 
+	{
+		return FText::GetEmpty();
+	}
+}
+
+void ABaseItem::OnSphereOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (OtherActor && (OtherActor->ActorHasTag("Player")))
+	{
+		SetItemFocus(true);
+	}
+}
+
+void ABaseItem::OnSphereEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	if (OtherActor && (OtherActor->ActorHasTag("Player")))
+	{
+		SetItemFocus(false);
+	}
+}
+
+void ABaseItem::SetItemFocus(bool bIsFocus)
+{
+	if (LootWidget)
+	{
+		LootWidget->SetVisibility(bIsFocus);
+	}
+
+	if (ItemMesh)
+	{
+		ItemMesh->SetRenderCustomDepth(bIsFocus);
 	}
 }
 
