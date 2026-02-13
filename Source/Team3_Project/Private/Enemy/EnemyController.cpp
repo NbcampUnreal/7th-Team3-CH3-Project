@@ -283,7 +283,7 @@ void AEnemyController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stim
 {
     // PlayerCharacter 클래스로 추후 수정
     ACharacter* PlayerCharacter = Cast<ACharacter>(Actor);
-    if (!PlayerCharacter) return;
+    if (!PlayerCharacter && !PlayerCharacter->ActorHasTag(FName("Player"))) return;
 
     AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(GetPawn());
     if (!Enemy) return;

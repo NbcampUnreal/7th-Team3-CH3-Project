@@ -4,6 +4,7 @@
 #include "Enemy/EnemyController.h"
 #include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
+#include "../Team3_ProjectCharacter.h"
 
 AEnemyCharacter::AEnemyCharacter()
 {
@@ -156,6 +157,7 @@ void AEnemyCharacter::TryMeleeHit()
 		
 		ACharacter* Character = Cast<ACharacter>(HitActor);
 		if (!IsValid(HitActor)) continue;
+		if (!HitActor->ActorHasTag(FName("Player"))) continue;
 		if (HitActor == this) continue;
 		if (DamagedActor.Contains(HitActor)) continue;
 
