@@ -38,6 +38,12 @@ protected:
     UPROPERTY(meta = (BindWidget))
     class UTextBlock* Timer;
 
+    UPROPERTY(meta = (BindWidget))
+    class UVerticalBox* QuestList;
+
+    UPROPERTY(EditAnywhere, Category = "Quest")
+    TSubclassOf<class UQuestItemWidget> QuestItemClass;
+
     UPROPERTY(EditAnywhere, Category = "UI Style")
     float InterpSpeed;
 
@@ -68,5 +74,9 @@ public:
     UFUNCTION(BlueprintCallable, Category = "HUD Test")
     void UpdateTime(float Time);
 
+    UFUNCTION(BlueprintCallable, Category = "Quest")
+    void FinishQuest(FString Title);
+
     void UpdateDynamicColor(class UProgressBar* Bar, float CurrentPercent);
+    void AddNewQuest(FString Title, FString Desc);
 };

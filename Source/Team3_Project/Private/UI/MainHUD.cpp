@@ -1,6 +1,8 @@
 #include "UI/MainHUD.h"
 #include "Components/TextBlock.h"
 #include "Components/ProgressBar.h"
+#include "UI/QuestItemWidget.h"
+#include "Components/VerticalBox.h"
 
 UMainHUD::UMainHUD(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -26,6 +28,10 @@ void UMainHUD::NativeConstruct()
     {
         Timer->SetVisibility(ESlateVisibility::Collapsed);
     }
+
+    //AddNewQuest(TEXT("기본 목표"), TEXT("조작법을 익히고 전장으로 이동하세요."));
+    //AddNewQuest(TEXT("적 처치"), TEXT("주변의 적 5명을 처치하세요 (0/5)"));
+    //AddNewQuest(TEXT("생존"), TEXT("3분 동안 적의 공격으로부터 살아남으세요."));
 }
 
 void UMainHUD::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -164,6 +170,44 @@ void UMainHUD::UpdateTime(float Time)
         else
         {
             Timer->SetColorAndOpacity(FSlateColor(FLinearColor::White));
+        }
+    }
+}
+
+void UMainHUD::AddNewQuest(FString Title, FString Desc)
+{
+    if (QuestList && QuestItemClass)
+    {
+        UQuestItemWidget* NewItem = CreateWidget<UQuestItemWidget>(GetWorld(), QuestItemClass);
+        if (NewItem)
+        {
+            NewItem->SetQuestText(Title, Desc);
+            QuestList->AddChildToVerticalBox(NewItem);
+        }
+    }
+}
+
+void UMainHUD::FinishQuest(FString Title)
+{
+    if (!QuestList)
+    {
+        return;
+    }
+
+    TArray<UWidget*> Quests = QuestList->GetAllChildren();
+    for (UWidget* Widget : Quests)
+    {
+        UQuestItemWidget* QuestItem = Cast<UQuestItemWidget>(Widget);
+
+        if (QuestItem)
+        {
+            FString ItemTitle = QuestItem->GetQuestTitle(); 
+
+            if (ItemTitle.Equals(Title))
+            {
+                QuestItem->CompleteQuest();
+                break;
+            }
         }
     }
 }
