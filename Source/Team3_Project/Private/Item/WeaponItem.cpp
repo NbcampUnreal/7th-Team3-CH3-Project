@@ -589,7 +589,7 @@ void AWeaponItem::FireHitScan()
 			HitResult,
 			Start,
 			SpreadEnd,
-			ECC_Visibility,
+			ECC_Pawn,
 			BulletQueryParams
 		);
 		if (bHit)
