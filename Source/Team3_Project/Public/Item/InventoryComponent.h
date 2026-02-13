@@ -9,6 +9,8 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryUpdated);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnQuickSlotUpdated);
+
 class AWeaponItem;
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
@@ -41,6 +43,25 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Inventory")
 	FOnInventoryUpdated OnInventoryUpdated;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
+	TArray<FName> QuickSlots;
+
+	void InitializeQuickSlots();
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	void AssignToQuickSlot(int32 SlotIndex, FName ItemID);
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	void UseItemFromQuickSlot(int32 SlotIndex);
+
+	UPROPERTY(BlueprintAssignable, Category = "Inventory")
+	FOnQuickSlotUpdated OnQuickSlotUpdated;
+
+	int32 GetCapacity() const { return Capacity; }
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	AWeaponItem* GetEquippedWeapon() const { return FindEquippedWeapon(); };
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")

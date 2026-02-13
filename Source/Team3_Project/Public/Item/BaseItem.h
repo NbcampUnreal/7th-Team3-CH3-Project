@@ -5,10 +5,12 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Shared/InteractionInterface.h"
+#include "Components/WidgetComponent.h"
 #include "BaseItem.generated.h"
 
 class USphereComponent;
 class UStaticMeshComponent;
+class UWidgetComponent;
 
 UCLASS(Blueprintable)
 class TEAM3_PROJECT_API ABaseItem : public AActor, public IInteractionInterface
@@ -30,6 +32,8 @@ public:
 
 	void SetQuantity(int32 NewQuantity) { Quantity = NewQuantity; }
 
+	virtual FText GetInteractionPrompt_Implementation() override;
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item")
 	UStaticMeshComponent* ItemMesh;
@@ -43,4 +47,26 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	int32 Quantity = 1;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item")
+	UWidgetComponent* LootWidget;
+
+	UFUNCTION()
+	void OnSphereOverlap(
+		UPrimitiveComponent* OverlappedComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex,
+		bool bFromSweep,
+		const FHitResult& SweepResult
+	);
+
+	UFUNCTION()
+	void OnSphereEndOverlap(
+		UPrimitiveComponent* OverlappedComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex
+	);
+
+	void SetItemFocus(bool bIsFocus);
 };

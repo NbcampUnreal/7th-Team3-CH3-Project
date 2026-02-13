@@ -13,7 +13,7 @@
 
 AWeaponItem::AWeaponItem()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponMesh"));
 	WeaponMesh->SetupAttachment(RootComponent);
@@ -43,6 +43,7 @@ AWeaponItem::AWeaponItem()
 	SpreadAngle = 1.0f;
 	bIsProjectile = false;
 	LastFireTime = 0.0f;
+	CurrentRecoilPitch = 0.0f;
 
 	// 원래 값 저장
 	OriginalDamage = BaseDamage;
@@ -50,6 +51,44 @@ AWeaponItem::AWeaponItem()
 	OriginalRecoil = CurrentRecoil;
 	OriginalMaxAmmo = MaxAmmo;
 	OriginalRange = WeaponRange;
+}
+
+void AWeaponItem::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	//반동 회복
+	if (CurrentRecoilPitch > 0.0f && !GetWorldTimerManager().IsTimerActive(AutoFireTimerHandle))
+	{
+		AActor* OwnerActor = GetOwner();
+		if (!OwnerActor)
+		{
+			return;
+		}
+		APawn* OwnerPawn = Cast<APawn>(OwnerActor);
+		if (!OwnerPawn)
+		{
+			return;
+		}
+		APlayerController* PlayerController = Cast<APlayerController>(OwnerPawn->GetController());
+		if (!PlayerController)
+		{
+			return;
+		}
+
+		float OldRecoil = CurrentRecoilPitch;
+		float NewRecoil = FMath::FInterpTo(CurrentRecoilPitch, 0.0f, DeltaTime, RecoilRecoveryRate);
+
+		float RecoveryAmount = OldRecoil - NewRecoil;
+
+		PlayerController->AddPitchInput(RecoveryAmount);
+
+		CurrentRecoilPitch = NewRecoil;
+
+		if (CurrentRecoilPitch <= KINDA_SMALL_NUMBER)
+		{
+			CurrentRecoilPitch = 0.0f;
+		}
+	}
 }
 
 
@@ -64,7 +103,7 @@ void AWeaponItem::StartFire()
 {
 	if (bIsReloading)
 	{
-		if(GEngine)
+		if (GEngine)
 		{
 			GEngine->AddOnScreenDebugMessage(
 				-1,
@@ -72,7 +111,7 @@ void AWeaponItem::StartFire()
 				FColor::Yellow,
 				FString::Printf(TEXT("Cannot fire while reloading!"))
 			);
-		}	
+		}
 		return;
 	}
 
@@ -161,13 +200,29 @@ void AWeaponItem::ReloadWeapon()
 {
 	if (bIsReloading)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Already reloading"));
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(
+				-1,
+				1.5f,
+				FColor::Yellow,
+				FString::Printf(TEXT("Already reloading!"))
+			);
+		}
 		return;
 	}
 
 	if (CurrentAmmo >= MaxAmmo)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Ammo is already full"));
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(
+				-1,
+				1.5f,
+				FColor::Yellow,
+				FString::Printf(TEXT("Ammo is already full!"))
+			);
+		}
 		return;
 	}
 
@@ -206,9 +261,16 @@ void AWeaponItem::ReloadWeapon()
 		ReloadTime,
 		false
 	);
-	
-	UE_LOG(LogTemp, Log, TEXT("Reloading started"));
 
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			1.5f,
+			FColor::Green,
+			FString::Printf(TEXT("Reloading started"))
+		);
+	}
 }
 
 void AWeaponItem::StopReload()
@@ -221,7 +283,15 @@ void AWeaponItem::StopReload()
 
 	bIsReloading = false;
 	GetWorldTimerManager().ClearTimer(ReloadTimerHandle);
-	UE_LOG(LogTemp, Log, TEXT("Reloading stopped"));
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			1.5f,
+			FColor::Red,
+			FString::Printf(TEXT("Reloading cancelled"))
+		);
+	}
 
 	//추후 추가 로직 사용 가능(애니메이션 캔슬 등)
 }
@@ -258,8 +328,25 @@ void AWeaponItem::FinishReloading()
 	if (AmountToReload > 0 && InventoryComp->RemoveItem(AmmoItemID, AmountToReload))
 	{
 		CurrentAmmo += AmountToReload;
-		UE_LOG(LogTemp, Log, TEXT("Reloaded %d ammo. CurrentAmmo: %d"), AmountToReload, CurrentAmmo);
-		UE_LOG(LogTemp, Log, TEXT("Remaining ammo in inventory: %d"), InventoryComp->GetItemQuantity(AmmoItemID));
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(
+				-1,
+				1.5f,
+				FColor::Green,
+				FString::Printf(TEXT("Reloaded %d ammo. Current Ammo: %d"), AmountToReload, CurrentAmmo)
+			);
+		}
+
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(
+				-1,
+				1.5f,
+				FColor::Cyan,
+				FString::Printf(TEXT("Remaining ammo in inventory: %d"), InventoryComp->GetItemQuantity(AmmoItemID))
+			);
+		}
 	}
 	else
 	{
@@ -642,6 +729,7 @@ void AWeaponItem::ApplyRecoil()
 	PC->AddPitchInput(VerticalRecoil);
 	PC->AddYawInput(HorizontalRecoil);
 
+	CurrentRecoilPitch += FMath::Abs(VerticalRecoil);
 }
 
 
