@@ -19,6 +19,8 @@ class TEAM3_PROJECT_API AWeaponItem : public ABaseItem
 public:
 	AWeaponItem();
 
+	virtual void Tick(float DeltaTime) override;
+
     UFUNCTION(BlueprintCallable, Category = "Weapon|Input")
 	void StartFire();
 
@@ -44,6 +46,8 @@ public:
 	const TMap<EAttachmentType, FName>& GetAttachmentState() const { return EquippedAttachments; }
 
 	void ApplyAttachmentState(const TMap<EAttachmentType, FName>& InAttachments);
+
+	void ResetRecoil() { CurrentRecoilPitch = 0.0f; }
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon|Components")
@@ -97,6 +101,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Stats")
 	bool bIsAutomatic = true;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Stats")
+	float RecoilRecoveryRate = 10.0f;
+
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon|State")
 	bool bIsSilenced = false;
@@ -127,6 +134,8 @@ protected:
 	int32 OriginalMaxAmmo;
 	float OriginalSpread;
 	float OriginalDamage;
+
+	float CurrentRecoilPitch = 0.0f;
 	
 	void FireHitScan();
 	void FireProjectile();

@@ -5,10 +5,12 @@
 #include "Kismet/GameplayStatics.h"
 #include "Item/WeaponItem.h"
 #include "GameFramework/Character.h"
+#include "Shared/Component/StatComponent.h"
 
 UInventoryComponent::UInventoryComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+	InitializeQuickSlots();
 }
 
 int32 UInventoryComponent::AddItem(FName ItemID, int32 Quantity)
@@ -217,6 +219,54 @@ int32 UInventoryComponent::GetItemQuantity(FName ItemID) const
 	return TotalQuantity;
 }
 
+void UInventoryComponent::InitializeQuickSlots()
+{
+	QuickSlots.Init(NAME_None, 8);
+}
+
+void UInventoryComponent::AssignToQuickSlot(int32 SlotIndex, FName ItemID)
+{
+	if (QuickSlots.IsValidIndex(SlotIndex))
+	{
+		QuickSlots[SlotIndex] = ItemID;
+		OnQuickSlotUpdated.Broadcast();
+		UE_LOG(LogTemp, Log, TEXT("Assigned ItemID %s to Quick Slot %d"), *ItemID.ToString(), SlotIndex);
+	}
+}
+
+void UInventoryComponent::UseItemFromQuickSlot(int32 SlotIndex)
+{
+	if (!QuickSlots.IsValidIndex(SlotIndex))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Invalid Quick Slot Index: %d"), SlotIndex);
+		return;
+	}
+
+	FName TargetItemID = QuickSlots[SlotIndex];
+	if (TargetItemID.IsNone())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Quick Slot %d is empty"), SlotIndex);
+		return;
+	}
+
+	if (HasItem(TargetItemID, 1))
+	{
+		if (RequestUseItem(TargetItemID))
+		{
+			UE_LOG(LogTemp, Log, TEXT("Used ItemID %s from Quick Slot %d"), *TargetItemID.ToString(), SlotIndex);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Failed to use ItemID %s from Quick Slot %d"), *TargetItemID.ToString(), SlotIndex);
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Not enough quantity of ItemID %s to use from Quick Slot %d"), *TargetItemID.ToString(), SlotIndex);
+	}
+
+}
+
 AWeaponItem* UInventoryComponent::FindEquippedWeapon() const
 {
 	// 소유자 액터 가져오기
@@ -387,13 +437,20 @@ bool UInventoryComponent::HandleConsumableUse(const FItemData& Data, FName ItemI
 	{
 		return false;
 	}
+	
+	UStatComponent* StatComp = Character->FindComponentByClass<UStatComponent>();
+	if (!StatComp)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("StatComponent not found on character for ItemID %s"), *ItemID.ToString());
+		return false;
+	}
 
 	bool bUseSuccessful = false;
 
 	switch (Data.ConsumableType)
 	{
 	case EConsumableType::CT_Health:
-		// 체력 회복 로직 구현 필요
+		// 체력 회복 로직 구현 필요		
 		UE_LOG(LogTemp, Log, TEXT("Used Health Consumable ItemID %s"), *ItemID.ToString());
 		bUseSuccessful = true;
 		break;
