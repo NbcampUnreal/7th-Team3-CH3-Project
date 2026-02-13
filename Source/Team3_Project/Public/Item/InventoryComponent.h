@@ -60,6 +60,9 @@ public:
 
 	int32 GetCapacity() const { return Capacity; }
 
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	AWeaponItem* GetEquippedWeapon() const { return FindEquippedWeapon(); };
+
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
 	TArray<FInventoryItem> InventoryContents;

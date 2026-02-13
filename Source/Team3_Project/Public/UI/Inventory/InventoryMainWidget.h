@@ -10,6 +10,7 @@ class UUniformGridPanel;
 class UInventoryComponent;
 class UInventoryItemSlot;
 class UPanelWidget;
+class UImage;
 struct FInventoryItem;
 
 UCLASS()
@@ -34,6 +35,8 @@ public:
 
 	bool IsContextMenuOpen() const { return bIsContextMenuOpen; }
 
+	void UpdateWeaponPanel();
+
 protected:
 	void NativeConstruct() override;
 
@@ -57,6 +60,20 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Inventory UI")
 	int32 Columns = 5;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	UInventoryItemSlot* Slot_Scope;
+	UPROPERTY(meta = (BindWidgetOptional))
+	UInventoryItemSlot* Slot_Barrel;
+	UPROPERTY(meta = (BindWidgetOptional))
+	UInventoryItemSlot* Slot_Magazine;
+	UPROPERTY(meta = (BindWidgetOptional))
+	UInventoryItemSlot* Slot_Underbarrel;
+	UPROPERTY(meta = (BindWidgetOptional))
+	UInventoryItemSlot* Slot_Stock;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	UImage* Img_Weapon;
 
 private:
 	bool bIsContextMenuOpen = false;

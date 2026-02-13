@@ -14,6 +14,14 @@ class UTextBlock;
 class UButton;
 class UInventoryMainWidget;
 
+UENUM(BlueprintType)
+enum class ESlotType : uint8
+{
+	ST_Inventory UMETA(DisplayName = "Inventory"),
+	ST_Attachment UMETA(DisplayName = "Attachment"),
+	ST_QuickSlot UMETA(DisplayName = "Quick Slot")
+};
+
 UCLASS()
 class TEAM3_PROJECT_API UInventoryItemSlot : public UUserWidget
 {
@@ -28,8 +36,16 @@ public:
 
 	void SetSelectedSlot(bool bSelected);
 
+	void SetSlotType(ESlotType NewType, int32 NewIndex);
+
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory UI")
 	UInventoryMainWidget* ParentInventoryWidget;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory UI")
+	ESlotType SlotType;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory UI")
+	int32 SlotIndex;
 
 protected:
 

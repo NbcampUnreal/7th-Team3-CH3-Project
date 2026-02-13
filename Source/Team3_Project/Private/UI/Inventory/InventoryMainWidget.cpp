@@ -7,6 +7,9 @@
 #include "UI/Inventory/InventoryItemSlot.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "Input/Reply.h"
+#include "Item/WeaponItem.h"
+#include "Components/Image.h"
+#include "Core/ItemDataSubsystem.h"
 
 void UInventoryMainWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
@@ -100,6 +103,108 @@ void UInventoryMainWidget::HandleSlotRightClick(UInventoryItemSlot* ItemSlot, co
 	OpenContextMenu(Item);
 }
 
+void UInventoryMainWidget::UpdateWeaponPanel()
+{
+	if (!InventoryComp)
+	{
+		return;
+	}
+
+	AWeaponItem* CurrentWeapon = InventoryComp->GetEquippedWeapon();
+
+	if (!CurrentWeapon)
+	{
+		if (Img_Weapon)
+		{
+			Img_Weapon->SetVisibility(ESlateVisibility::Hidden);
+		}
+		Slot_Barrel->SetVisibility(ESlateVisibility::Hidden);
+		Slot_Magazine->SetVisibility(ESlateVisibility::Hidden);
+		Slot_Scope->SetVisibility(ESlateVisibility::Hidden);
+		Slot_Underbarrel->SetVisibility(ESlateVisibility::Hidden);
+		Slot_Stock->SetVisibility(ESlateVisibility::Hidden);
+		return;
+	}
+	
+	UGameInstance* GameInstance = GetGameInstance();
+	if (!GameInstance)
+	{
+		return;
+	}
+	UItemDataSubsystem* ItemDataSubsystem = GameInstance->GetSubsystem<UItemDataSubsystem>();
+	if (!ItemDataSubsystem)
+	{
+		return;
+	}
+	
+	FName WeaponID = CurrentWeapon->GetItemID();
+	FItemData WeaponData = ItemDataSubsystem->GetItemDataByID(WeaponID);
+	Img_Weapon->SetBrushFromTexture(WeaponData.WeaponImage.LoadSynchronous());
+	Img_Weapon->SetVisibility(ESlateVisibility::Visible);
+
+	if (Slot_Scope) Slot_Scope->SetVisibility(ESlateVisibility::Visible);
+	if (Slot_Barrel) Slot_Barrel->SetVisibility(ESlateVisibility::Visible);
+	if (Slot_Magazine) Slot_Magazine->SetVisibility(ESlateVisibility::Visible);
+	if (Slot_Underbarrel) Slot_Underbarrel->SetVisibility(ESlateVisibility::Visible);
+	if (Slot_Stock) Slot_Stock->SetVisibility(ESlateVisibility::Visible);
+
+	switch (WeaponData.WeaponType)
+	{
+	case EWeaponType::WT_Pistol:
+		if (Slot_Underbarrel) Slot_Underbarrel->SetVisibility(ESlateVisibility::Hidden);
+		if (Slot_Stock) Slot_Stock->SetVisibility(ESlateVisibility::Hidden);
+		break;
+	case EWeaponType::WT_Shotgun:
+		if (Slot_Magazine) Slot_Magazine->SetVisibility(ESlateVisibility::Hidden);
+		break;
+	case EWeaponType::WT_Melee:
+		if (Slot_Scope) Slot_Scope->SetVisibility(ESlateVisibility::Hidden);
+		if (Slot_Barrel) Slot_Barrel->SetVisibility(ESlateVisibility::Hidden);
+		if (Slot_Magazine) Slot_Magazine->SetVisibility(ESlateVisibility::Hidden);
+		if (Slot_Underbarrel) Slot_Underbarrel->SetVisibility(ESlateVisibility::Hidden);
+		if (Slot_Stock) Slot_Stock->SetVisibility(ESlateVisibility::Hidden);
+		break;
+	}
+
+	const TMap<EAttachmentType, FName>& Attachments = CurrentWeapon->GetAttachmentState();
+
+	if (Slot_Scope && Slot_Scope->GetVisibility() == ESlateVisibility::Visible)
+	{
+		FInventoryItem ScopeItem;
+		ScopeItem.ItemID = Attachments.Contains(EAttachmentType::AT_Scope) ? Attachments[EAttachmentType::AT_Scope] : FName();
+		ScopeItem.Quantity = ScopeItem.ItemID.IsNone() ? 0 : 1;
+		Slot_Scope->InitSlot(ScopeItem);
+	}
+	if (Slot_Barrel && Slot_Barrel->GetVisibility() == ESlateVisibility::Visible)
+	{
+		FInventoryItem BarrelItem;
+		BarrelItem.ItemID = Attachments.Contains(EAttachmentType::AT_Barrel) ? Attachments[EAttachmentType::AT_Barrel] : FName();
+		BarrelItem.Quantity = BarrelItem.ItemID.IsNone() ? 0 : 1;
+		Slot_Barrel->InitSlot(BarrelItem);
+	}
+	if (Slot_Magazine && Slot_Magazine->GetVisibility() == ESlateVisibility::Visible)
+	{
+		FInventoryItem MagazineItem;
+		MagazineItem.ItemID = Attachments.Contains(EAttachmentType::AT_Magazine) ? Attachments[EAttachmentType::AT_Magazine] : FName();
+		MagazineItem.Quantity = MagazineItem.ItemID.IsNone() ? 0 : 1;
+		Slot_Magazine->InitSlot(MagazineItem);
+	}
+	if (Slot_Underbarrel && Slot_Underbarrel->GetVisibility() == ESlateVisibility::Visible)
+	{
+		FInventoryItem UnderbarrelItem;
+		UnderbarrelItem.ItemID = Attachments.Contains(EAttachmentType::AT_Underbarrel) ? Attachments[EAttachmentType::AT_Underbarrel] : FName();
+		UnderbarrelItem.Quantity = UnderbarrelItem.ItemID.IsNone() ? 0 : 1;
+		Slot_Underbarrel->InitSlot(UnderbarrelItem);
+	}
+	if (Slot_Stock && Slot_Stock->GetVisibility() == ESlateVisibility::Visible)
+	{
+		FInventoryItem StockItem;
+		StockItem.ItemID = Attachments.Contains(EAttachmentType::AT_Stock) ? Attachments[EAttachmentType::AT_Stock] : FName();
+		StockItem.Quantity = StockItem.ItemID.IsNone() ? 0 : 1;
+		Slot_Stock->InitSlot(StockItem);
+	}
+}
+
 void UInventoryMainWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -143,6 +248,27 @@ void UInventoryMainWidget::NativeConstruct()
 			ActiveContextMenu->AddToViewport(110);
 			ActiveContextMenu->SetVisibility(ESlateVisibility::Collapsed);
 		}
+	}
+
+	if (Slot_Scope)
+	{
+		Slot_Scope->SetSlotType(ESlotType::ST_Attachment, (int32)EAttachmentType::AT_Scope);
+	}
+	if (Slot_Barrel)
+	{
+		Slot_Barrel->SetSlotType(ESlotType::ST_Attachment, (int32)EAttachmentType::AT_Barrel);
+	}
+	if (Slot_Magazine)
+	{
+		Slot_Magazine->SetSlotType(ESlotType::ST_Attachment, (int32)EAttachmentType::AT_Magazine);
+	}
+	if (Slot_Underbarrel)
+	{
+		Slot_Underbarrel->SetSlotType(ESlotType::ST_Attachment, (int32)EAttachmentType::AT_Underbarrel);
+	}
+	if (Slot_Stock)
+	{
+		Slot_Stock->SetSlotType(ESlotType::ST_Attachment, (int32)EAttachmentType::AT_Stock);
 	}
 }
 

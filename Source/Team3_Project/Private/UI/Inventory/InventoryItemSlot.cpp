@@ -84,6 +84,12 @@ void UInventoryItemSlot::SetSelectedSlot(bool bSelected)
 	}
 }
 
+void UInventoryItemSlot::SetSlotType(ESlotType NewType, int32 NewIndex)
+{
+	SlotType = NewType;
+	SlotIndex = NewIndex;
+}
+
 void UInventoryItemSlot::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
 	Super::NativeOnMouseEnter(InGeometry, InMouseEvent);
@@ -139,7 +145,8 @@ void UInventoryItemSlot::NativeOnDragDetected(const FGeometry& InGeometry, const
 
 	UInventoryDragDropOperation* DragDropOp = NewObject<UInventoryDragDropOperation>();
 	DragDropOp->ItemID = CurrentItemID;
-	DragDropOp->Pivot = EDragPivot::CenterCenter;
+	DragDropOp->SourceIndex = SlotIndex;
+	DragDropOp->SourceType = static_cast<uint8>(SlotType);
 
 	UInventoryItemSlot* DragVisual = CreateWidget<UInventoryItemSlot>(this, this->GetClass());
 	if (DragVisual)
@@ -151,6 +158,7 @@ void UInventoryItemSlot::NativeOnDragDetected(const FGeometry& InGeometry, const
 
 		DragDropOp->DefaultDragVisual = DragVisual;
 	}
+	DragDropOp->Pivot = EDragPivot::CenterCenter;
 
 	OutOperation = DragDropOp;
 }
