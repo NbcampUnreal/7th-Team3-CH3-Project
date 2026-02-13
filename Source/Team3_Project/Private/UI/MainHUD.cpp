@@ -3,6 +3,7 @@
 #include "Components/ProgressBar.h"
 #include "UI/QuestItemWidget.h"
 #include "Components/VerticalBox.h"
+#include "UI/ResultWidget.h"
 
 UMainHUD::UMainHUD(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -208,6 +209,33 @@ void UMainHUD::FinishQuest(FString Title)
                 QuestItem->CompleteQuest();
                 break;
             }
+        }
+    }
+}
+
+void UMainHUD::ShowWaveResult(bool bSuccess, int32 CurrentScore, int32 Bonus, int32 Kills)
+{
+    if (ResultWidgetClass)
+    {
+        UResultWidget* ResultUI = CreateWidget<UResultWidget>(GetWorld(), ResultWidgetClass);
+        if (ResultUI)
+        {
+            ResultUI->AddToViewport();
+
+            if (bSuccess)
+            {
+                ResultUI->SetupSuccess(CurrentScore, Bonus, Kills);
+            }
+            else
+            {
+                ResultUI->SetupFailure();
+            }
+
+            FTimerHandle UnusedHandle;
+            GetWorld()->GetTimerManager().SetTimer(UnusedHandle, [ResultUI]()
+                {
+                    if (ResultUI) ResultUI->RemoveFromParent();
+                }, 3.0f, false);
         }
     }
 }

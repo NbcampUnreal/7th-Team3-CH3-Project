@@ -43,6 +43,8 @@ protected:
 
     UPROPERTY(EditAnywhere, Category = "Quest")
     TSubclassOf<class UQuestItemWidget> QuestItemClass;
+    UPROPERTY(EditAnywhere, Category = "UI")
+    TSubclassOf<class UResultWidget> ResultWidgetClass;
 
     UPROPERTY(EditAnywhere, Category = "UI Style")
     float InterpSpeed;
@@ -79,4 +81,5 @@ public:
 
     void UpdateDynamicColor(class UProgressBar* Bar, float CurrentPercent);
     void AddNewQuest(FString Title, FString Desc);
+    void ShowWaveResult(bool bSuccess, int32 CurrentScore, int32 Bonus, int32 Kills);
 };
