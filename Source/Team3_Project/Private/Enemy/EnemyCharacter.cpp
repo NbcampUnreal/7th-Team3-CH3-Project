@@ -5,6 +5,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
 #include "../Team3_ProjectCharacter.h"
+#include "Components/CapsuleComponent.h"
 
 AEnemyCharacter::AEnemyCharacter()
 {
@@ -193,6 +194,9 @@ void AEnemyCharacter::OnDead()
 	StopAnimMontage();
 	DeactiveMove();
 
+	UCapsuleComponent* Capsule = GetCapsuleComponent();
+	Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetMesh()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
 	if (UAnimMontage* Montage = GetDeadMontage())
 	{
 		PlayAnimMontage(Montage);
@@ -296,6 +300,11 @@ bool AEnemyCharacter::IsForWave() const
 bool AEnemyCharacter::IsDead() const
 {
 	return bIsDead;
+}
+
+bool AEnemyCharacter::IsRagdollEnabled() const
+{
+	return bRagdollEnabled;
 }
 
 void AEnemyCharacter::ApplyWaveFlag(bool bInWave)

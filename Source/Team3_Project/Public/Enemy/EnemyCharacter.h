@@ -68,6 +68,8 @@ public:
 	bool IsForWave() const;
 	UFUNCTION(BlueprintPure, Category="Dead")
 	bool IsDead() const;
+	UFUNCTION(BlueprintPure, Category = "Dead")
+	bool IsRagdollEnabled() const;
 	UFUNCTION(BlueprintCallable, Category = "Wave")
 	void ApplyWaveFlag(bool bInWave);
 
@@ -86,6 +88,7 @@ public:
 
 	void ApplyDamageToStat(float DamageAmount);
 	void EnableRagdoll();
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
 	UStatComponent* StatComp;
