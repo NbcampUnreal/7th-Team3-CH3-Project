@@ -738,14 +738,15 @@ void AWeaponItem::FireProjectile()
 		ABaseProjectile* NewProjectile = GetWorld()->SpawnActorDeferred<ABaseProjectile>(
 			ProjectileClass,
 			SpawnTransform,
-			this,
+			OwnerActor,
 			GetInstigator(),
 			ESpawnActorCollisionHandlingMethod::AlwaysSpawn
 		);
 
 		if (NewProjectile)
 		{
-			NewProjectile->Damage = this->BaseDamage;
+			NewProjectile->Damage = NewProjectile->Damage + BaseDamage;
+			NewProjectile->SetOwner(OwnerActor);
 			UGameplayStatics::FinishSpawningActor(NewProjectile, SpawnTransform);
 		}
 	}
