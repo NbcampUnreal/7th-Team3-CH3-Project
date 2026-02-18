@@ -25,6 +25,10 @@ public:
 	float BaseAttack;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stat")
 	float BaseDefense;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stat")
+	float WhiteKarma;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stat")
+	float BlackKarma;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|CoolTime")
 	float AttackCoolTime;

@@ -59,6 +59,10 @@ public:
 	float GetAttack() const;
 	UFUNCTION(BlueprintPure, Category = "Stat")
 	float GetDefence() const;
+	UFUNCTION(BlueprintPure, Category = "Stat")
+	float GetWhiteKarma() const;
+	UFUNCTION(BlueprintPure, Category = "Stat")
+	float GetBlackKarma() const;
 
 	UFUNCTION(BlueprintPure, Category = "Combat")
 	bool IsAttackable();

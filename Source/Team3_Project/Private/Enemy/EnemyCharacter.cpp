@@ -31,9 +31,13 @@ void AEnemyCharacter::BeginPlay()
 		float Health = TypeData->BaseHP;
 		float Attack = TypeData->BaseAttack;
 		float Defense = TypeData->BaseDefense;
+		float WhiteKarma = TypeData->WhiteKarma;
+		float BlackKarma = TypeData->BlackKarma;
 		StatComp->InitializeStat(FName("Health"), Health, 0.f, Health);
 		StatComp->InitializeStat(FName("Attack"), Attack, 0.f, 200.f);
 		StatComp->InitializeStat(FName("Defence"), Defense, 0.f, 200.f);
+		StatComp->InitializeStat(FName("WhiteKarma"), WhiteKarma, 0.f, 200.f);
+		StatComp->InitializeStat(FName("BlackKarma"), BlackKarma, 0.f, 200.f);
 	}
 }
 
@@ -279,6 +283,20 @@ float AEnemyCharacter::GetDefence() const
 	if (StatComp == nullptr) return 0.f;
 
 	return StatComp->GetCurrentStatValue(TEXT("Defence"));
+}
+
+float AEnemyCharacter::GetWhiteKarma() const
+{
+	if (StatComp == nullptr) return 0.f;
+
+	return StatComp->GetCurrentStatValue(TEXT("WhiteKarma"));
+}
+
+float AEnemyCharacter::GetBlackKarma() const
+{
+	if (StatComp == nullptr) return 0.f;
+
+	return StatComp->GetCurrentStatValue(TEXT("BlackKarma"));
 }
 
 bool AEnemyCharacter::IsAttackable()
