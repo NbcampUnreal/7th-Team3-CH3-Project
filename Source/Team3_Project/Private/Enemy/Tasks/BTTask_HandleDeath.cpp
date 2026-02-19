@@ -38,7 +38,6 @@ EBTNodeResult::Type UBTTask_HandleDeath::ExecuteTask(UBehaviorTreeComponent& Own
 
     // 시간 기록
     StartTime = AIController->GetWorld()->GetTimeSeconds();
-    bMontageStarted = true;
 
     return EBTNodeResult::InProgress;
 }

@@ -1,7 +1,7 @@
 ﻿#include "Enemy/EnemyCharacter.h"
 #include "Shared/Component/StatComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
-#include "Enemy/EnemyController.h"
+#include "Enemy/Controllers/EnemyController.h"
 #include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
 #include "../Team3_ProjectCharacter.h"

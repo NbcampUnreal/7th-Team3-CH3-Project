@@ -23,5 +23,4 @@ protected:
 
 private:
     float StartTime = 0.f;
-    bool bMontageStarted = false;
 };

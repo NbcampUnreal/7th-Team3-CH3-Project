@@ -1,5 +1,5 @@
 ﻿#include "Enemy/DeadState.h"
-#include "Enemy/EnemyController.h"
+#include "Enemy/Controllers/EnemyController.h"
 #include "Enemy/EnemyCharacter.h"
 #include "Perception/AIPerceptionComponent.h"
 

@@ -5,7 +5,6 @@
 #include "Perception/AIPerceptionComponent.h"
 #include "EnemyController.generated.h"
 
-class UBehaviorTree;
 class UAISenseConfig_Sight;
 class UAISenseConfig_Hearing;
 class UStateBase;
@@ -20,9 +19,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Controller")
 	virtual void OnPossess(APawn* InPawn) override;
-
-	UFUNCTION(BlueprintCallable, Category = "AI")
-	void UpdateAI();
 
 	UFUNCTION(BlueprintCallable, Category = "AI")
 	void TryApplyWaveSetup();
@@ -81,9 +77,6 @@ protected:
 	// 감각 청각
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI")
 	UAISenseConfig_Hearing* HearingConfig;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI")
-	UBehaviorTree* BehaviorTree;
 
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI")

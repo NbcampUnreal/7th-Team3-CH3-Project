@@ -1,4 +1,4 @@
-﻿#include "Enemy/EnemyController.h"
+﻿#include "Enemy/Controllers/EnemyController.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BlackboardComponent.h"
@@ -18,8 +18,7 @@
 #include "Navigation//PathFollowingComponent.h"
 
 AEnemyController::AEnemyController()
-    :BehaviorTree(nullptr),
-    AIPerceptionComponent(nullptr),
+    :AIPerceptionComponent(nullptr),
     SightConfig(nullptr),
     HearingConfig(nullptr),
     TargetActor(nullptr),
@@ -130,19 +129,6 @@ void AEnemyController::OnPossess(APawn* InPawn)
         {
             TryApplyWaveSetup();
         }
-    }
-
-    if (IsValid(BehaviorTree))
-    {
-        RunBehaviorTree(BehaviorTree);
-    }
-}
-
-void AEnemyController::UpdateAI()
-{
-    if (IsValid(BehaviorTree))
-    {
-        // Todo AI 업데이트 로직 작성
     }
 }
 
