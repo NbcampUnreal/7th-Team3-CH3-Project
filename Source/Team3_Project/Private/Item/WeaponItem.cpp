@@ -453,8 +453,6 @@ void AWeaponItem::UnequipAttachment(FName AttachmentID)
 
 	EAttachmentType SlotType = AttachmentData.AttachmentType;
 
-
-
 	UStaticMeshComponent* TargetMesh = GetAttachmentComponentByType(AttachmentData.AttachmentType);
 
 	if (TargetMesh)
@@ -468,6 +466,12 @@ void AWeaponItem::UnequipAttachment(FName AttachmentID)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("No valid attachment component for type %d"), (int32)AttachmentData.AttachmentType);
 	}
+
+	if (EquippedAttachments.Contains(AttachmentData.AttachmentType))
+	{
+		EquippedAttachments.Remove(AttachmentData.AttachmentType);
+	}
+	RecalculateStats();
 }
 
 

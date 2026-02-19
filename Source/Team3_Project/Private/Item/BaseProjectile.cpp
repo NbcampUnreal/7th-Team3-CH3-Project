@@ -73,6 +73,7 @@ void ABaseProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UP
 	// 유효한 충돌 대상인지 확인
 	if ((OtherActor != nullptr) && (OtherActor != this) && (OtherActor != GetOwner()))
 	{
+		UE_LOG(LogTemp, Warning, TEXT("Valid hit on: %s"), *OtherActor->GetName());
 		if (bExplodeOnHit)
 		{
 			Explode();
