@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Shared/ItemTypes.h"
-#include "UI/Inventory/InventoryItemSlot.h"
 #include "InventoryActionMenu.generated.h"
 
 

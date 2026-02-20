@@ -6,6 +6,7 @@
 #include "Item/WeaponItem.h"
 #include "GameFramework/Character.h"
 #include "Shared/Component/StatComponent.h"
+#include "Shared/EquipableInterface.h"
 
 UInventoryComponent::UInventoryComponent()
 {
@@ -20,7 +21,7 @@ int32 UInventoryComponent::AddItem(FName ItemID, int32 Quantity)
 
 int32 UInventoryComponent::AddItem(FName ItemID, int32 Quantity, const TMap<EAttachmentType, FName>& InAttachments)
 {
-	/* 
+	/*
 	반환값에 대하여
 	0 : 모든 아이템이 성공적으로 추가됨 (true)
 	0 < n < Quantity : 추가하지 못한 아이템의 수량(이 수량으로 바닥의 아이템 수를 업데이트)
@@ -111,7 +112,7 @@ bool UInventoryComponent::RemoveItem(FName ItemID, int32 Quantity)
 	if (!HasItem(ItemID, Quantity))
 	{
 		return false;
-	}	
+	}
 
 	int32 RemainingToRemove = Quantity;
 	// 인벤토리에서 해당 아이템 제거
@@ -159,15 +160,34 @@ bool UInventoryComponent::RequestUseItem(FName ItemID)
 	// 아이템 데이터 가져오기
 	FItemData ItemData = ItemDataSubsystem->GetItemDataByID(ItemID);
 
+	// 요청된 아이템이 인벤토리에 존재하는지 확인
+	int32 FoundIndex = INDEX_NONE;
+	for (int32 i = 0; i < InventoryContents.Num(); ++i)
+	{
+		if (InventoryContents[i].ItemID == ItemID)
+		{
+			FoundIndex = i;
+			break;
+		}
+	}
+
+	if (FoundIndex == INDEX_NONE && (ItemData.ItemType == EItemType::IT_Weapon || ItemData.ItemType == EItemType::IT_Armor))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ItemID %s not found in inventory for use request"), *ItemID.ToString());
+		return false;
+	}
+
 	// 아이템 타입에 따라 처리 분기
 	switch (ItemData.ItemType)
 	{
 	case EItemType::IT_Weapon:
-		return HandleWeaponEquip(ItemData, ItemID);
+		EquipItemFromInventory(FoundIndex, ESlotType::ST_Weapon);
+		return true;
 	case EItemType::IT_Attachment:
 		return HandleAttachmentEquip(ItemData, ItemID);
 	case EItemType::IT_Armor:
-		return HandleArmorEquip(ItemData, ItemID);
+		EquipItemFromInventory(FoundIndex, ESlotType::ST_Armor);
+		return true;
 	case EItemType::IT_Consumable:
 		return HandleConsumableUse(ItemData, ItemID);
 	default:
@@ -178,7 +198,7 @@ bool UInventoryComponent::RequestUseItem(FName ItemID)
 // 조합 시스템 등에서 아이템 존재 여부와 수량을 확인할 때 사용
 bool UInventoryComponent::HasItem(FName ItemID, int32 Quantity) const
 {
-	
+
 	// 입력 유효성 검사
 	if (ItemID.IsNone() || Quantity <= 0)
 	{
@@ -230,7 +250,7 @@ void UInventoryComponent::AssignToQuickSlot(int32 SlotIndex, FName ItemID)
 	{
 		QuickSlots[SlotIndex] = ItemID;
 		OnQuickSlotUpdated.Broadcast();
-		UE_LOG(LogTemp, Log, TEXT("Assigned ItemID %s to Quick Slot %d"), *ItemID.ToString(), SlotIndex);
+		UE_LOG(LogTemp, Warning, TEXT("Assigned ItemID %s to Quick Slot %d"), *ItemID.ToString(), SlotIndex);
 	}
 }
 
@@ -253,7 +273,8 @@ void UInventoryComponent::UseItemFromQuickSlot(int32 SlotIndex)
 	{
 		if (RequestUseItem(TargetItemID))
 		{
-			UE_LOG(LogTemp, Log, TEXT("Used ItemID %s from Quick Slot %d"), *TargetItemID.ToString(), SlotIndex);
+			UE_LOG(LogTemp, Warning, TEXT("Used ItemID %s from Quick Slot %d"), *TargetItemID.ToString(), SlotIndex);
+			OnQuickSlotUpdated.Broadcast();
 		}
 		else
 		{
@@ -267,123 +288,324 @@ void UInventoryComponent::UseItemFromQuickSlot(int32 SlotIndex)
 
 }
 
-AWeaponItem* UInventoryComponent::FindEquippedWeapon() const
+void UInventoryComponent::SetEquippedWeapon(AWeaponItem* NewWeapon)
 {
-	// 소유자 액터 가져오기
-	AActor* OwnerActor = GetOwner();
-	if (!OwnerActor)
-	{
-		return nullptr;
-	}
-	// 부착된 액터들 중에서 무기 아이템 찾기
-	TArray<AActor*> AttachedActors;
-	OwnerActor->GetAttachedActors(AttachedActors);
-		for (AActor* AttachedActor : AttachedActors)
-	{
-		AWeaponItem* Weapon = Cast<AWeaponItem>(AttachedActor);
-		if (Weapon && !Weapon->IsHidden())
-		{
-			return Weapon;
-		}
-	}
-	return nullptr;
+	EquippedWeapon = NewWeapon;
+	OnInventoryUpdated.Broadcast();
 }
 
-
-
-
-
-
-bool UInventoryComponent::HandleWeaponEquip(const FItemData& Data, FName ItemID)
+void UInventoryComponent::SetEquippedArmor(FName NewArmorID)
 {
-	// 소유자 캐릭터 가져오기
-	ACharacter* Character = Cast<ACharacter>(GetOwner());
-	if (!Character)
-	{
-		return false;
-	}
-	// 인벤토리에서 아이템의 부착 상태 가져오기
-	TMap<EAttachmentType, FName> SavedAttachments;
-	bool bFoundData = false;
-
-	for (const FInventoryItem& InventoryItem : InventoryContents)
-	{
-		if (InventoryItem.ItemID == ItemID)
-		{
-			SavedAttachments = InventoryItem.AttachmentState;
-			bFoundData = true;
-			break;
-		}
-	}
-
-	if (!bFoundData)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("ItemID %s not found in inventory"), *ItemID.ToString());
-		return false;
-	}
-
-	// 기존에 장착된 무기 제거 및 인벤토리에 추가
-	AWeaponItem* OldWeapon = FindEquippedWeapon();
-
-	if (OldWeapon)
-	{
-		OldWeapon->StopReload();	
-		TMap<EAttachmentType, FName> OldAttachments = OldWeapon->GetAttachmentState();
-		FName OldWeaponID = OldWeapon->GetItemID();
-
-		AddItem(OldWeaponID, 1, OldAttachments);
-		OldWeapon->Destroy();
-	}
-
-	if (!RemoveItem(ItemID, 1))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Failed to remove ItemID %s from inventory"), *ItemID.ToString());
-		return false;
-	}
-
-	// 무기 스폰
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.Owner = Character;
-	SpawnParams.Instigator = Character;
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-	if (Data.ItemClass.IsNull())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("ItemClass is null for ItemID %s"), *ItemID.ToString());
-		return false;
-	}
-
-	AWeaponItem* NewWeapon = GetWorld()->SpawnActor<AWeaponItem>(
-		Data.ItemClass.LoadSynchronous(),
-		Character->GetActorTransform(),
-		SpawnParams
-	);
-
-	// 무기 장착
-	if (NewWeapon)
-	{
-		NewWeapon->AttachToComponent(
-			Character->GetMesh(),
-			FAttachmentTransformRules::SnapToTargetIncludingScale,
-			FName("WeaponSocket")
-		);
-
-		NewWeapon->SetItemID(ItemID);
-		NewWeapon->ApplyAttachmentState(SavedAttachments);
-		UE_LOG(LogTemp, Log, TEXT("Equipped weapon ItemID %s"), *ItemID.ToString());
-		return true;
-	}
-
-	UE_LOG(LogTemp, Warning, TEXT("Failed to spawn weapon for ItemID %s"), *ItemID.ToString());
-	return false;
+	EquippedArmorID = NewArmorID;
+	OnInventoryUpdated.Broadcast();
 }
 
+void UInventoryComponent::SwapInventoryItems(int32 IndexA, int32 IndexB)
+{
+	if (IndexA == IndexB)
+	{
+		return;
+	}
+	if (!InventoryContents.IsValidIndex(IndexA) || !InventoryContents.IsValidIndex(IndexB))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Invalid inventory indices for swapping: %d and %d"), IndexA, IndexB);
+		return;
+	}
+	InventoryContents.Swap(IndexA, IndexB);
+	OnInventoryUpdated.Broadcast();
+}
+
+void UInventoryComponent::EquipAttachmentFromSlot(int32 InventoryIndex, EAttachmentType TargetSlot)
+{
+	if (!InventoryContents.IsValidIndex(InventoryIndex))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Invalid inventory index for equipping attachment: %d"), InventoryIndex);
+		return;
+	}
+
+	FInventoryItem& Item = InventoryContents[InventoryIndex];
+	UGameInstance* GameInstance = GetWorld()->GetGameInstance();
+	if (!GameInstance)
+	{
+		return;
+	}
+	UItemDataSubsystem* ItemDataSubsystem = GameInstance->GetSubsystem<UItemDataSubsystem>();
+	if (!ItemDataSubsystem)
+	{
+		return;
+	}
+	FItemData ItemData = ItemDataSubsystem->GetItemDataByID(Item.ItemID);
+
+	if (ItemData.ItemType != EItemType::IT_Attachment || ItemData.AttachmentType != TargetSlot)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ItemID %s is not an attachment and cannot be equipped"), *Item.ItemID.ToString());
+		return;
+	}
+
+	if (RequestUseItem(Item.ItemID))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Equipped attachment ItemID %s to slot %d"), *Item.ItemID.ToString(), static_cast<int32>(TargetSlot));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Failed to equip attachment ItemID %s to slot %d"), *Item.ItemID.ToString(), static_cast<int32>(TargetSlot));
+	}
+}
+
+void UInventoryComponent::UnequipAttachmentToSlot(EAttachmentType AttachmentSlot, int32 TargetInventoryIndex)
+{
+	if (!InventoryContents.IsValidIndex(TargetInventoryIndex))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Invalid inventory index for unequipping attachment: %d"), TargetInventoryIndex);
+		return;
+	}
+
+	AWeaponItem* Weapon = GetEquippedWeapon();
+	if (!Weapon)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("No weapon equipped to unequip attachment from slot %d"), static_cast<int32>(AttachmentSlot));
+		return;
+	}
+
+	const TMap<EAttachmentType, FName>& Attachments = Weapon->GetAttachmentState();
+	if (!Attachments.Contains(AttachmentSlot) || Attachments[AttachmentSlot].IsNone())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("No attachment equipped in slot %d to unequip"), static_cast<int32>(AttachmentSlot));
+		return;
+	}
+
+	FName CurrentAttachmentID = Attachments[AttachmentSlot];
+
+	FInventoryItem& TargetSlotItem = InventoryContents[TargetInventoryIndex];
+
+	if (TargetSlotItem.ItemID.IsNone())
+	{
+		Weapon->UnequipAttachment(CurrentAttachmentID);
+
+		TargetSlotItem.ItemID = CurrentAttachmentID;
+		TargetSlotItem.Quantity = 1;
+
+		OnInventoryUpdated.Broadcast();
+		UE_LOG(LogTemp, Warning, TEXT("Unequipped attachment ItemID %s from slot %d to inventory index %d"), *CurrentAttachmentID.ToString(), static_cast<int32>(AttachmentSlot), TargetInventoryIndex);
+		return;
+	}
+
+	UGameInstance* GameInstance = GetWorld()->GetGameInstance();
+	if (!GameInstance)
+	{
+		return;
+	}
+	UItemDataSubsystem* ItemDataSubsystem = GameInstance->GetSubsystem<UItemDataSubsystem>();
+	if (!ItemDataSubsystem)
+	{
+		return;
+	}
+
+	FItemData TargetItemData = ItemDataSubsystem->GetItemDataByID(TargetSlotItem.ItemID);
+
+	if (TargetItemData.ItemType == EItemType::IT_Attachment && TargetItemData.AttachmentType == AttachmentSlot)
+	{
+		Weapon->UnequipAttachment(CurrentAttachmentID);
+		Weapon->EquipAttachment(TargetSlotItem.ItemID);
+		TargetSlotItem.ItemID = CurrentAttachmentID;
+		TargetSlotItem.Quantity = 1;
+		OnInventoryUpdated.Broadcast();
+		UE_LOG(LogTemp, Warning, TEXT("Swapped attachment ItemID %s in slot %d with inventory index %d"), *CurrentAttachmentID.ToString(), static_cast<int32>(AttachmentSlot), TargetInventoryIndex);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Inventory item at index %d is not compatible for swapping with attachment slot %d"), TargetInventoryIndex, static_cast<int32>(AttachmentSlot));
+	}
+}
+
+void UInventoryComponent::UnequipAttachment(EAttachmentType AttachmentSlot)
+{
+	AWeaponItem* Weapon = GetEquippedWeapon();
+	if (!Weapon)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("No weapon equipped to unequip attachment from slot %d"), static_cast<int32>(AttachmentSlot));
+		return;
+	}
+
+	const TMap<EAttachmentType, FName>& Attachments = Weapon->GetAttachmentState();
+	if (!Attachments.Contains(AttachmentSlot) || Attachments[AttachmentSlot].IsNone())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("No attachment equipped in slot %d to unequip"), static_cast<int32>(AttachmentSlot));
+		return;
+	}
+
+	FName CurrentAttachmentID = Attachments[AttachmentSlot];
+	if (AddItem(CurrentAttachmentID, 1) < 1)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Failed to add unequipped attachment ItemID %s back to inventory"), *CurrentAttachmentID.ToString());
+		return;
+	}
+
+	Weapon->UnequipAttachment(CurrentAttachmentID);
+	UE_LOG(LogTemp, Warning, TEXT("Unequipped attachment ItemID %s from slot %d"), *CurrentAttachmentID.ToString(), static_cast<int32>(AttachmentSlot));
+}
+
+void UInventoryComponent::EquipItemFromInventory(int32 InventoryIndex, ESlotType TargetSlotType)
+{
+	if (!InventoryContents.IsValidIndex(InventoryIndex))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Invalid inventory index for equipping item: %d"), InventoryIndex);
+		return;
+	}
+
+	FInventoryItem ItemToEquip = InventoryContents[InventoryIndex];
+	FInventoryItem OldItem;
+
+	if (IEquipableInterface* EquipableCharacter = Cast<IEquipableInterface>(GetOwner()))
+	{
+		OldItem = EquipableCharacter->UnequipItemBySlot(TargetSlotType);
+		EquipableCharacter->EquipItemByData(ItemToEquip, TargetSlotType);
+	}
+	else
+	{ // 테스트용 델리게이트 로직 - 실제 게임에서는 EquipableInterface을 구현한 캐릭터에서 처리되어야 함
+		if (TargetSlotType == ESlotType::ST_Weapon)
+		{
+			if (EquippedWeapon)
+			{
+				OldItem.ItemID = EquippedWeapon->GetItemID();
+				OldItem.Quantity = 1;
+				OldItem.AttachmentState = EquippedWeapon->GetAttachmentState();
+			}
+		}
+		else if (TargetSlotType == ESlotType::ST_Armor)
+		{
+			if (!EquippedArmorID.IsNone())
+			{
+				OldItem.ItemID = EquippedArmorID;
+				OldItem.Quantity = 1;
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Invalid target slot type for equipping item: %d"), static_cast<int32>(TargetSlotType));
+			return;
+		}
+		OnItemEquipRequested.Broadcast(ItemToEquip.ItemID, TargetSlotType);
+	}
+
+
+	if (!OldItem.ItemID.IsNone())
+	{
+		InventoryContents[InventoryIndex] = OldItem;
+		OnInventoryUpdated.Broadcast();
+		UE_LOG(LogTemp, Warning, TEXT("Swapped equipped item in slot %d with inventory index %d"), static_cast<int32>(TargetSlotType), InventoryIndex);
+	}
+	else
+	{
+		InventoryContents.RemoveAt(InventoryIndex);
+	}
+
+
+	if (TargetSlotType == ESlotType::ST_Armor)
+	{
+		EquippedArmorID = ItemToEquip.ItemID;
+	}
+	OnInventoryUpdated.Broadcast();
+}
+
+void UInventoryComponent::UnequipItemToInventory(ESlotType SourceSlotType, int32 TargetInventoryIndex)
+{
+	UGameInstance* GameInstance = GetWorld()->GetGameInstance();
+	if (!GameInstance)
+	{
+		return;
+	}
+	UItemDataSubsystem* ItemDataSubsystem = GameInstance->GetSubsystem<UItemDataSubsystem>();
+	if (!ItemDataSubsystem)
+	{
+		return;
+	}
+
+	if (TargetInventoryIndex >= InventoryContents.Num())
+	{
+		if (InventoryContents.Num() >= Capacity)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Inventory is full, cannot unequip item from slot %d"), static_cast<int32>(SourceSlotType));
+			return;
+		}
+		TargetInventoryIndex = InventoryContents.Num();
+	}
+	if (TargetInventoryIndex == InventoryContents.Num())
+	{
+		InventoryContents.AddDefaulted();
+	}
+
+	FInventoryItem& TargetSlotItem = InventoryContents[TargetInventoryIndex];
+
+	if (TargetSlotItem.ItemID.IsNone())
+	{
+		if (IEquipableInterface* EquipableCharacter = Cast<IEquipableInterface>(GetOwner()))
+		{
+			FInventoryItem UnequippedItem = EquipableCharacter->UnequipItemBySlot(SourceSlotType);
+			if (!UnequippedItem.ItemID.IsNone())
+			{
+				TargetSlotItem = UnequippedItem;
+				OnInventoryUpdated.Broadcast();
+				UE_LOG(LogTemp, Warning, TEXT("Unequipped item from slot %d to inventory index %d"), static_cast<int32>(SourceSlotType), TargetInventoryIndex);
+			}
+			else
+			{
+				if (TargetInventoryIndex == InventoryContents.Num() - 1)
+				{
+					InventoryContents.RemoveAt(TargetInventoryIndex);
+				}
+			}
+		}
+		else
+		{
+			if (SourceSlotType == ESlotType::ST_Weapon && EquippedWeapon)
+			{
+				TargetSlotItem.ItemID = EquippedWeapon->GetItemID();
+				TargetSlotItem.Quantity = 1;
+				TargetSlotItem.AttachmentState = EquippedWeapon->GetAttachmentState();
+			}
+			else if (SourceSlotType == ESlotType::ST_Armor && !EquippedArmorID.IsNone())
+			{
+				TargetSlotItem.ItemID = EquippedArmorID;
+				TargetSlotItem.Quantity = 1;
+				EquippedArmorID = NAME_None;
+			}
+			OnItemUnequipRequested.Broadcast(SourceSlotType);
+		}
+	}
+	else
+	{
+		bool bCanSwap = false;
+		FItemData TargetItemData = ItemDataSubsystem->GetItemDataByID(TargetSlotItem.ItemID);
+
+		if (SourceSlotType == ESlotType::ST_Weapon && TargetItemData.ItemType == EItemType::IT_Weapon)
+		{
+			bCanSwap = true;
+		}
+		else if (SourceSlotType == ESlotType::ST_Armor && TargetItemData.ItemType == EItemType::IT_Armor)
+		{
+			bCanSwap = true;
+		}
+
+		if (bCanSwap)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Swapping equipped item in slot %d with inventory index %d"), static_cast<int32>(SourceSlotType), TargetInventoryIndex);
+			EquipItemFromInventory(TargetInventoryIndex, SourceSlotType);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Unequipped item from slot %d to new inventory index %d"), static_cast<int32>(SourceSlotType), InventoryContents.Num() - 1);
+			UnequipItemToInventory(SourceSlotType, InventoryContents.Num());
+		}
+	}
+	OnInventoryUpdated.Broadcast();
+}
 
 
 bool UInventoryComponent::HandleAttachmentEquip(const FItemData& Data, FName ItemID)
 {
 	// 장착된 무기 찾기
-	AWeaponItem* Weapon = FindEquippedWeapon();
+	AWeaponItem* Weapon = GetEquippedWeapon();
 	if (!Weapon)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("No weapon equipped to attach ItemID %s"), *ItemID.ToString());
@@ -400,33 +622,13 @@ bool UInventoryComponent::HandleAttachmentEquip(const FItemData& Data, FName Ite
 			// 이전에 장착된 부착물이 있다면 인벤토리에 추가
 			AddItem(RemovedAttachmentID, 1);
 		}
-		UE_LOG(LogTemp, Log, TEXT("Equipped attachment ItemID %s"), *ItemID.ToString());
+		UE_LOG(LogTemp, Warning, TEXT("Equipped attachment ItemID %s"), *ItemID.ToString());
 		return true;
 	}
 	UE_LOG(LogTemp, Warning, TEXT("Failed to remove attachment ItemID %s from inventory"), *ItemID.ToString());
 	return false;
 }
 
-
-
-bool UInventoryComponent::HandleArmorEquip(const FItemData& Data, FName ItemID)
-{
-	//캐릭터 상황 봐서 추후 구현
-	//ACharacter* Character = Cast<ACharacter>(GetOwner());
-	//if (!Character)
-	//{
-	//	return false;
-	//}
-
-	//if (RemoveItem(ItemID, 1))
-	//{
-	//	// 방어구 장착 로직 구현 필요
-	//	UE_LOG(LogTemp, Log, TEXT("Equipped armor ItemID %s"), *ItemID.ToString());
-	//	return true;
-	//}
-	//UE_LOG(LogTemp, Warning, TEXT("Failed to remove armor ItemID %s from inventory"), *ItemID.ToString());
-	return false;
-}
 
 
 
@@ -437,7 +639,7 @@ bool UInventoryComponent::HandleConsumableUse(const FItemData& Data, FName ItemI
 	{
 		return false;
 	}
-	
+
 	UStatComponent* StatComp = Character->FindComponentByClass<UStatComponent>();
 	if (!StatComp)
 	{
@@ -451,27 +653,27 @@ bool UInventoryComponent::HandleConsumableUse(const FItemData& Data, FName ItemI
 	{
 	case EConsumableType::CT_Health:
 		// 체력 회복 로직 구현 필요		
-		UE_LOG(LogTemp, Log, TEXT("Used Health Consumable ItemID %s"), *ItemID.ToString());
+		UE_LOG(LogTemp, Warning, TEXT("Used Health Consumable ItemID %s"), *ItemID.ToString());
 		bUseSuccessful = true;
 		break;
 	case EConsumableType::CT_Stamina:
 		// 스태미나 회복 로직 구현 필요
-		UE_LOG(LogTemp, Log, TEXT("Used Stamina Consumable ItemID %s"), *ItemID.ToString());
+		UE_LOG(LogTemp, Warning, TEXT("Used Stamina Consumable ItemID %s"), *ItemID.ToString());
 		bUseSuccessful = true;
 		break;
 	case EConsumableType::CT_Adrenaline:
 		// 아드레날린 회복 로직 구현 필요
-		UE_LOG(LogTemp, Log, TEXT("Used Adrenaline Consumable ItemID %s"), *ItemID.ToString());
+		UE_LOG(LogTemp, Warning, TEXT("Used Adrenaline Consumable ItemID %s"), *ItemID.ToString());
 		bUseSuccessful = true;
 		break;
 	case EConsumableType::CT_WhiteKarma:
 		// 화이트 카르마 회복 로직 구현 필요
-		UE_LOG(LogTemp, Log, TEXT("Used White Karma Consumable ItemID %s"), *ItemID.ToString());
+		UE_LOG(LogTemp, Warning, TEXT("Used White Karma Consumable ItemID %s"), *ItemID.ToString());
 		bUseSuccessful = true;
 		break;
 	case EConsumableType::CT_BlackKarma:
 		// 블랙 카르마 회복 로직 구현 필요
-		UE_LOG(LogTemp, Log, TEXT("Used Black Karma Consumable ItemID %s"), *ItemID.ToString());
+		UE_LOG(LogTemp, Warning, TEXT("Used Black Karma Consumable ItemID %s"), *ItemID.ToString());
 		bUseSuccessful = true;
 		break;
 	default:

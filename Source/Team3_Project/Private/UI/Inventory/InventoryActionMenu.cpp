@@ -14,10 +14,10 @@ void UInventoryActionMenu::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
 	// 위젯 생성 시 버튼 이벤트 바인딩
-	UE_LOG(LogTemp, Verbose, TEXT("InventoryActionMenu::NativeOnInitialized"));
+	UE_LOG(LogTemp, Warning, TEXT("InventoryActionMenu::NativeOnInitialized"));
 	if (Btn_Use)
 	{
-		UE_LOG(LogTemp, VeryVerbose, TEXT("InventoryActionMenu: Binding Use button"));
+		UE_LOG(LogTemp, Warning, TEXT("InventoryActionMenu: Binding Use button"));
 		// "사용" 버튼 클릭 시 아이템 사용 요청
 		Btn_Use->OnClicked.AddDynamic(this, &UInventoryActionMenu::OnUseClicked);
 	}
@@ -27,7 +27,7 @@ void UInventoryActionMenu::NativeOnInitialized()
 	}
 	if (Btn_Drop)
 	{
-		UE_LOG(LogTemp, VeryVerbose, TEXT("InventoryActionMenu: Binding Drop button"));
+		UE_LOG(LogTemp, Warning, TEXT("InventoryActionMenu: Binding Drop button"));
 		// "버리기" 버튼 클릭 시 아이템 제거 요청
 		Btn_Drop->OnClicked.AddDynamic(this, &UInventoryActionMenu::OnDropClicked);
 	}
@@ -45,7 +45,7 @@ void UInventoryActionMenu::Setup(
 	UInventoryMainWidget* ParentWidget)
 {
 	// 컨텍스트 메뉴가 조작할 대상(아이템/인벤토리)을 저장
-	UE_LOG(LogTemp, Verbose, TEXT("InventoryActionMenu::Setup: ItemID=%s Qty=%d InventoryComp=%s SlotType=%d SlotIndex=%d"), *Item.ItemID.ToString(), Item.Quantity, *GetNameSafe(InventoryComp), static_cast<int32>(SlotType), SlotIndex);
+	UE_LOG(LogTemp, Warning, TEXT("InventoryActionMenu::Setup: ItemID=%s Qty=%d InventoryComp=%s SlotType=%d SlotIndex=%d"), *Item.ItemID.ToString(), Item.Quantity, *GetNameSafe(InventoryComp), static_cast<int32>(SlotType), SlotIndex);
 	TargetItem = Item;
 	LinkedInventoryComp = InventoryComp;
 	ParentInventoryWidget = ParentWidget;
@@ -70,21 +70,16 @@ void UInventoryActionMenu::Setup(
 	UTextBlock* Txt_Use = Cast<UTextBlock>(Btn_Use->GetChildAt(0));
 	UTextBlock* Txt_Drop = Cast<UTextBlock>(Btn_Drop->GetChildAt(0));
 
-	if (SlotType == ESlotType::ST_QuickSlot)
+	if (SlotType == ESlotType::ST_QuickSlot ||
+		SlotType == ESlotType::ST_Attachment ||
+		SlotType == ESlotType::ST_Weapon ||
+		SlotType == ESlotType::ST_Armor)
 	{
 		if (Txt_Use)
 		{
 			Txt_Use->SetText(FText::FromString(TEXT("해제")));
 		}
 		Btn_Drop->SetVisibility(ESlateVisibility::Collapsed);
-	}
-	else if (SlotType == ESlotType::ST_Attachment)
-	{
-		if (Txt_Use)
-		{
-			Txt_Use->SetText(FText::FromString(TEXT("해제")));
-			Btn_Drop->SetVisibility(ESlateVisibility::Collapsed);
-		}
 	}
 	else
 	{
@@ -147,38 +142,42 @@ void UInventoryActionMenu::OnUseClicked()
 		return;
 	}
 
-	UE_LOG(LogTemp, Verbose, TEXT("InventoryActionMenu::OnUseClicked: ItemID=%s"), *TargetItem.ItemID.ToString());
+	UGameInstance* GameInstance = GetWorld()->GetGameInstance();
+	if (!GameInstance)
+	{
+		return;
+	}
+	UItemDataSubsystem* ItemDataSubsystem = GameInstance->GetSubsystem<UItemDataSubsystem>();
+	if (!ItemDataSubsystem)
+	{
+		return;
+	}
+	FItemData Data = ItemDataSubsystem->GetItemDataByID(TargetItem.ItemID);
+
+	UE_LOG(LogTemp, Warning, TEXT("InventoryActionMenu::OnUseClicked: ItemID=%s"), *TargetItem.ItemID.ToString());
 
 	if (!TargetItem.ItemID.IsNone())
 	{
 		if (CurrentSlotType == ESlotType::ST_QuickSlot)
 		{
-			UE_LOG(LogTemp, Log, TEXT("InventoryActionMenu: Unassign from quick slot index=%d"), CurrentSlotIndex);
+			UE_LOG(LogTemp, Warning, TEXT("InventoryActionMenu: Unassign from quick slot index=%d"), CurrentSlotIndex);
 			LinkedInventoryComp->AssignToQuickSlot(CurrentSlotIndex, NAME_None);
 		}
 		else if (CurrentSlotType == ESlotType::ST_Attachment)
 		{
-			UE_LOG(LogTemp, Log, TEXT("InventoryActionMenu: Unequip attachment from slot index=%d"), CurrentSlotIndex);
+			UE_LOG(LogTemp, Warning, TEXT("InventoryActionMenu: Unequip attachment from slot index=%d"), CurrentSlotIndex);
 			LinkedInventoryComp->UnequipAttachmentToSlot(static_cast<EAttachmentType>(CurrentSlotIndex), -1);
+		}
+		else if (CurrentSlotType == ESlotType::ST_Weapon || CurrentSlotType == ESlotType::ST_Armor)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("InventoryActionMenu: Unequip item from slot index=%d"), CurrentSlotIndex);
+			LinkedInventoryComp->UnequipItemToInventory(CurrentSlotType, LinkedInventoryComp->GetInventoryContents().Num());
 		}
 		else
 		{
-			UE_LOG(LogTemp, Log, TEXT("InventoryActionMenu: RequestUseItem ItemID=%s"), *TargetItem.ItemID.ToString());
 			LinkedInventoryComp->RequestUseItem(TargetItem.ItemID);
+			UE_LOG(LogTemp, Warning, TEXT("InventoryActionMenu: RequestUseItem ItemID=%s"), *TargetItem.ItemID.ToString());
 		}
-	}
-
-	if (LinkedInventoryComp && !TargetItem.ItemID.IsNone())
-	{
-		UE_LOG(LogTemp, Log, TEXT("InventoryActionMenu: RequestUseItem ItemID=%s"), *TargetItem.ItemID.ToString());
-		LinkedInventoryComp->RequestUseItem(TargetItem.ItemID);
-		UE_LOG(LogTemp, VeryVerbose, TEXT("InventoryActionMenu: Removed from parent after use"));
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("InventoryActionMenu: Use click ignored (InventoryComp=%s, ItemIDValid=%s)"),
-			LinkedInventoryComp ? TEXT("Valid") : TEXT("Null"),
-			TargetItem.ItemID.IsNone() ? TEXT("false") : TEXT("true"));
 	}
 
 	if (ParentInventoryWidget)
@@ -199,7 +198,7 @@ void UInventoryActionMenu::OnDropClicked()
 		return;
 	}
 
-	UE_LOG(LogTemp, Verbose, TEXT("InventoryActionMenu::OnDropClicked: ItemID=%s"), *TargetItem.ItemID.ToString());
+	UE_LOG(LogTemp, Warning, TEXT("InventoryActionMenu::OnDropClicked: ItemID=%s"), *TargetItem.ItemID.ToString());
 	LinkedInventoryComp->RemoveItem(TargetItem.ItemID, TargetItem.Quantity);
 
 	if (ParentInventoryWidget)
