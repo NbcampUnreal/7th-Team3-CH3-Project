@@ -64,7 +64,7 @@ public:
 
 	void FindSpawner(const int32 Id ,class AEnemySpawner* Spawner);
 	void FindEventZone(const int32 Id, class AEventZone* EventZone);
-	void OnTriggerEvent(const int32 Id);
+	void OnTriggerEvent(const int32 Id, bool bIsPlayerIn);
 	void WaveStart();
 	void WaveEnd();
 
@@ -74,4 +74,6 @@ public:
 
 private:
 	bool bIsRunningSpawner = false;
+	bool bPlayerOnBox;
+	//bool bPlayerUseBomb;
 };

@@ -56,8 +56,10 @@ void AMainGameState::FindEventZone(const int32 Id, class AEventZone* EventZone)
 	EventZones.Add(Id, EventZone);
 }
 
-void AMainGameState::OnTriggerEvent(const int32 Id)
+void AMainGameState::OnTriggerEvent(const int32 Id, bool bIsPlayerIn)
 {
+	bPlayerOnBox = bIsPlayerIn;
+
 	if (bIsRunningSpawner)
 	{
 		Debug::Print(TEXT("스폰 이벤트가 이미 실행중입니다."));
