@@ -10,6 +10,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
 
+#define ECC_Weapon ECC_GameTraceChannel1
 
 AWeaponItem::AWeaponItem()
 {
@@ -452,8 +453,6 @@ void AWeaponItem::UnequipAttachment(FName AttachmentID)
 
 	EAttachmentType SlotType = AttachmentData.AttachmentType;
 
-
-
 	UStaticMeshComponent* TargetMesh = GetAttachmentComponentByType(AttachmentData.AttachmentType);
 
 	if (TargetMesh)
@@ -467,6 +466,12 @@ void AWeaponItem::UnequipAttachment(FName AttachmentID)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("No valid attachment component for type %d"), (int32)AttachmentData.AttachmentType);
 	}
+
+	if (EquippedAttachments.Contains(AttachmentData.AttachmentType))
+	{
+		EquippedAttachments.Remove(AttachmentData.AttachmentType);
+	}
+	RecalculateStats();
 }
 
 
@@ -546,27 +551,8 @@ void AWeaponItem::FireHitScan()
 	FRotator CameraRotation;
 	PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
 
-	FVector CameraTraceEnd = CameraLocation + (CameraRotation.Vector() * WeaponRange);
-
-	FCollisionQueryParams CameraQueryParams;
-	CameraQueryParams.AddIgnoredActor(this);
-	CameraQueryParams.AddIgnoredActor(OwnerActor);
-
-	FHitResult CameraHit;
-	FVector TargetPoint = CameraTraceEnd;
-	if (GetWorld()->LineTraceSingleByChannel(
-		CameraHit,
-		CameraLocation,
-		CameraTraceEnd,
-		ECC_Visibility,
-		CameraQueryParams
-	))
-	{
-		TargetPoint = CameraHit.ImpactPoint;
-	}
-
-	FVector Start = WeaponMesh->GetSocketLocation(FName("Muzzle"));
-	FVector MuzzleDirection = (TargetPoint - Start).GetSafeNormal();
+	FVector MuzzleLocation = WeaponMesh->GetSocketLocation(FName("Muzzle"));
+	FVector MuzzleForward = WeaponMesh->GetSocketRotation(FName("Muzzle")).Vector();
 
 	for (int32 i = 0; i < Pellets; i++)
 	{
@@ -576,33 +562,100 @@ void AWeaponItem::FireHitScan()
 			FMath::RandRange(-SpreadAngle, SpreadAngle),
 			0.0f
 		);
-		FVector SpreadDirection = SpreadRot.RotateVector(MuzzleDirection);
-		FVector SpreadEnd = Start + (SpreadDirection * WeaponRange);
-		//라인 트레이스 수행
+		FVector CameraShotDirection = (CameraRotation + SpreadRot).Vector();
+		FVector CameraTraceEnd = CameraLocation + (CameraShotDirection * WeaponRange);
 
-		FHitResult HitResult;
+		//카메라 기준 라인 트레이스 수행 (실제 총알 판정을 카메라에서 함)
+		FHitResult CameraHit;
+		FCollisionQueryParams CameraQueryParams;
+		CameraQueryParams.AddIgnoredActor(this);
+		CameraQueryParams.AddIgnoredActor(OwnerActor);
+
+		bool bCameraHit = GetWorld()->LineTraceSingleByChannel(
+			CameraHit,
+			CameraLocation,
+			CameraTraceEnd,
+			ECC_Visibility,
+			CameraQueryParams
+		);
+
+		FVector DesiredTargetPoint = bCameraHit ? CameraHit.ImpactPoint : CameraTraceEnd;
+
+		FVector DirectionToTarget = (DesiredTargetPoint - MuzzleLocation).GetSafeNormal();
+
+		float DotProduct = FVector::DotProduct(DirectionToTarget, MuzzleForward);
+
+		if (DotProduct < 0.5f) //총구 방향과 카메라 기준 발사 방향이 너무 다르면 총구 기준으로 발사 방향 보정
+		{
+			DirectionToTarget = MuzzleForward;
+			DesiredTargetPoint = MuzzleLocation + (DirectionToTarget * WeaponRange);
+			bCameraHit = false; //카메라 기준으로는 명중이지만 총구 기준으로는 명중이 아니므로 피해 적용 안함
+		}
+
+		FHitResult MuzzleHit;
 		FCollisionQueryParams BulletQueryParams;
 		BulletQueryParams.AddIgnoredActor(this);
 		BulletQueryParams.AddIgnoredActor(OwnerActor);
 
-		bool bHit = GetWorld()->LineTraceSingleByChannel(
-			HitResult,
-			Start,
-			SpreadEnd,
-			ECC_Visibility,
+		bool bMuzzleHit = GetWorld()->LineTraceSingleByChannel(
+			MuzzleHit,
+			MuzzleLocation,
+			DesiredTargetPoint,
+			ECC_Weapon,
 			BulletQueryParams
 		);
-		if (bHit)
+
+		FVector FinalImpactPoint = DesiredTargetPoint;
+
+		bool bCanApplyDamage = false;
+		bool bVisualBlocked = false;
+
+		//총구에 무언가 맞았다면, 그것이 '목표'인지 '방해물'인지 판단하는 로직
+		if (bMuzzleHit)
+		{
+			//거리 계산: 총구에서 목표까지의 거리 vs 총구에서 명중 지점까지의 거리
+			float DistanceToTarget = FVector::Dist(MuzzleLocation, DesiredTargetPoint);
+			float DistanceToHit = MuzzleHit.Distance;
+
+			AActor* CameraTargetActor = bCameraHit ? CameraHit.GetActor() : nullptr;
+			AActor* MuzzleHitActor = MuzzleHit.GetActor();
+
+			bool bHitSameActor = (CameraTargetActor && MuzzleHitActor && CameraTargetActor == MuzzleHitActor);
+			//명중 지점이 목표보다 충분히 가까우면(즉, 명중 지점이 목표를 가로막는 방해물이라면) 명중 지점을 최종 임팩트 포인트로 사용
+			if (!bHitSameActor && DistanceToHit < DistanceToTarget - 20.0f)
+			{
+				FinalImpactPoint = MuzzleHit.ImpactPoint;
+				bCanApplyDamage = false;
+				bVisualBlocked = true;
+			}
+			else
+			{
+				//명중 지점이 목표보다 멀거나 거의 같으면(즉, 명중 지점이 목표 뒤에 있거나 목표와 거의 같은 위치라면) 목표 지점을 최종 임팩트 포인트로 사용
+				FinalImpactPoint = MuzzleHit.ImpactPoint;
+				bCanApplyDamage = true;
+			}
+		}
+		else
+		{
+			if (bCameraHit)
+			{
+				bCanApplyDamage = true;
+			}
+		}
+
+		if (bCanApplyDamage)
 		{
 			//피해 적용
-			AActor* HitActor = HitResult.GetActor();
+			AActor* HitActor = bMuzzleHit ? MuzzleHit.GetActor() : (bCameraHit ? CameraHit.GetActor() : nullptr);
+			FHitResult& FinalHitResult = bMuzzleHit ? MuzzleHit : CameraHit;
+
 			if (HitActor)
 			{
 				UGameplayStatics::ApplyPointDamage(
 					HitActor,
 					BaseDamage,
-					SpreadDirection,
-					HitResult,
+					DirectionToTarget,
+					FinalHitResult,
 					GetInstigatorController(),
 					this,
 					nullptr
@@ -611,7 +664,7 @@ void AWeaponItem::FireHitScan()
 			//디버그용 점 그리기
 			DrawDebugPoint(
 				GetWorld(),
-				HitResult.ImpactPoint,
+				FinalImpactPoint,
 				10.0f,
 				FColor::Red,
 				false,
@@ -622,9 +675,9 @@ void AWeaponItem::FireHitScan()
 		//디버그용 라인 그리기
 		DrawDebugLine(
 			GetWorld(),
-			Start,
-			bHit ? HitResult.ImpactPoint : SpreadEnd,
-			bHit ? FColor::Green : FColor::Red,
+			MuzzleLocation,
+			FinalImpactPoint,
+			bVisualBlocked ? FColor::Yellow : (bCanApplyDamage ? FColor::Green : FColor::Red),
 			false,
 			2.0f,
 			0,
@@ -689,14 +742,15 @@ void AWeaponItem::FireProjectile()
 		ABaseProjectile* NewProjectile = GetWorld()->SpawnActorDeferred<ABaseProjectile>(
 			ProjectileClass,
 			SpawnTransform,
-			this,
+			OwnerActor,
 			GetInstigator(),
 			ESpawnActorCollisionHandlingMethod::AlwaysSpawn
 		);
 
 		if (NewProjectile)
 		{
-			NewProjectile->Damage = this->BaseDamage;
+			NewProjectile->Damage = NewProjectile->Damage + BaseDamage;
+			NewProjectile->SetOwner(OwnerActor);
 			UGameplayStatics::FinishSpawningActor(NewProjectile, SpawnTransform);
 		}
 	}
