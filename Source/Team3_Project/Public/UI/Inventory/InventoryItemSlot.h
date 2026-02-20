@@ -14,14 +14,6 @@ class UTextBlock;
 class UButton;
 class UInventoryMainWidget;
 
-UENUM(BlueprintType)
-enum class ESlotType : uint8
-{
-	ST_Inventory UMETA(DisplayName = "Inventory"),
-	ST_Attachment UMETA(DisplayName = "Attachment"),
-	ST_QuickSlot UMETA(DisplayName = "Quick Slot")
-};
-
 UCLASS()
 class TEAM3_PROJECT_API UInventoryItemSlot : public UUserWidget
 {
@@ -60,6 +52,8 @@ protected:
 
 	FName CurrentItemID;
 
+	int32 CurrentQuantity = 0;
+
 	virtual void NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 
 	virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;
@@ -67,6 +61,8 @@ protected:
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 
 	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;
+
+	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	UImage* SelectionBorder;
