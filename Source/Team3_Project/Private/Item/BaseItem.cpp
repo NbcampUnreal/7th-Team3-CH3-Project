@@ -8,6 +8,7 @@
 #include "Core/ItemDataSubsystem.h"
 #include "Kismet/GameplayStatics.h"
 #include "Shared/InteractionInterface.h"
+#include "UI/Item/LootTagWidget.h"
 
 // Sets default values
 ABaseItem::ABaseItem()
@@ -94,6 +95,23 @@ void ABaseItem::BeginPlay()
 					UE_LOG(LogTemp, Warning, TEXT("Item Mesh set for ItemID: %s"), *ItemID.ToString());
 				}
 			}
+		}
+	}
+
+	if (LootWidget)
+	{
+		UUserWidget* UserWidget = LootWidget->GetUserWidgetObject();
+		if (UserWidget)
+		{
+			ULootTagWidget* LootTagWidget = Cast<ULootTagWidget>(UserWidget);
+			if (LootTagWidget)
+			{
+				LootTagWidget->InitLootTag(ItemID, Quantity);
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("LootWidget has no UserWidget object in BeginPlay for ItemID: %s"), *ItemID.ToString());
 		}
 	}
 }
