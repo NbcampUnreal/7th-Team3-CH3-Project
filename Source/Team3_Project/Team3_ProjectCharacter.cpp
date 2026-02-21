@@ -6,7 +6,6 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
-#include "Shared/Component/StatComponent.h"
 #include "GameFramework/Controller.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -19,9 +18,40 @@ DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
 ATeam3_ProjectCharacter::ATeam3_ProjectCharacter()
 {
-	StatComp = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
-	
-	CurrentState = ECharacterState::Idle;
+	// Set size for collision capsule
+	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
+
+	// Don't rotate when the controller rotates. Let that just affect the camera.
+	bUseControllerRotationPitch = false;
+	bUseControllerRotationYaw = false;
+	bUseControllerRotationRoll = false;
+
+	// Configure character movement
+	GetCharacterMovement()->bOrientRotationToMovement = true; // Character moves in the direction of input...	
+	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f); // ...at this rotation rate
+
+	// Note: For faster iteration times these variables, and many more, can be tweaked in the Character Blueprint
+	// instead of recompiling to adjust them
+	GetCharacterMovement()->JumpZVelocity = 700.f;
+	GetCharacterMovement()->AirControl = 0.35f;
+	GetCharacterMovement()->MaxWalkSpeed = 500.f;
+	GetCharacterMovement()->MinAnalogWalkSpeed = 20.f;
+	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
+	GetCharacterMovement()->BrakingDecelerationFalling = 1500.0f;
+
+	// Create a camera boom (pulls in towards the player if there is a collision)
+	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
+	CameraBoom->SetupAttachment(RootComponent);
+	CameraBoom->TargetArmLength = 400.0f; // The camera follows at this distance behind the character	
+	CameraBoom->bUsePawnControlRotation = true; // Rotate the arm based on the controller
+
+	// Create a follow camera
+	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
+	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
+	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
+
+	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
+	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -29,202 +59,71 @@ ATeam3_ProjectCharacter::ATeam3_ProjectCharacter()
 
 void ATeam3_ProjectCharacter::NotifyControllerChanged()
 {
-	//Super::NotifyControllerChanged();
+	Super::NotifyControllerChanged();
 
-	//// Add Input Mapping Context
-	//if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
-	//{
-	//	if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
-	//	{
-	//		Subsystem->AddMappingContext(SandboxMappingContext, 0);
-	//	}
-	//}
+	// Add Input Mapping Context
+	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
+		{
+			Subsystem->AddMappingContext(DefaultMappingContext, 0);
+		}
+	}
 }
 
 void ATeam3_ProjectCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
-	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
-	{
-		// 조준
-		if (AimAction)
-		{
-			EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Started, this, &ATeam3_ProjectCharacter::StartAiming);
-			EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Completed, this, &ATeam3_ProjectCharacter::StopAiming);
-		}
+	// Set up action bindings
+	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
 
-		// 공격
-		if (AttackAction)
-		{
-			EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &ATeam3_ProjectCharacter::Attack);
-		}
+		// Jumping
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 
-		// 상호작용
-		if (InteractAction)
-		{
-			EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &ATeam3_ProjectCharacter::TryInteract);
-		}
+		// Moving
+		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ATeam3_ProjectCharacter::Move);
+
+		// Looking
+		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ATeam3_ProjectCharacter::Look);
 	}
 	else
 	{
-		UE_LOG(LogTemplateCharacter, Error, TEXT("'%s' Failed to find an Enhanced Input component!"), *GetNameSafe(this));
+		UE_LOG(LogTemplateCharacter, Error, TEXT("'%s' Failed to find an Enhanced Input component! This template is built to use the Enhanced Input system. If you intend to use the legacy system, then you will need to update this C++ file."), *GetNameSafe(this));
 	}
 }
 
-void ATeam3_ProjectCharacter::BeginPlay()
+void ATeam3_ProjectCharacter::Move(const FInputActionValue& Value)
 {
-	Super::BeginPlay();
+	// input is a Vector2D
+	FVector2D MovementVector = Value.Get<FVector2D>();
 
-	if (StatComp)
+	if (Controller != nullptr)
 	{
-		StatComp->InitializeStat("Stamina", MaxStamina, 0.f, MaxStamina);
+		// find out which way is forward
+		const FRotator Rotation = Controller->GetControlRotation();
+		const FRotator YawRotation(0, Rotation.Yaw, 0);
+
+		// get forward vector
+		const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+
+		// get right vector 
+		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+
+		// add movement 
+		AddMovementInput(ForwardDirection, MovementVector.Y);
+		AddMovementInput(RightDirection, MovementVector.X);
 	}
 }
 
-void ATeam3_ProjectCharacter::Tick(float DeltaTime)
+void ATeam3_ProjectCharacter::Look(const FInputActionValue& Value)
 {
-	Super::Tick(DeltaTime);
+	// input is a Vector2D
+	FVector2D LookAxisVector = Value.Get<FVector2D>();
 
-	PrintDebugInfo();
-}
-
-void ATeam3_ProjectCharacter::SetCharacterState(ECharacterState NewState)
-{
-	// 상태가 같으면 변경하지 않음
-	if (CurrentState == NewState)
+	if (Controller != nullptr)
 	{
-		return;
-	}
-
-	CurrentState = NewState;
-}
-
-void ATeam3_ProjectCharacter::StartAiming()
-{
-}
-
-void ATeam3_ProjectCharacter::StopAiming()
-{
-}
-
-void ATeam3_ProjectCharacter::Attack()
-{
-}
-
-void ATeam3_ProjectCharacter::Reload()
-{
-}
-
-void ATeam3_ProjectCharacter::EquipWeapon(FName ItemID)
-{
-}
-
-void ATeam3_ProjectCharacter::StartSprint()
-{
-	// 달리기 시작하니까 회복 타이머 중지
-	GetWorld()->GetTimerManager().ClearTimer(StaminaRecoveryTimerHandle);
-	// 이미 타이머가 돌고 있으면 무시
-	if (GetWorld()->GetTimerManager().IsTimerActive(SprintTimerHandle)) return;
-
-	CurrentState = ECharacterState::Sprinting;
-
-	// 타이머 시작 (0.1초마다 HandleSprintCost 반복 실행)
-	GetWorld()->GetTimerManager().SetTimer(
-		SprintTimerHandle,
-		this,
-		&ATeam3_ProjectCharacter::HandleSprintCost,
-		0.1f,
-		true // Loop 여부
-	);
-}
-
-void ATeam3_ProjectCharacter::StopSprint()
-{
-	CurrentState = ECharacterState::Walking;
-
-	// 소모 타이머 삭제
-	GetWorld()->GetTimerManager().ClearTimer(SprintTimerHandle);
-
-	float Current = StatComp->GetCurrentStatValue("Stamina");
-	if (Current < MaxStamina)
-	{
-		GetWorld()->GetTimerManager().SetTimer(
-			StaminaRecoveryTimerHandle,
-			this,
-			&ATeam3_ProjectCharacter::HandleStaminaRecovery,
-			0.1f,
-			true
-		);
-	}
-}
-
-void ATeam3_ProjectCharacter::HandleSprintCost()
-{
-	if (!StatComp) return;
-
-	float CurrentStamina = StatComp->GetCurrentStatValue("Stamina");
-
-	// 0.1초만큼의 비용 계산
-	float Cost = SprintCostPerSecond * 0.1f;
-	float NewStamina = CurrentStamina - Cost;
-
-	if (NewStamina <= 0.f)
-	{
-		NewStamina = 0.f;
-		StopSprint();
-		if (GEngine) GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Red, TEXT("탈진! (Stamina Depleted)"));
-	}
-
-	StatComp->SetCurrentStatValue("Stamina", NewStamina);
-}
-
-void ATeam3_ProjectCharacter::HandleStaminaRecovery()
-{
-	if (!StatComp) return;
-
-	float Current = StatComp->GetCurrentStatValue("Stamina");
-
-	if (Current >= MaxStamina)
-	{
-		GetWorld()->GetTimerManager().ClearTimer(StaminaRecoveryTimerHandle);
-		return;
-	}
-
-	// 회복 계산 (초당 회복량 * 0.1초)
-	float Recovery = StaminaRecoveryRate * 0.1f;
-	float NewValue = Current + Recovery;
-
-	if (NewValue > MaxStamina) NewValue = MaxStamina;
-	StatComp->SetCurrentStatValue("Stamina", NewValue);
-}
-
-void ATeam3_ProjectCharacter::TryInteract()
-{
-}
-
-float ATeam3_ProjectCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
-{
-	return 0.0f;
-}
-
-void ATeam3_ProjectCharacter::Die()
-{
-}
-
-void ATeam3_ProjectCharacter::PrintDebugInfo()
-{
-	if (!StatComp) return;
-
-	float Current = StatComp->GetCurrentStatValue("Stamina");
-
-	FString StateStr = (CurrentState == ECharacterState::Sprinting) ? TEXT("RUNNING >>") : TEXT("Walking..");
-	FColor TextColor = (CurrentState == ECharacterState::Sprinting) ? FColor::Yellow : FColor::Green;
-
-	// Key값이 0이면 메시지가 쌓이지 않고 한 줄에서 숫자만 바뀜 (갱신)
-	FString Msg = FString::Printf(TEXT("[%s] Stamina: %.1f / %.0f"), *StateStr, Current, MaxStamina);
-
-	if (GEngine)
-	{
-		// Key: 0 (고정된 위치), Time: 0.0f (즉시 갱신)
-		GEngine->AddOnScreenDebugMessage(0, 0.0f, TextColor, Msg);
+		// add yaw and pitch input to controller
+		AddControllerYawInput(LookAxisVector.X);
+		AddControllerPitchInput(LookAxisVector.Y);
 	}
 }
