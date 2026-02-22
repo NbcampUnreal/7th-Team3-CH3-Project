@@ -41,6 +41,12 @@ protected:
     UPROPERTY(meta = (BindWidget))
     class UVerticalBox* QuestList;
 
+    UPROPERTY(meta = (BindWidget))
+    class UImage* img_Quest;
+
+    UPROPERTY(meta = (BindWidget))
+    class UTextBlock* Txt_WaveMessage;
+
     UPROPERTY(EditAnywhere, Category = "Quest")
     TSubclassOf<class UQuestItemWidget> QuestItemClass;
     UPROPERTY(EditAnywhere, Category = "UI")
@@ -60,6 +66,19 @@ protected:
     float CurrBlackKarma;
     float TargetBlackKarma;
 
+    UPROPERTY(BlueprintReadWrite, Category = "HUD")
+    int32 CurrentKills;
+    UPROPERTY(BlueprintReadWrite, Category = "HUD")
+    int32 CurrentScore;
+
+    UPROPERTY()
+    int32 CurrentQuestCount;
+
+    int32 TempWaveKills;
+    int32 TempWaveScore;
+
+    float CurrentRemainingTime;
+    bool bIsTimerActive;
 public:
     UFUNCTION(BlueprintCallable, Category = "HUD Test")
     void UpdateScore(int32 Score);
@@ -81,5 +100,16 @@ public:
 
     void UpdateDynamicColor(class UProgressBar* Bar, float CurrentPercent);
     void AddNewQuest(FString Title, FString Desc);
-    void ShowWaveResult(bool bSuccess, int32 CurrentScore, int32 Bonus, int32 Kills);
+
+    UFUNCTION(BlueprintCallable)
+    void ShowWaveResult(bool bSuccess, int32 Bonus, int32 InScore, int32 InKills);
+
+    void SetQuestIconVisibility(bool bVisible);
+    void RefreshQuestIcon();
+    void RemoveQuest();
+    UFUNCTION(BlueprintCallable, Category = "HUD Test")
+    void StartWaveUI(FString Message, float WaveTime);
+    UFUNCTION(BlueprintCallable, Category = "HUD Test")
+    void EndWaveUI(bool bSuccess, int32 Score, int32 Bonus, int32 Kills);
+    void HideWaveMessage();
 };

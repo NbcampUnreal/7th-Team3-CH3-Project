@@ -22,15 +22,16 @@ protected:
 	class UTextBlock* Txt_BonusScore;
 
 	UPROPERTY(meta = (BindWidget))
-	class UTextBlock* Txt_TotalScore;
+	class UTextBlock* Txt_BaseScore;
 
 	float TargetBonus;
 	float CurrentDisplayBonus;
 	int32 BaseScore;
 	bool bIsCounting=false;
-
+	int32 FinalBonus;
 public:
 	void SetupSuccess(int32 InBaseScore, int32 InBonus, int32 InKills);
 	void SetupFailure();
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+	
 };
