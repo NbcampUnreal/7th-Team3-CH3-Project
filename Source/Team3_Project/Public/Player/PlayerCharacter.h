@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Shared/ItemTypes.h"
 #include "PlayerCharacter.generated.h"
 
 class USpringArmComponent;
@@ -12,12 +13,22 @@ class UInputMappingContext;
 class UInputAction;
 class UParkourComponent;
 class UStatComponent;
+class AWeaponItem;
 struct FInputActionValue;
 
 UENUM(BlueprintType)
 enum class ECharacterState : uint8
 {
 	Idle, Walking, Sprinting, Parkour, Dead
+};
+
+UENUM(BlueprintType)
+enum class EOverlayState : uint8 
+{
+	Default, // 맨손
+	Melee,   // 근접 무기
+	Pistol,  // 권총
+	Rifle    // 소총
 };
 
 UCLASS(Blueprintable, BlueprintType)
@@ -53,8 +64,14 @@ public:
 	//UInventoryComponent* InventoryComponent;
 
 	// --- 무기 & 전투 관련 ---
-	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
-	//AWeaponItem* CurrentWeapon;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
+	EWeaponType CurrentOverlayState = EWeaponType::WT_None;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	AWeaponItem* CurrentWeapon = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	FName WeaponSocketName = FName("hand_r_weapon");
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void StartAiming();
@@ -68,7 +85,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void Reload(); // -> CurrentWeapon->Reload() 호출
 
-	UFUNCTION(BlueprintCallable, Category = "Combat")
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	void EquipWeapon(FName ItemID);
 
 	UFUNCTION(BlueprintCallable, Category = "Movement")
@@ -127,5 +144,10 @@ protected:
 
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
+
+private:
+	FName CurrentWeaponItemID = NAME_None;
+	TSharedPtr<struct FStreamableHandle> WeaponLoadHandle;
+	void OnWeaponClassLoaded(FName ItemID); // 무기 로드 완료됐을때 콜백함수
 
 };
