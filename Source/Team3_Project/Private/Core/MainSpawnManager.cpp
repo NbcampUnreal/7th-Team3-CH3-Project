@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Core/MainSpawnManager.h"
@@ -26,11 +26,16 @@ void AMainSpawnManager::SpawnEventZone()
 
 	for (int i = 0; i < ZoneLocation.Num(); i++)
 	{
-		CurrentGameState->FindEventZone(i + 1, GetWorld()->SpawnActor<AEventZone>(
+		const int32 SpawnerId = i + 1;
+
+		AEventZone* EventZoneInstance = GetWorld()->SpawnActor<AEventZone>(
 			EventZoneClass,
 			ZoneLocation[i],
 			FRotator::ZeroRotator
-		));
+		);
+
+		EventZoneInstance->InitId(SpawnerId);
+		CurrentGameState->FindEventZone(SpawnerId, EventZoneInstance);
 	}
 }
 
@@ -51,6 +56,7 @@ void AMainSpawnManager::SpawnEnemySpawner()
 			SpawnerLocation[i],
 			FRotator::ZeroRotator
 		);
+
 		SpawnerInstance->InitId(SpawnerId);
 		CurrentGameState->FindSpawner(SpawnerId, SpawnerInstance);
 	}

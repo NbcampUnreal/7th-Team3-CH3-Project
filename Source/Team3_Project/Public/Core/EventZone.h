@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+Ôªø// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -41,7 +41,8 @@ protected:
 	virtual void BeginPlay() override;
 
 private:
-	//∞¥√º ∞Ì¿Ø Id
+	//Í∞ùÏ≤¥ Í≥†Ïú† Id
 	UPROPERTY(VisibleInstanceOnly, Category = "ID")
 	int32 Id = 0;
+
 };

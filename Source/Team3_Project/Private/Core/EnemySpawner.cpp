@@ -14,8 +14,15 @@ AEnemySpawner::AEnemySpawner()
 
 void AEnemySpawner::SpawnEnemy(TSubclassOf<AEnemyCharacter> EnemyClass)
 {
-	if (EnemyClass == nullptr) return;
+	if (!EnemyClass)
+	{
+		Debug::Print(TEXT("Class is not Found"));
+		return;
+	}
 
+	Debug::Print(EnemyClass->GetName());
+	Debug::Print(FString::FromInt(Id) + TEXT("EnemySpawner 작동중"), FColor::Blue);
+	
 	GetWorld()->SpawnActor<AEnemyCharacter>(
 		EnemyClass,
 		GetActorLocation(),
