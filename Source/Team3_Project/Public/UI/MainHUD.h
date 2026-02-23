@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Components/Image.h"
 #include "MainHUD.generated.h"
 
 // 델리게이트 선언
@@ -47,6 +48,19 @@ protected:
     UPROPERTY(meta = (BindWidget)) class UImage* img_Quest;
     UPROPERTY(meta = (BindWidget)) class UTextBlock* Txt_WaveMessage;
 
+public:
+    UPROPERTY(meta = (BindWidget), BlueprintReadOnly) class UImage* Slot_0;
+    UPROPERTY(meta = (BindWidget), BlueprintReadOnly) class UImage* Slot_1;
+    UPROPERTY(meta = (BindWidget), BlueprintReadOnly) class UImage* Slot_2;
+    UPROPERTY(meta = (BindWidget), BlueprintReadOnly) class UImage* Slot_3;
+    UPROPERTY(meta = (BindWidget), BlueprintReadOnly) class UImage* Slot_4;
+    UPROPERTY(meta = (BindWidget), BlueprintReadOnly) class UImage* Slot_5;
+    UPROPERTY(meta = (BindWidget), BlueprintReadOnly) class UImage* Slot_6;
+    UPROPERTY(meta = (BindWidget), BlueprintReadOnly) class UImage* Slot_7;
+
+    UPROPERTY(meta = (BindWidget), BlueprintReadOnly) class UImage* Img_GunInformation;
+
+protected:
     UPROPERTY(EditAnywhere, Category = "Quest") TSubclassOf<class UQuestItemWidget> QuestItemClass;
     UPROPERTY(EditAnywhere, Category = "UI") TSubclassOf<class UResultWidget> ResultWidgetClass;
 
@@ -67,7 +81,7 @@ protected:
     bool bPendingSuccess;
 
     UPROPERTY() TMap<int32, class UQuestItemWidget*> QuestMap;
-
+    TArray<UImage*> SlotArray;
 public:
     // --- 외부 호출 가능 함수 --- 
     UFUNCTION(BlueprintCallable, Category = "HUD") void UpdateScore(int32 Score);

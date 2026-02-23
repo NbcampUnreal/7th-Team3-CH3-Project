@@ -5,6 +5,7 @@
 #include "Components/VerticalBox.h"
 #include "UI/QuestItemWidget.h"
 #include "UI/ResultWidget.h"
+#include "Item/InventoryComponent.h"
 
 UMainHUD::UMainHUD(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -31,6 +32,8 @@ void UMainHUD::NativeConstruct()
     OnQuestFinished.AddDynamic(this, &UMainHUD::FinishQuest);
     OnWaveStarted.AddDynamic(this, &UMainHUD::StartWaveUI);
     OnWaveEnded.AddDynamic(this, &UMainHUD::ReceiveTeamData);
+
+
 
     if (Timer) Timer->SetVisibility(ESlateVisibility::Collapsed);
     RefreshQuestIcon();
