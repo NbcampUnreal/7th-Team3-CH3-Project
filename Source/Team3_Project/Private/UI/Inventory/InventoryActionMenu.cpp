@@ -166,7 +166,7 @@ void UInventoryActionMenu::OnUseClicked()
 		else if (CurrentSlotType == ESlotType::ST_Attachment)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("InventoryActionMenu: Unequip attachment from slot index=%d"), CurrentSlotIndex);
-			LinkedInventoryComp->UnequipAttachmentToSlot(static_cast<EAttachmentType>(CurrentSlotIndex), -1);
+			LinkedInventoryComp->UnequipAttachmentToSlot(static_cast<EAttachmentType>(CurrentSlotIndex), LinkedInventoryComp->GetInventoryContents().Num());
 		}
 		else if (CurrentSlotType == ESlotType::ST_Weapon || CurrentSlotType == ESlotType::ST_Armor)
 		{
@@ -199,7 +199,7 @@ void UInventoryActionMenu::OnDropClicked()
 	}
 
 	UE_LOG(LogTemp, Warning, TEXT("InventoryActionMenu::OnDropClicked: ItemID=%s"), *TargetItem.ItemID.ToString());
-	LinkedInventoryComp->RemoveItem(TargetItem.ItemID, TargetItem.Quantity);
+	LinkedInventoryComp->DropItem(TargetItem.ItemID, TargetItem.Quantity, CurrentSlotIndex);
 
 	if (ParentInventoryWidget)
 	{
