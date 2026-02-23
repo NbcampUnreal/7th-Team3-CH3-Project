@@ -2,10 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "BehaviorTree/BTTaskNode.h"
-#include "BTTask_WaitIdle.generated.h"
+#include "BTTask_SpecialAttack.generated.h"
 
 UCLASS()
-class TEAM3_PROJECT_API UBTTask_WaitIdle : public UBTTaskNode
+class TEAM3_PROJECT_API UBTTask_SpecialAttack : public UBTTaskNode
 {
 	GENERATED_BODY()
 	

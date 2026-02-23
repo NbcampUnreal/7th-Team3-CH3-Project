@@ -171,5 +171,4 @@ void UStatComponent::UpdateStat(FName StatName)
 		}
 	}
 
-	Stats[StatName].SetCurrentValue(CurrentValue);
 }

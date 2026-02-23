@@ -1,5 +1,5 @@
 ﻿#include "Enemy/IdleState.h"
-#include "Enemy/Controllers/EnemyController.h"
+#include "Enemy/EnemyController.h"
 
 void UIdleState::EnterState()
 {

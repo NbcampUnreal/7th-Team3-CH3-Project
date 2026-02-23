@@ -1,5 +1,5 @@
 ﻿#include "Enemy/PatrolState.h"
-#include "Enemy/Controllers/EnemyController.h"
+#include "Enemy/EnemyController.h"
 #include "Enemy/EnemyCharacter.h"
 #include "GameFramework/CharacterMovementComponent.h"
 

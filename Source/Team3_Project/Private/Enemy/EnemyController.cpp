@@ -1,4 +1,4 @@
-﻿#include "Enemy/Controllers/EnemyController.h"
+﻿#include "Enemy/EnemyController.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BlackboardComponent.h"
@@ -18,7 +18,8 @@
 #include "Navigation//PathFollowingComponent.h"
 
 AEnemyController::AEnemyController()
-    :AIPerceptionComponent(nullptr),
+    :BehaviorTree(nullptr),
+    AIPerceptionComponent(nullptr),
     SightConfig(nullptr),
     HearingConfig(nullptr),
     TargetActor(nullptr),
@@ -127,12 +128,25 @@ void AEnemyController::OnPossess(APawn* InPawn)
 
         if (PossessedCharacter->IsForWave())
         {
-            SetWaveMode(true);
+            TryApplyWaveSetup();
         }
+    }
+
+    if (IsValid(BehaviorTree))
+    {
+        RunBehaviorTree(BehaviorTree);
     }
 }
 
-void AEnemyController::SetWaveMode(bool bInWave)
+void AEnemyController::UpdateAI()
+{
+    if (IsValid(BehaviorTree))
+    {
+        // Todo AI 업데이트 로직 작성
+    }
+}
+
+void AEnemyController::TryApplyWaveSetup()
 {
     AEnemyCharacter* EnemyCharacter = Cast<AEnemyCharacter>(GetPawn());
     if (!EnemyCharacter) return;
@@ -142,13 +156,10 @@ void AEnemyController::SetWaveMode(bool bInWave)
 
     ACharacter* PlayerCharacter = Cast<ACharacter>(World->GetFirstPlayerController()->GetPawn());
     if (!PlayerCharacter) return;
-    
-    if (bInWave)
-    {
-        TargetActor = PlayerCharacter;
 
-        ChangeState(GetChaseState());
-    }
+    TargetActor = PlayerCharacter;
+
+    ChangeState(GetChaseState());
 }
 
 bool AEnemyController::IsForWave()
@@ -272,7 +283,7 @@ void AEnemyController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stim
 {
     // PlayerCharacter 클래스로 추후 수정
     ACharacter* PlayerCharacter = Cast<ACharacter>(Actor);
-    if (!PlayerCharacter && !PlayerCharacter->ActorHasTag(FName("Player"))) return;
+    if (!PlayerCharacter) return;
 
     AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(GetPawn());
     if (!Enemy) return;

@@ -1,6 +1,6 @@
 ﻿#include "Enemy/HittedState.h"
 #include "Enemy/EnemyCharacter.h"
-#include "Enemy/Controllers/EnemyController.h"
+#include "Enemy/EnemyController.h"
 #include "Animation/AnimInstance.h"
 
 void UHittedState::EnterState()
