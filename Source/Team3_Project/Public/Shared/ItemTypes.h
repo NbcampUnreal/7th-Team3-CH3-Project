@@ -109,6 +109,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSoftClassPtr<ABaseItem> ItemClass;
 
+	// Transform 조정용
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FTransform WeaponSocketTransform;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 MaxStack;
 
