@@ -83,6 +83,9 @@ public:
 	void Attack(); // -> CurrentWeapon->Fire() 호출
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void StopAttack();
+
+	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void Reload(); // -> CurrentWeapon->Reload() 호출
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon")

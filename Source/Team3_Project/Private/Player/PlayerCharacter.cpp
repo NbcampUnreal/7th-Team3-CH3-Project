@@ -67,6 +67,18 @@ void APlayerCharacter::StopAiming()
 
 void APlayerCharacter::Attack()
 {
+	if (CurrentWeapon)
+	{
+		CurrentWeapon->StartFire(); // 연사/단사 로직은 WeaponItem 내부 타이머가 처리함
+	}
+}
+
+void APlayerCharacter::StopAttack()
+{
+	if (CurrentWeapon)
+	{
+		CurrentWeapon->StopFire();
+	}
 }
 
 void APlayerCharacter::Reload()
@@ -130,7 +142,7 @@ void APlayerCharacter::OnWeaponClassLoaded(FName ItemID)
 	TSubclassOf<AWeaponItem> WeaponClass = Data.ItemClass.Get();
 	if (!WeaponClass) return;
 
-	// ── SpawnActor ──
+	// SpawnActor
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.Owner = this;
 	SpawnParams.Instigator = GetInstigator();
@@ -142,7 +154,7 @@ void APlayerCharacter::OnWeaponClassLoaded(FName ItemID)
 	);
 	if (!NewWeapon) return;
 
-	// ── 소켓에 붙이기 ──
+	// 소켓에 붙이기
 	NewWeapon->AttachToComponent(
 		GetMesh(),
 		FAttachmentTransformRules::SnapToTargetNotIncludingScale,
@@ -158,7 +170,7 @@ void APlayerCharacter::OnWeaponClassLoaded(FName ItemID)
 	// 무기 No Collision
 	// NewWeapon->GetRootComponent()->SetCollisionProfileName(TEXT("NoCollision"));
 
-	// ── 상태 업데이트 → ABP가 이걸 읽어서 포즈 전환 ──
+	// 상태 업데이트 -> ABP가 이걸 읽어서 포즈 전환
 	CurrentWeapon = NewWeapon;
 	CurrentWeaponItemID = ItemID;
 	CurrentOverlayState = Data.WeaponType; // EWeaponType 그대로 사용
