@@ -9,6 +9,8 @@
 #include "Core/ItemDataSubsystem.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "UI/Item/LootTagWidget.h"
+#include "Components/WidgetComponent.h"
 
 #define ECC_Weapon ECC_GameTraceChannel1
 
@@ -52,6 +54,26 @@ AWeaponItem::AWeaponItem()
 	OriginalRecoil = CurrentRecoil;
 	OriginalMaxAmmo = MaxAmmo;
 	OriginalRange = WeaponRange;
+}
+
+void AWeaponItem::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (WeaponMesh)
+	{
+		WeaponMesh->SetVisibility(false);
+		WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
+	if (LootWidget)
+	{
+		ULootTagWidget* TagWidget = Cast<ULootTagWidget>(LootWidget->GetUserWidgetObject());
+		if (TagWidget)
+		{
+			TagWidget->UpdateAttachmentIcons(EquippedAttachments);
+		}
+	}
 }
 
 void AWeaponItem::Tick(float DeltaTime)
@@ -513,6 +535,48 @@ void AWeaponItem::ApplyAttachmentState(const TMap<EAttachmentType, FName>& InAtt
 		}
 	}
 	RecalculateStats();
+
+	if (LootWidget)
+	{
+		ULootTagWidget* TagWidget = Cast<ULootTagWidget>(LootWidget->GetUserWidgetObject());
+		if (TagWidget)
+		{
+			TagWidget->UpdateAttachmentIcons(EquippedAttachments);
+		}
+	}
+}
+
+void AWeaponItem::Interact(AActor* Interactor)
+{
+	if (!Interactor)
+	{
+		return;
+	}
+
+	UInventoryComponent* InventoryComp = Interactor->FindComponentByClass<UInventoryComponent>();
+	if (InventoryComp)
+	{
+		int32 Leftover = InventoryComp->AddItem(ItemID, Quantity, EquippedAttachments);
+
+		if (Leftover <= 0)
+		{
+			Destroy();
+		}
+		else
+		{
+			Quantity = Leftover;
+			UE_LOG(LogTemp, Warning, TEXT("Could not add full weapon to inventory. Leftover quantity: %d"), Leftover);
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Interactor does not have an InventoryComponent"));
+	}
+}
+
+void AWeaponItem::InitializeDroppedWeapon(const TMap<EAttachmentType, FName>& SavedAttachments)
+{
+	ApplyAttachmentState(SavedAttachments);
 }
 
 
@@ -851,6 +915,7 @@ void AWeaponItem::RecalculateStats()
 			break;
 		case EAttachmentType::AT_Barrel:
 			SpreadAngle -= Data.PowerAmount;
+			SpreadAngle = FMath::Clamp(SpreadAngle, 0.01f, 100.0f);
 			UE_LOG(LogTemp, Log, TEXT("Barrel attached, new SpreadAngle: %f"), SpreadAngle);
 
 			if (ItemID.ToString().Contains("Silencer"))
@@ -863,7 +928,7 @@ void AWeaponItem::RecalculateStats()
 			UE_LOG(LogTemp, Log, TEXT("Magazine attached, new MaxAmmo: %d"), MaxAmmo);
 			break;
 		case EAttachmentType::AT_Underbarrel:
-			CurrentRecoil *= (1.0f - Data.PowerAmount);
+			CurrentRecoil *= FMath::Clamp((1.0f - Data.PowerAmount), 0.0f, 1.0f);
 			UE_LOG(LogTemp, Log, TEXT("Underbarrel attached, new CurrentRecoil: %f"), CurrentRecoil);
 			break;
 		case EAttachmentType::AT_Stock:

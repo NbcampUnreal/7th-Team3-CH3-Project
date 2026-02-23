@@ -14,7 +14,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnQuickSlotUpdated);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnEquipmentChanged, bool, bIsEquipping, FName, ItemID);
 
 //테스트용 딜리게이트
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemEquipRequested, FName, ItemID, ESlotType, SlotType);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnItemEquipRequested, FInventoryItem, EquipItem);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnItemUnequipRequested, ESlotType, SlotType);
 
 class AWeaponItem;
@@ -52,8 +52,6 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TArray<FName> QuickSlots;
-
-	void InitializeQuickSlots();
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void AssignToQuickSlot(int32 SlotIndex, FName ItemID);
@@ -109,6 +107,13 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Inventory Event")
 	FOnItemUnequipRequested OnItemUnequipRequested;
+
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	void DropItem(FName ItemID, int32 Quantity, int32 InventoryIndex);
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	void SortInventory();
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")

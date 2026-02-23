@@ -25,11 +25,20 @@ public:
 	float BaseAttack;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stat")
 	float BaseDefense;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stat")
+	float WhiteKarma;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stat")
+	float BlackKarma;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|CoolTime")
 	float AttackCoolTime;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|CoolTime")
 	float SpecialAttackCoolTime;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Collision")
+	FName SocketName;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Collision")
+	float WeaponRadius;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Move")
 	float PatrolMaxSpeed;

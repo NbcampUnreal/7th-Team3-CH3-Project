@@ -7,6 +7,7 @@
 #include "ItemTypes.generated.h"
 
 class ABaseItem;
+class AWeaponItem;
 
 UENUM(BlueprintType)
 enum class EItemType : uint8

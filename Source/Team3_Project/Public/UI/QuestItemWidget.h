@@ -7,8 +7,8 @@
 UCLASS()
 class TEAM3_PROJECT_API UQuestItemWidget : public UUserWidget
 {
-	GENERATED_BODY()
-	
+    GENERATED_BODY()
+
 protected:
     UPROPERTY(meta = (BindWidget))
     class UTextBlock* Txt_QuestTitle;
@@ -17,14 +17,20 @@ protected:
     class UTextBlock* Txt_QuestDesc;
 
 public:
-    void SetQuestText(FString Title, FString Description);
+    // 퀘스트 정보 설정 (ID 포함) 
+    void SetQuestText(int32 ID, FString Title, FString Description);
+
+    // 퀘스트 완료 처리 (색상 변경 및 삭제 예약) 
     void CompleteQuest();
-    FString GetQuestTitle() const;
+
+    // 현재 퀘스트 ID 반환 
+    int32 GetQuestID() const { return QuestID; }
 
 private:
-    bool bIsCompleted = false;
-
+    // 퀘스트를 리스트에서 제거 
     void DestroyQuestItem();
 
+    int32 QuestID;
+    bool bIsCompleted = false;
     FTimerHandle DestroyTimerHandle;
 };
