@@ -6,6 +6,7 @@
 #include "Components/SphereComponent.h"
 #include "Item/InventoryComponent.h"
 #include "Core/ItemDataSubsystem.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Kismet/GameplayStatics.h"
 #include "Shared/InteractionInterface.h"
 #include "UI/Item/LootTagWidget.h"
@@ -13,9 +14,8 @@
 // Sets default values
 ABaseItem::ABaseItem()
 {
-	//추후 필요할 수도 있음
-	PrimaryActorTick.bCanEverTick = false;
-	
+	PrimaryActorTick.bCanEverTick = true;
+
 	ItemMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ItemMesh"));
 	RootComponent = ItemMesh;
 
@@ -25,14 +25,16 @@ ABaseItem::ABaseItem()
 
 	LootWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("LootWidget"));
 	LootWidget->SetupAttachment(RootComponent);
-	LootWidget->SetWidgetSpace(EWidgetSpace::Screen);
-	LootWidget->SetDrawAtDesiredSize(true);
+	LootWidget->SetWidgetSpace(EWidgetSpace::World);
 	LootWidget->SetVisibility(false);
+	LootWidget->SetBlendMode(EWidgetBlendMode::Masked);
 
-	LootWidget->SetRelativeLocation(FVector(0.f, 0.f, 100.f));
+	LootWidget->SetRelativeLocation(FVector(0.f, 0.f, 150.f));
 
-	SphereComp->OnComponentBeginOverlap.AddDynamic(this, &ABaseItem::OnSphereOverlap);
-	SphereComp->OnComponentEndOverlap.AddDynamic(this, &ABaseItem::OnSphereEndOverlap);
+	LootWidget->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	LootWidget->SetCastShadow(false);
+
+
 }
 
 void ABaseItem::Interact(AActor* Interactor)
@@ -70,6 +72,17 @@ void ABaseItem::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (ItemMesh)
+	{
+		ItemMesh->SetStaticMesh(nullptr);
+	}
+	if (ItemID.IsNone())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ItemID is None in BeginPlay for %s"), *GetName());
+		return;
+	}
+
+
 	// 게임 인스턴스에서 아이템 데이터 서브시스템 가져오기
 	UGameInstance* GameInstance = UGameplayStatics::GetGameInstance(this);
 	if (!GameInstance)
@@ -92,14 +105,29 @@ void ABaseItem::BeginPlay()
 				if (Mesh)
 				{
 					ItemMesh->SetStaticMesh(Mesh);
+					ItemMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+					ItemMesh->SetCollisionProfileName(TEXT("PhysicsActor"));
+					ItemMesh->SetSimulatePhysics(true);
 					UE_LOG(LogTemp, Warning, TEXT("Item Mesh set for ItemID: %s"), *ItemID.ToString());
 				}
+				else
+				{
+					UE_LOG(LogTemp, Warning, TEXT("Failed to load mesh for ItemID: %s"), *ItemID.ToString());
+				}
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("No valid PickupMesh for ItemID: %s"), *ItemID.ToString());
 			}
 		}
 	}
 
+
 	if (LootWidget)
 	{
+		LootWidget->InitWidget();
+
+
 		UUserWidget* UserWidget = LootWidget->GetUserWidgetObject();
 		if (UserWidget)
 		{
@@ -107,12 +135,23 @@ void ABaseItem::BeginPlay()
 			if (LootTagWidget)
 			{
 				LootTagWidget->InitLootTag(ItemID, Quantity);
+				LootWidget->SetDrawAtDesiredSize(true);
 			}
 		}
 		else
 		{
 			UE_LOG(LogTemp, Warning, TEXT("LootWidget has no UserWidget object in BeginPlay for ItemID: %s"), *ItemID.ToString());
 		}
+	}
+}
+
+void ABaseItem::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if (LootWidget && LootWidget->IsVisible())
+	{
+		UpdateLootWidgetTransform();
 	}
 }
 
@@ -129,25 +168,9 @@ FText ABaseItem::GetInteractionPrompt_Implementation()
 		FItemData Data = ItemDataSubsystem->GetItemDataByID(ItemID);
 		return FText::Format(NSLOCTEXT("Interaction", "PickupPrompt", "Press E to pick up {0}"), Data.DisplayName);
 	}
-	else 
+	else
 	{
 		return FText::GetEmpty();
-	}
-}
-
-void ABaseItem::OnSphereOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	if (OtherActor && (OtherActor->ActorHasTag("Player")))
-	{
-		SetItemFocus(true);
-	}
-}
-
-void ABaseItem::OnSphereEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-	if (OtherActor && (OtherActor->ActorHasTag("Player")))
-	{
-		SetItemFocus(false);
 	}
 }
 
@@ -155,12 +178,47 @@ void ABaseItem::SetItemFocus(bool bIsFocus)
 {
 	if (LootWidget)
 	{
+		if (bIsFocus)
+		{
+			UpdateLootWidgetTransform();
+		}
 		LootWidget->SetVisibility(bIsFocus);
 	}
 
 	if (ItemMesh)
 	{
 		ItemMesh->SetRenderCustomDepth(bIsFocus);
+
+		if (bIsFocus)
+		{
+			ItemMesh->SetCustomDepthStencilValue(1); // 스텐실 값 설정 (예: 252)
+		}
+		else
+		{
+			ItemMesh->SetCustomDepthStencilValue(0); // 스텐실 값 초기화
+		}
+	}
+}
+
+void ABaseItem::UpdateLootWidgetTransform()
+{
+	if (!LootWidget || !ItemMesh)
+	{
+		return;
+	}
+	
+	float MeshTopZ = ItemMesh->Bounds.BoxExtent.Z;
+
+	FVector TargetLocation = ItemMesh->Bounds.Origin + FVector(0.f, 0.f, MeshTopZ);
+	LootWidget->SetWorldLocation(TargetLocation);
+
+	APlayerCameraManager* CameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
+	if (CameraManager)
+	{
+		FVector CameraLocation = CameraManager->GetCameraLocation();
+		FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(TargetLocation, CameraLocation);
+		FRotator YawOnlyRotation(0.f, LookAtRotation.Yaw, 0.f);
+		LootWidget->SetWorldRotation(YawOnlyRotation);
 	}
 }
 
