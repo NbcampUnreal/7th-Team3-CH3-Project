@@ -8,6 +8,13 @@
 class UStatComponent;
 class USphereComponent;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAttack);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnFinishAttack);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnHitted);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnFinishHitted);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDead);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnFinishDead);
+
 UCLASS()
 class TEAM3_PROJECT_API AEnemyCharacter : public ACharacter
 {
@@ -115,6 +122,21 @@ private:
 		bool bFromSweep,
 		const FHitResult& SweepResult
 	);
+
+public:
+	// Delegates
+	UPROPERTY(BlueprintAssignable)
+	FOnAttack OnAttackSignature;
+	UPROPERTY(BlueprintAssignable)
+	FOnFinishAttack OnFinishAttackSignature;
+	UPROPERTY(BlueprintAssignable)
+	FOnHitted OnHittedSignature;
+	UPROPERTY(BlueprintAssignable)
+	FOnFinishHitted OnFinishHittedSignature;
+	UPROPERTY(BlueprintAssignable)
+	FOnDead OnDeadSignature;
+	UPROPERTY(BlueprintAssignable)
+	FOnFinishDead OnFinishDeadSignature;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")

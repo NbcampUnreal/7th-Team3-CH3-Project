@@ -65,13 +65,19 @@ void AEnemyAIController::OnPossess(APawn* InPawn)
     AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(InPawn);
     if (!Enemy)
     {
-        UE_LOG(LogTemp, Error, TEXT("[AI] OnPossess: Not an EnemyCharacter"));
+        UE_LOG(LogTemp, Error, TEXT("[AI]
+            OnPossess: Not an EnemyCharacter"));
         return;
     }
 
     // Blackboard 초기화
     InitializeBlackboard();
 
+    // Binding
+    Enemy->OnHittedSignature.AddDynamic(this, &AEnemyAIController::OnHitted);
+    Enemy->OnFinishHittedSignature.AddDynamic(this, &AEnemyAIController::OnFinishHitted);
+    Enemy->OnDeadSignature.AddDynamic(this, &AEnemyAIController::OnDead);
+    
     // Behavior Tree 실행
     if (BehaviorTree)
     {
@@ -190,4 +196,25 @@ void AEnemyAIController::OnTargetPerceptionForgotten(AActor* Actor)
         *Enemy->GetName().ToString(), *Actor->GetName());
 
     BB->ClearValue(FName("TargetActor"));
+}
+
+void AEnemyAIController::OnHitted()
+{
+    UBlackboardComponent* BB = GetBlackboardComponent();
+    if (!BB) return;
+    BB->SetValueAsBool(FName("bIsHitted"), true);
+}
+
+void AEnemyAIController::OnFinishHitted()
+{
+    UBlackboardComponent* BB = GetBlackboardComponent();
+    if (!BB) return;
+    BB->SetValueAsBool(FName("bIsHitted"), false);
+}
+
+void AEnemyAIController::OnDead()
+{
+    UBlackboardComponent* BB = GetBlackboardComponent();
+    if (!BB) return;
+    BB->SetValueAsBool(FName("bIsDead"), true);
 }

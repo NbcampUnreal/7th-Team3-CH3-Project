@@ -4,7 +4,7 @@
 #include "Enemy/Controllers/EnemyController.h"
 #include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
-#include "../Team3_ProjectCharacter.h"
+#include "Player/PlayerCharacter.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SphereComponent.h"
 
@@ -52,8 +52,15 @@ void AEnemyCharacter::BeginPlay()
 		{
 			FName SocketName = TypeData->SocketName;
 			float WeaponRadius = TypeData->WeaponRadius;
-			WeaponCollision->SetupAttachment(GetMesh(), SocketName);
+			ensureMsgf(FMath::IsFinite(WeaponRadius), TEXT("WeaponRadius is not finite"));
+			ensureMsgf(WeaponRadius >= 0.f, TEXT("WeaponRadius is negative: %f"), WeaponRadius);
+
 			WeaponCollision->SetSphereRadius(WeaponRadius);
+			WeaponCollision->AttachToComponent(
+				GetMesh(),
+				FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+				SocketName
+			);
 
 			WeaponCollision->OnComponentBeginOverlap.AddDynamic(
 				this,
@@ -100,6 +107,7 @@ bool AEnemyCharacter::Attack()
 		PlayAnimMontage(GetAttackMontage());
 		//임시 공격처리
 		// TryMeleeHit();
+		OnAttackSignature.Broadcast();
 		return true;
 	}
 
@@ -123,6 +131,7 @@ bool AEnemyCharacter::SpecialAttack()
 void AEnemyCharacter::OnFinishAttack()
 {
 	bIsAttacking = false;
+	OnFinishAttackSignature.Broadcast();
 	ActiveMove();
 }
 
@@ -229,11 +238,11 @@ void AEnemyCharacter::TryMeleeHit()
 	{
 		AActor* HitActor = Hit.GetActor();
 		if (!IsValid(HitActor)) continue;
-		
-		ATeam3_ProjectCharacter* Character = Cast<ATeam3_ProjectCharacter>(HitActor);
-		if (!IsValid(HitActor)) continue;
-		if (!HitActor->ActorHasTag(FName("Player"))) continue;
 		if (HitActor == this) continue;
+		
+		APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(HitActor);
+		if (!IsValid(PlayerCharacter)) continue;
+		// if (!HitActor->ActorHasTag(FName("Player"))) continue;
 		if (DamagedActor.Contains(HitActor)) continue;
 
 		DamagedActor.Add(HitActor);
@@ -261,6 +270,7 @@ void AEnemyCharacter::OnHitted()
 void AEnemyCharacter::OnFinishHitted()
 {
 	ActiveMove();
+	OnFinishDeadSignature.Broadcast();
 }
 
 void AEnemyCharacter::OnDead()
@@ -285,6 +295,7 @@ void AEnemyCharacter::OnDead()
 void AEnemyCharacter::OnFinishDead()
 {
 	EnableRagdoll();
+	OnFinishDeadSignature.Broadcast();
 }
 
 float AEnemyCharacter::TakeDamage(
@@ -299,26 +310,25 @@ float AEnemyCharacter::TakeDamage(
 		if (!bRagdollEnabled) EnableRagdoll();
 		return DamageAmount;
 	}
-	// 피격 상태로 전환
-	if (AEnemyController* EnemyController = Cast<AEnemyController>(GetController()))
-	{
-		EnemyController->ChangeState(EnemyController->GetHittedState());
-	}
 
 	// 데미지 처리
 	ApplyDamageToStat(DamageAmount);
 
 	// Hitted or Dead 상태 전환
-	AEnemyController* EnemyController = Cast<AEnemyController>(GetController());
-	if (!EnemyController) return DamageAmount;
+	//AEnemyController* EnemyController = Cast<AEnemyController>(GetController());
+	AAIController* AIController = Cast<AAIController>(GetController());
+	if (!AIController) return DamageAmount;
+
 	if (StatComp->GetBaseStatValue(FName("Health")) <= 0.f)
 	{
-		EnemyController->ChangeState(EnemyController->GetDeadState());
+		//EnemyController->ChangeState(EnemyController->GetDeadState());
+		OnDeadSignature.Broadcast();
 		bIsDead = true;
 	}
 	else
 	{
-		EnemyController->ChangeState(EnemyController->GetHittedState());
+		OnHittedSignature.Broadcast();
+		//EnemyController->ChangeState(EnemyController->GetHittedState());
 	}
 
 	return DamageAmount;
@@ -487,7 +497,7 @@ void AEnemyCharacter::OnWeaponBeginOverlap(UPrimitiveComponent* OverlappedCompon
 	}
 
 	// Team3_ProjectCharacter만 공격 (필요시 수정)
-	if (!OtherActor->IsA(ATeam3_ProjectCharacter::StaticClass()))
+	if (!OtherActor->IsA(APlayerCharacter::StaticClass()))
 	{
 		return;
 	}
