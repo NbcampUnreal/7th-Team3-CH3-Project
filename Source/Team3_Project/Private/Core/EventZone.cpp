@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Core/EventZone.h"
@@ -23,7 +23,7 @@ AEventZone::AEventZone()
 void AEventZone::BeginPlay()
 {
 	Super::BeginPlay();
-
+	Debug::Print(FString::FromInt(Id) + TEXT("EventZoneìƒì„±"), FColor::Blue);
 	BoxComp->OnComponentBeginOverlap.AddDynamic(this, &AEventZone::OnComponentBeginOverlap);
 }
 
@@ -35,9 +35,9 @@ void AEventZone::OnComponentBeginOverlap(
 	bool bFromSweep,
 	const FHitResult& SweepResult)
 {
-	Debug::Print(*OverlappedComponent->GetName(),FColor::Blue);
+	/*Debug::Print(*OverlappedComponent->GetName(),FColor::Blue);
 	Debug::Print(*OtherActor->GetName(),FColor::Red);
-	Debug::Print(*OtherComp->GetName(),FColor::Green);
+	Debug::Print(*OtherComp->GetName(),FColor::Green);*/
 
 	AMainGameState* CurrentGameState = AMainGameState::Get(GetWorld());
 
@@ -49,9 +49,11 @@ void AEventZone::OnComponentBeginOverlap(
 
 	if (OtherActor->ActorHasTag("Player"))
 	{
-		//@TODO_Core : ÇÃ·¹ÀÌ¾î µé¾î¿Ô½À´Ï´Ù ÀÌº¥Æ® ½ÃÀÛ °í°í
+		//@TODO_Core : í”Œë ˆì´ì–´ ë“¤ì–´ì™”ìŠµë‹ˆë‹¤ ì´ë²¤íŠ¸ ì‹œì‘ ê³ ê³ 
+		
+		Debug::Print(TEXT("Player EventZone í†µê³¼ ì´ë²¤íŠ¸ ë°œìƒí•©ë‹ˆë‹¤!"));
 		CurrentGameState->OnTriggerEvent(GetId());
 	}
 
-	//@TODO_Core : ÀÌº¥Æ® ½ÃÀÛ Àü´Ş ÇØÁÖ´Â ·ÎÁ÷ ±¸Çö OtherActor == player °Ë»ç ÈÄ true ¶ó¸é ½ºÆ÷³Ê ÀÛµ¿, false¶ó¸é ¹«½Ã 
+	//@TODO_Core : ì´ë²¤íŠ¸ ì‹œì‘ ì „ë‹¬ í•´ì£¼ëŠ” ë¡œì§ êµ¬í˜„ OtherActor == player ê²€ì‚¬ í›„ true ë¼ë©´ ìŠ¤í¬ë„ˆ ì‘ë™, falseë¼ë©´ ë¬´ì‹œ 
 }
