@@ -20,10 +20,10 @@ public:
 
 	virtual void Interact(AActor* Interactor) override;
 
-	UFUNCTION(BlueprintCallable, Category="Crafting")
-	bool TryCraftItem(AActor* Crafter, FName RecipeID);
-
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Crafting")
 	UStaticMeshComponent* StationMesh;
+
+	UFUNCTION(BlueprintCallable, Category = "Crafting")
+	void OpenCraftingUI(APlayerController* PC);
 };
