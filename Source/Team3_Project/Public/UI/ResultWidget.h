@@ -7,30 +7,24 @@
 UCLASS()
 class TEAM3_PROJECT_API UResultWidget : public UUserWidget
 {
-	GENERATED_BODY()
-	
-public:
-	// ResultWidget(const FObjectInitializer& ObjectInitializer);
+    GENERATED_BODY()
+
 protected:
-	UPROPERTY(meta = (BindWidget))
-	class UTextBlock* Txt_ResultTitle;
+    UPROPERTY(meta = (BindWidget)) class UTextBlock* Txt_ResultTitle;
+    UPROPERTY(meta = (BindWidget)) class UTextBlock* Txt_KillCount;
+    UPROPERTY(meta = (BindWidget)) class UTextBlock* Txt_BonusScore;
+    UPROPERTY(meta = (BindWidget)) class UTextBlock* Txt_BaseScore;
 
-	UPROPERTY(meta = (BindWidget))
-	class UTextBlock* Txt_KillCount;
-
-	UPROPERTY(meta = (BindWidget))
-	class UTextBlock* Txt_BonusScore;
-
-	UPROPERTY(meta = (BindWidget))
-	class UTextBlock* Txt_TotalScore;
-
-	float TargetBonus;
-	float CurrentDisplayBonus;
-	int32 BaseScore;
-	bool bIsCounting=false;
+    float TargetBonus;
+    float CurrentDisplayBonus;
+    bool bIsCounting = false;
 
 public:
-	void SetupSuccess(int32 InBaseScore, int32 InBonus, int32 InKills);
-	void SetupFailure();
-	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+    // 성공 시 호출
+    void SetupSuccess(int32 InKills, int32 InScore, int32 InBonus, bool bSuccess);
+
+    // 실패 시 호출 (텍스트 숨기기 및 경고 표시)
+    void SetupFailure();
+
+    virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 };
