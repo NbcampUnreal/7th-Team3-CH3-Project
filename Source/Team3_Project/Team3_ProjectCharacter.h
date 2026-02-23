@@ -30,7 +30,7 @@ class ATeam3_ProjectCharacter : public ACharacter
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputMappingContext* DefaultMappingContext;
+	UInputMappingContext* SandboxMappingContext;
 
 public:
 	ATeam3_ProjectCharacter();

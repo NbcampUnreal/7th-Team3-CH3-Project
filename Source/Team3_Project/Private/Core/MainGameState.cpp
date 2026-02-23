@@ -1,17 +1,20 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Core/MainGameState.h"
+#include "Core/EnemySpawner.h"
+#include "Core/EventZone.h"
+#include "Kismet/GameplayStatics.h"
+#include "Core/DebugHelper.h"
 #include "Core/MainGameInstance.h"
 
 AMainGameState::AMainGameState()
 {
-	MaxWaveTime = 60.f;
+	MaxWaveTime = 10.f;
 	CurrentWaveTime = 0.f;
 	MaxSpawnCount = 10;
 	CurrentSpawnCount = 0;
 	CurrentScore = 0;
-
 }
 
 AMainGameState* AMainGameState::Get(const UWorld* WorldObject)
@@ -34,27 +37,86 @@ AMainGameState* AMainGameState::Get(const UWorld* WorldObject)
 void AMainGameState::BeginPlay()
 {
 	Super::BeginPlay();
+	
 	OnGameStart();
 
 }
 
-void AMainGameState::SpawnMonster()
+void AMainGameState::FindSpawner(const int32 Id, class AEnemySpawner* Spawner)
 {
-	if (MaxSpawnCount < CurrentSpawnCount)
+	if (Spawner == nullptr) return;
+
+	EnemySpawners.Add(Id, Spawner);
+}
+
+void AMainGameState::FindEventZone(const int32 Id, class AEventZone* EventZone)
+{
+	if (EventZone == nullptr) return;
+
+	EventZones.Add(Id, EventZone);
+}
+
+void AMainGameState::OnTriggerEvent(const int32 Id)
+{
+	if (bIsRunningSpawner)
 	{
-		// ¸ó½ºÅÍ ¼ÒÈ¯
+		Debug::Print(TEXT("ìŠ¤í° ì´ë²¤íŠ¸ê°€ ì´ë¯¸ ì‹¤í–‰ì¤‘ì…ë‹ˆë‹¤."));
+		return;
 	}
+
+	bIsRunningSpawner = true;
+
+	if (Id <= 0)
+	{
+		Debug::Print(TEXT("ì˜¬ë°”ë¥´ì§€ ì•Šì€ ê°ì²´ì…ë‹ˆë‹¤."));
+		return;
+	}
+
+	Debug::Print(TEXT("í•¨ìˆ˜ ë°”ì¸ë”© ì‹œì‘"));
+	EnemySpawnDelegate.BindUObject(this, &AMainGameState::SpawnMonster, Id);
+	WaveStart();
+}
+
+void AMainGameState::SpawnMonster(const int32 Id)
+{
+	if (Id <= 0)
+	{
+		Debug::Print(TEXT("ì˜¬ë°”ë¥´ì§€ ì•Šì€ ê°ì²´ì…ë‹ˆë‹¤."));
+		return;
+	}
+
+	if (TWeakObjectPtr<AEnemySpawner>* FoundSpawner1 = EnemySpawners.Find(Id + (Id - 1)))
+	{
+		if (FoundSpawner1->IsValid())
+		{
+			FoundSpawner1->Get()->SpawnEnemy(EnemyClass);
+		}
+	}
+
+	if (TWeakObjectPtr<AEnemySpawner>* FoundSpawner2 = EnemySpawners.Find(2 * Id))
+	{
+		if (FoundSpawner2->IsValid())
+		{
+			Debug::Print(TEXT("SpawnEnemy ì‘ë™"));
+			FoundSpawner2->Get()->SpawnEnemy(EnemyClass);
+		}
+	}
+	
+	/*if (MaxSpawnCount > CurrentSpawnCount)
+	{
+		
+	}*/
 }
 void AMainGameState::WaveStart()
 {
 	//PlayerState = PointMode
+	Debug::Print(TEXT("Wave Start!"));
 
-	//¿şÀÌºê ½ÃÀÛ½Ã Å¸ÀÌ¸Ó ½ÃÀÛ
+	//ì›¨ì´ë¸Œ ì‹œì‘ì‹œ íƒ€ì´ë¨¸ ì‹œì‘
 	GetWorldTimerManager().SetTimer(
 		WaveStartTimer,
-		this,
-		&AMainGameState::SpawnMonster,
-		0.1f,
+		EnemySpawnDelegate,
+		1.0f,
 		true
 	);
 
@@ -68,15 +130,17 @@ void AMainGameState::WaveStart()
 }
 void AMainGameState::WaveEnd()
 {
-	//¿şÀÌºê Á¾·á ½Ã ÀÌ¹ø¿şÀÌºê¿¡¼­ È¹µæÇÑ Á¡¼ö GameInstance·Î Àü´Ş ¸ó½ºÅÍ ½ºÆù Á¾·á, Á¡¼ö¸ğµå ºñÈ°¼ºÈ­,
+	//ì›¨ì´ë¸Œ ì¢…ë£Œ ì‹œ ì´ë²ˆì›¨ì´ë¸Œì—ì„œ íšë“í•œ ì ìˆ˜ GameInstanceë¡œ ì „ë‹¬ ëª¬ìŠ¤í„° ìŠ¤í° ì¢…ë£Œ, ì ìˆ˜ëª¨ë“œ ë¹„í™œì„±í™”,
 
 	//PlayerState = NormalMode
+	Debug::Print(TEXT("ì›¨ì´ë¸Œ ì¢…ë£Œ!"));
+	GetWorldTimerManager().ClearTimer(WaveStartTimer); // ìŠ¤í° íƒ€ì´ë¨¸ ì‚­ì œ
+	Debug::Print(TEXT("Delegate UnBind"));
+	EnemySpawnDelegate.Unbind(); // ë°”ì¸ë”© ëœ í•¨ìˆ˜ í•´ì œ
+	bIsRunningSpawner = false;
+	//UMainGameInstance::Get(GetWorld())->TotalScore += CurrentScore; // GIì— í˜„ì¬ ì›¨ì´ë¸Œì—ì„œ ì–»ì€ ì ìˆ˜ ì „ë‹¬
 
-	GetWorldTimerManager().ClearTimer(WaveStartTimer); // ½ºÆù Å¸ÀÌ¸Ó »èÁ¦
-
-	UMainGameInstance::Get(GetWorld())->TotalScore += CurrentScore; // GI¿¡ ÇöÀç ¿şÀÌºê¿¡¼­ ¾òÀº Á¡¼ö Àü´Ş
-	
-	//¿şÀÌºê Á¾·á Àü´Ş. 
+	//ì›¨ì´ë¸Œ ì¢…ë£Œ ì „ë‹¬. 
 }
 
 void AMainGameState::OnGameStart()

@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -6,45 +6,65 @@
 #include "GameFramework/GameState.h"
 #include "MainGameState.generated.h"
 
+class AEnemySpawner;
+class AEventZone;
+class AEnemyCharacter;
+
 /**
- * 
+ *
  */
 UCLASS()
 class TEAM3_PROJECT_API AMainGameState : public AGameState
 {
 	GENERATED_BODY()
-	
+
 public:
 	AMainGameState();
 
 	static AMainGameState* Get(const UWorld* WorldObject);
-	
-	//¿şÀÌºê ÀüÃ¼½Ã°£
+
+	//ì›¨ì´ë¸Œ ì „ì²´ì‹œê°„
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "WaveSystem")
 	float MaxWaveTime;
 
-	//¿şÀÌºê ÇöÀç½Ã°£
+	//ì›¨ì´ë¸Œ í˜„ì¬ì‹œê°„
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "WaveSystem")
 	float CurrentWaveTime;
 
-	//ÃÖ´ë »ı¼ºµÇ´Â ¸ó½ºÅÍ ¼ö
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "WaveSystem")
+	//ìµœëŒ€ ìƒì„±ë˜ëŠ” ëª¬ìŠ¤í„° ìˆ˜
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WaveSystem")
 	int32 MaxSpawnCount;
 
-	//ÇöÀç »ı¼ºµÇ¾îÀÖ´Â ¸ó½ºÅÍÀÇ ¼ö
+	//í˜„ì¬ ìƒì„±ë˜ì–´ìˆëŠ” ëª¬ìŠ¤í„°ì˜ ìˆ˜
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "WaveSystem")
 	int32 CurrentSpawnCount;
 
-	//ÇöÀç¿şÀÌºê¿¡¼­ È¹µæÇÑ Á¡¼ö
+	//í˜„ì¬ì›¨ì´ë¸Œì—ì„œ íšë“í•œ ì ìˆ˜
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "WaveSystem")
 	int32 CurrentScore;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SpawnMonsterClass")
+	TSubclassOf<AEnemyCharacter> EnemyClass;
+
+	UPROPERTY(VisibleAnywhere, Category = "SpanwedActors")
+	TMap<int32, TWeakObjectPtr<AEnemySpawner>> EnemySpawners;
+	UPROPERTY(VisibleAnywhere, Category = "SpanwedActors")
+	TMap<int32, TWeakObjectPtr<AEventZone>> EventZones;
+	
+	FTimerDelegate EnemySpawnDelegate;
 	FTimerHandle WaveStartTimer;
 	FTimerHandle WaveEndTimer;
 
+public:
+
+	UFUNCTION()
+	void SpawnMonster(const int32 Id);
+
 	virtual void BeginPlay() override;
 
-	void SpawnMonster();
+	void FindSpawner(const int32 Id ,class AEnemySpawner* Spawner);
+	void FindEventZone(const int32 Id, class AEventZone* EventZone);
+	void OnTriggerEvent(const int32 Id);
 	void WaveStart();
 	void WaveEnd();
 
@@ -52,4 +72,6 @@ public:
 	void OnGameOver();
 	void OnOpenMenu();
 
+private:
+	bool bIsRunningSpawner = false;
 };

@@ -9,11 +9,14 @@
 #include "Core/ItemDataSubsystem.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "UI/Item/LootTagWidget.h"
+#include "Components/WidgetComponent.h"
 
+#define ECC_Weapon ECC_GameTraceChannel1
 
 AWeaponItem::AWeaponItem()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponMesh"));
 	WeaponMesh->SetupAttachment(RootComponent);
@@ -43,6 +46,7 @@ AWeaponItem::AWeaponItem()
 	SpreadAngle = 1.0f;
 	bIsProjectile = false;
 	LastFireTime = 0.0f;
+	CurrentRecoilPitch = 0.0f;
 
 	// 원래 값 저장
 	OriginalDamage = BaseDamage;
@@ -50,6 +54,64 @@ AWeaponItem::AWeaponItem()
 	OriginalRecoil = CurrentRecoil;
 	OriginalMaxAmmo = MaxAmmo;
 	OriginalRange = WeaponRange;
+}
+
+void AWeaponItem::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (WeaponMesh)
+	{
+		WeaponMesh->SetVisibility(false);
+		WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
+	if (LootWidget)
+	{
+		ULootTagWidget* TagWidget = Cast<ULootTagWidget>(LootWidget->GetUserWidgetObject());
+		if (TagWidget)
+		{
+			TagWidget->UpdateAttachmentIcons(EquippedAttachments);
+		}
+	}
+}
+
+void AWeaponItem::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	//반동 회복
+	if (CurrentRecoilPitch > 0.0f && !GetWorldTimerManager().IsTimerActive(AutoFireTimerHandle))
+	{
+		AActor* OwnerActor = GetOwner();
+		if (!OwnerActor)
+		{
+			return;
+		}
+		APawn* OwnerPawn = Cast<APawn>(OwnerActor);
+		if (!OwnerPawn)
+		{
+			return;
+		}
+		APlayerController* PlayerController = Cast<APlayerController>(OwnerPawn->GetController());
+		if (!PlayerController)
+		{
+			return;
+		}
+
+		float OldRecoil = CurrentRecoilPitch;
+		float NewRecoil = FMath::FInterpTo(CurrentRecoilPitch, 0.0f, DeltaTime, RecoilRecoveryRate);
+
+		float RecoveryAmount = OldRecoil - NewRecoil;
+
+		PlayerController->AddPitchInput(RecoveryAmount);
+
+		CurrentRecoilPitch = NewRecoil;
+
+		if (CurrentRecoilPitch <= KINDA_SMALL_NUMBER)
+		{
+			CurrentRecoilPitch = 0.0f;
+		}
+	}
 }
 
 
@@ -64,7 +126,7 @@ void AWeaponItem::StartFire()
 {
 	if (bIsReloading)
 	{
-		if(GEngine)
+		if (GEngine)
 		{
 			GEngine->AddOnScreenDebugMessage(
 				-1,
@@ -72,7 +134,7 @@ void AWeaponItem::StartFire()
 				FColor::Yellow,
 				FString::Printf(TEXT("Cannot fire while reloading!"))
 			);
-		}	
+		}
 		return;
 	}
 
@@ -161,13 +223,29 @@ void AWeaponItem::ReloadWeapon()
 {
 	if (bIsReloading)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Already reloading"));
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(
+				-1,
+				1.5f,
+				FColor::Yellow,
+				FString::Printf(TEXT("Already reloading!"))
+			);
+		}
 		return;
 	}
 
 	if (CurrentAmmo >= MaxAmmo)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Ammo is already full"));
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(
+				-1,
+				1.5f,
+				FColor::Yellow,
+				FString::Printf(TEXT("Ammo is already full!"))
+			);
+		}
 		return;
 	}
 
@@ -206,9 +284,16 @@ void AWeaponItem::ReloadWeapon()
 		ReloadTime,
 		false
 	);
-	
-	UE_LOG(LogTemp, Log, TEXT("Reloading started"));
 
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			1.5f,
+			FColor::Green,
+			FString::Printf(TEXT("Reloading started"))
+		);
+	}
 }
 
 void AWeaponItem::StopReload()
@@ -221,7 +306,15 @@ void AWeaponItem::StopReload()
 
 	bIsReloading = false;
 	GetWorldTimerManager().ClearTimer(ReloadTimerHandle);
-	UE_LOG(LogTemp, Log, TEXT("Reloading stopped"));
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			1.5f,
+			FColor::Red,
+			FString::Printf(TEXT("Reloading cancelled"))
+		);
+	}
 
 	//추후 추가 로직 사용 가능(애니메이션 캔슬 등)
 }
@@ -258,8 +351,25 @@ void AWeaponItem::FinishReloading()
 	if (AmountToReload > 0 && InventoryComp->RemoveItem(AmmoItemID, AmountToReload))
 	{
 		CurrentAmmo += AmountToReload;
-		UE_LOG(LogTemp, Log, TEXT("Reloaded %d ammo. CurrentAmmo: %d"), AmountToReload, CurrentAmmo);
-		UE_LOG(LogTemp, Log, TEXT("Remaining ammo in inventory: %d"), InventoryComp->GetItemQuantity(AmmoItemID));
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(
+				-1,
+				1.5f,
+				FColor::Green,
+				FString::Printf(TEXT("Reloaded %d ammo. Current Ammo: %d"), AmountToReload, CurrentAmmo)
+			);
+		}
+
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(
+				-1,
+				1.5f,
+				FColor::Cyan,
+				FString::Printf(TEXT("Remaining ammo in inventory: %d"), InventoryComp->GetItemQuantity(AmmoItemID))
+			);
+		}
 	}
 	else
 	{
@@ -365,8 +475,6 @@ void AWeaponItem::UnequipAttachment(FName AttachmentID)
 
 	EAttachmentType SlotType = AttachmentData.AttachmentType;
 
-
-
 	UStaticMeshComponent* TargetMesh = GetAttachmentComponentByType(AttachmentData.AttachmentType);
 
 	if (TargetMesh)
@@ -380,6 +488,12 @@ void AWeaponItem::UnequipAttachment(FName AttachmentID)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("No valid attachment component for type %d"), (int32)AttachmentData.AttachmentType);
 	}
+
+	if (EquippedAttachments.Contains(AttachmentData.AttachmentType))
+	{
+		EquippedAttachments.Remove(AttachmentData.AttachmentType);
+	}
+	RecalculateStats();
 }
 
 
@@ -421,6 +535,48 @@ void AWeaponItem::ApplyAttachmentState(const TMap<EAttachmentType, FName>& InAtt
 		}
 	}
 	RecalculateStats();
+
+	if (LootWidget)
+	{
+		ULootTagWidget* TagWidget = Cast<ULootTagWidget>(LootWidget->GetUserWidgetObject());
+		if (TagWidget)
+		{
+			TagWidget->UpdateAttachmentIcons(EquippedAttachments);
+		}
+	}
+}
+
+void AWeaponItem::Interact(AActor* Interactor)
+{
+	if (!Interactor)
+	{
+		return;
+	}
+
+	UInventoryComponent* InventoryComp = Interactor->FindComponentByClass<UInventoryComponent>();
+	if (InventoryComp)
+	{
+		int32 Leftover = InventoryComp->AddItem(ItemID, Quantity, EquippedAttachments);
+
+		if (Leftover <= 0)
+		{
+			Destroy();
+		}
+		else
+		{
+			Quantity = Leftover;
+			UE_LOG(LogTemp, Warning, TEXT("Could not add full weapon to inventory. Leftover quantity: %d"), Leftover);
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Interactor does not have an InventoryComponent"));
+	}
+}
+
+void AWeaponItem::InitializeDroppedWeapon(const TMap<EAttachmentType, FName>& SavedAttachments)
+{
+	ApplyAttachmentState(SavedAttachments);
 }
 
 
@@ -459,27 +615,8 @@ void AWeaponItem::FireHitScan()
 	FRotator CameraRotation;
 	PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
 
-	FVector CameraTraceEnd = CameraLocation + (CameraRotation.Vector() * WeaponRange);
-
-	FCollisionQueryParams CameraQueryParams;
-	CameraQueryParams.AddIgnoredActor(this);
-	CameraQueryParams.AddIgnoredActor(OwnerActor);
-
-	FHitResult CameraHit;
-	FVector TargetPoint = CameraTraceEnd;
-	if (GetWorld()->LineTraceSingleByChannel(
-		CameraHit,
-		CameraLocation,
-		CameraTraceEnd,
-		ECC_Visibility,
-		CameraQueryParams
-	))
-	{
-		TargetPoint = CameraHit.ImpactPoint;
-	}
-
-	FVector Start = WeaponMesh->GetSocketLocation(FName("Muzzle"));
-	FVector MuzzleDirection = (TargetPoint - Start).GetSafeNormal();
+	FVector MuzzleLocation = WeaponMesh->GetSocketLocation(FName("Muzzle"));
+	FVector MuzzleForward = WeaponMesh->GetSocketRotation(FName("Muzzle")).Vector();
 
 	for (int32 i = 0; i < Pellets; i++)
 	{
@@ -489,33 +626,100 @@ void AWeaponItem::FireHitScan()
 			FMath::RandRange(-SpreadAngle, SpreadAngle),
 			0.0f
 		);
-		FVector SpreadDirection = SpreadRot.RotateVector(MuzzleDirection);
-		FVector SpreadEnd = Start + (SpreadDirection * WeaponRange);
-		//라인 트레이스 수행
+		FVector CameraShotDirection = (CameraRotation + SpreadRot).Vector();
+		FVector CameraTraceEnd = CameraLocation + (CameraShotDirection * WeaponRange);
 
-		FHitResult HitResult;
+		//카메라 기준 라인 트레이스 수행 (실제 총알 판정을 카메라에서 함)
+		FHitResult CameraHit;
+		FCollisionQueryParams CameraQueryParams;
+		CameraQueryParams.AddIgnoredActor(this);
+		CameraQueryParams.AddIgnoredActor(OwnerActor);
+
+		bool bCameraHit = GetWorld()->LineTraceSingleByChannel(
+			CameraHit,
+			CameraLocation,
+			CameraTraceEnd,
+			ECC_Visibility,
+			CameraQueryParams
+		);
+
+		FVector DesiredTargetPoint = bCameraHit ? CameraHit.ImpactPoint : CameraTraceEnd;
+
+		FVector DirectionToTarget = (DesiredTargetPoint - MuzzleLocation).GetSafeNormal();
+
+		float DotProduct = FVector::DotProduct(DirectionToTarget, MuzzleForward);
+
+		if (DotProduct < 0.5f) //총구 방향과 카메라 기준 발사 방향이 너무 다르면 총구 기준으로 발사 방향 보정
+		{
+			DirectionToTarget = MuzzleForward;
+			DesiredTargetPoint = MuzzleLocation + (DirectionToTarget * WeaponRange);
+			bCameraHit = false; //카메라 기준으로는 명중이지만 총구 기준으로는 명중이 아니므로 피해 적용 안함
+		}
+
+		FHitResult MuzzleHit;
 		FCollisionQueryParams BulletQueryParams;
 		BulletQueryParams.AddIgnoredActor(this);
 		BulletQueryParams.AddIgnoredActor(OwnerActor);
 
-		bool bHit = GetWorld()->LineTraceSingleByChannel(
-			HitResult,
-			Start,
-			SpreadEnd,
-			ECC_Visibility,
+		bool bMuzzleHit = GetWorld()->LineTraceSingleByChannel(
+			MuzzleHit,
+			MuzzleLocation,
+			DesiredTargetPoint,
+			ECC_Weapon,
 			BulletQueryParams
 		);
-		if (bHit)
+
+		FVector FinalImpactPoint = DesiredTargetPoint;
+
+		bool bCanApplyDamage = false;
+		bool bVisualBlocked = false;
+
+		//총구에 무언가 맞았다면, 그것이 '목표'인지 '방해물'인지 판단하는 로직
+		if (bMuzzleHit)
+		{
+			//거리 계산: 총구에서 목표까지의 거리 vs 총구에서 명중 지점까지의 거리
+			float DistanceToTarget = FVector::Dist(MuzzleLocation, DesiredTargetPoint);
+			float DistanceToHit = MuzzleHit.Distance;
+
+			AActor* CameraTargetActor = bCameraHit ? CameraHit.GetActor() : nullptr;
+			AActor* MuzzleHitActor = MuzzleHit.GetActor();
+
+			bool bHitSameActor = (CameraTargetActor && MuzzleHitActor && CameraTargetActor == MuzzleHitActor);
+			//명중 지점이 목표보다 충분히 가까우면(즉, 명중 지점이 목표를 가로막는 방해물이라면) 명중 지점을 최종 임팩트 포인트로 사용
+			if (!bHitSameActor && DistanceToHit < DistanceToTarget - 20.0f)
+			{
+				FinalImpactPoint = MuzzleHit.ImpactPoint;
+				bCanApplyDamage = false;
+				bVisualBlocked = true;
+			}
+			else
+			{
+				//명중 지점이 목표보다 멀거나 거의 같으면(즉, 명중 지점이 목표 뒤에 있거나 목표와 거의 같은 위치라면) 목표 지점을 최종 임팩트 포인트로 사용
+				FinalImpactPoint = MuzzleHit.ImpactPoint;
+				bCanApplyDamage = true;
+			}
+		}
+		else
+		{
+			if (bCameraHit)
+			{
+				bCanApplyDamage = true;
+			}
+		}
+
+		if (bCanApplyDamage)
 		{
 			//피해 적용
-			AActor* HitActor = HitResult.GetActor();
+			AActor* HitActor = bMuzzleHit ? MuzzleHit.GetActor() : (bCameraHit ? CameraHit.GetActor() : nullptr);
+			FHitResult& FinalHitResult = bMuzzleHit ? MuzzleHit : CameraHit;
+
 			if (HitActor)
 			{
 				UGameplayStatics::ApplyPointDamage(
 					HitActor,
 					BaseDamage,
-					SpreadDirection,
-					HitResult,
+					DirectionToTarget,
+					FinalHitResult,
 					GetInstigatorController(),
 					this,
 					nullptr
@@ -524,7 +728,7 @@ void AWeaponItem::FireHitScan()
 			//디버그용 점 그리기
 			DrawDebugPoint(
 				GetWorld(),
-				HitResult.ImpactPoint,
+				FinalImpactPoint,
 				10.0f,
 				FColor::Red,
 				false,
@@ -535,9 +739,9 @@ void AWeaponItem::FireHitScan()
 		//디버그용 라인 그리기
 		DrawDebugLine(
 			GetWorld(),
-			Start,
-			bHit ? HitResult.ImpactPoint : SpreadEnd,
-			bHit ? FColor::Green : FColor::Red,
+			MuzzleLocation,
+			FinalImpactPoint,
+			bVisualBlocked ? FColor::Yellow : (bCanApplyDamage ? FColor::Green : FColor::Red),
 			false,
 			2.0f,
 			0,
@@ -602,14 +806,15 @@ void AWeaponItem::FireProjectile()
 		ABaseProjectile* NewProjectile = GetWorld()->SpawnActorDeferred<ABaseProjectile>(
 			ProjectileClass,
 			SpawnTransform,
-			this,
+			OwnerActor,
 			GetInstigator(),
 			ESpawnActorCollisionHandlingMethod::AlwaysSpawn
 		);
 
 		if (NewProjectile)
 		{
-			NewProjectile->Damage = this->BaseDamage;
+			NewProjectile->Damage = NewProjectile->Damage + BaseDamage;
+			NewProjectile->SetOwner(OwnerActor);
 			UGameplayStatics::FinishSpawningActor(NewProjectile, SpawnTransform);
 		}
 	}
@@ -642,6 +847,7 @@ void AWeaponItem::ApplyRecoil()
 	PC->AddPitchInput(VerticalRecoil);
 	PC->AddYawInput(HorizontalRecoil);
 
+	CurrentRecoilPitch += FMath::Abs(VerticalRecoil);
 }
 
 
@@ -709,6 +915,7 @@ void AWeaponItem::RecalculateStats()
 			break;
 		case EAttachmentType::AT_Barrel:
 			SpreadAngle -= Data.PowerAmount;
+			SpreadAngle = FMath::Clamp(SpreadAngle, 0.01f, 100.0f);
 			UE_LOG(LogTemp, Log, TEXT("Barrel attached, new SpreadAngle: %f"), SpreadAngle);
 
 			if (ItemID.ToString().Contains("Silencer"))
@@ -721,7 +928,7 @@ void AWeaponItem::RecalculateStats()
 			UE_LOG(LogTemp, Log, TEXT("Magazine attached, new MaxAmmo: %d"), MaxAmmo);
 			break;
 		case EAttachmentType::AT_Underbarrel:
-			CurrentRecoil *= (1.0f - Data.PowerAmount);
+			CurrentRecoil *= FMath::Clamp((1.0f - Data.PowerAmount), 0.0f, 1.0f);
 			UE_LOG(LogTemp, Log, TEXT("Underbarrel attached, new CurrentRecoil: %f"), CurrentRecoil);
 			break;
 		case EAttachmentType::AT_Stock:

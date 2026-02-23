@@ -7,18 +7,18 @@
 #include "MainGameMode.generated.h"
 
 /**
- * 
+ *
  */
 UCLASS()
 class TEAM3_PROJECT_API AMainGameMode : public AGameMode
 {
 	GENERATED_BODY()
-	
+
 public:
 	AMainGameMode();
 
 	//정적 Get함수
 	static AMainGameMode* Get(const UWorld* WorldObject);
 
-	
+
 };

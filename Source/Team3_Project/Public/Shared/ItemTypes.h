@@ -54,6 +54,16 @@ enum class EConsumableType : uint8
 	CT_BlackKarma UMETA(DisplayName = "Black Karma")
 };
 
+UENUM(BlueprintType)
+enum class ESlotType : uint8
+{
+	ST_Inventory UMETA(DisplayName = "Inventory"),
+	ST_Attachment UMETA(DisplayName = "Attachment"),
+	ST_QuickSlot UMETA(DisplayName = "Quick Slot"),
+	ST_Weapon UMETA(DisplayName = "Weapon"),
+	ST_Armor UMETA(DisplayName = "Armor")
+};
+
 USTRUCT(BlueprintType)
 struct FItemData : public FTableRowBase
 {
@@ -86,6 +96,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSoftObjectPtr<UTexture2D> Icon;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSoftObjectPtr<UTexture2D> WeaponImage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSoftObjectPtr<UStaticMesh> PickupMesh;

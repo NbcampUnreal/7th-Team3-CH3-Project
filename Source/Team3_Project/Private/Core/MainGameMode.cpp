@@ -7,7 +7,7 @@
 
 AMainGameMode::AMainGameMode()
 {
-	
+
 }
 
 AMainGameMode* AMainGameMode::Get(const UWorld* WorldObject)
