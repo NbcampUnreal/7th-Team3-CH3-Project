@@ -190,6 +190,9 @@ void AWeaponItem::FireWeapon()
 	//탄	약 감소 및 발사 시간 기록
 	CurrentAmmo--;
 	LastFireTime = GetWorld()->TimeSeconds;
+	
+	// 탄약 감소 델리게이트 송신
+	OnAmmoChanged.Broadcast(CurrentAmmo, MaxAmmo);
 
 	//발사 방식에 따른 처리
 	if (bIsProjectile)

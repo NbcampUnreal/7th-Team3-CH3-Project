@@ -11,6 +11,8 @@ class USkeletalMeshComponent;
 class UStaticMeshComponent;
 class ABaseProjectile;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAmmoChanged, int32, CurrentAmmo, int32, MaxAmmo);
+
 UCLASS(Blueprintable)
 class TEAM3_PROJECT_API AWeaponItem : public ABaseItem
 {
@@ -56,6 +58,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon|Attachment")
 	void InitializeDroppedWeapon(const TMap<EAttachmentType, FName>& SavedAttachments);
+
+	UPROPERTY(BlueprintAssignable, Category = "Weapon|Ammo")
+	FOnAmmoChanged OnAmmoChanged;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon|Components")
