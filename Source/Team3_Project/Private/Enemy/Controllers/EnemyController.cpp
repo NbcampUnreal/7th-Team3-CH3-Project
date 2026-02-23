@@ -127,12 +127,12 @@ void AEnemyController::OnPossess(APawn* InPawn)
 
         if (PossessedCharacter->IsForWave())
         {
-            TryApplyWaveSetup();
+            SetWaveMode(true);
         }
     }
 }
 
-void AEnemyController::TryApplyWaveSetup()
+void AEnemyController::SetWaveMode(bool bInWave)
 {
     AEnemyCharacter* EnemyCharacter = Cast<AEnemyCharacter>(GetPawn());
     if (!EnemyCharacter) return;
@@ -142,10 +142,13 @@ void AEnemyController::TryApplyWaveSetup()
 
     ACharacter* PlayerCharacter = Cast<ACharacter>(World->GetFirstPlayerController()->GetPawn());
     if (!PlayerCharacter) return;
+    
+    if (bInWave)
+    {
+        TargetActor = PlayerCharacter;
 
-    TargetActor = PlayerCharacter;
-
-    ChangeState(GetChaseState());
+        ChangeState(GetChaseState());
+    }
 }
 
 bool AEnemyController::IsForWave()

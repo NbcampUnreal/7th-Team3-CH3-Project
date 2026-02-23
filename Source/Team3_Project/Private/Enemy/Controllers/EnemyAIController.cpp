@@ -13,9 +13,7 @@ AEnemyAIController::AEnemyAIController()
 {
     PrimaryActorTick.bCanEverTick = false;
 
-    // ========================================
     // AI Perception 설정
-    // ========================================
     AIPerceptionComponent = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("AIPerception"));
     SetPerceptionComponent(*AIPerceptionComponent);
 
@@ -98,31 +96,23 @@ void AEnemyAIController::InitializeBlackboard()
     AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(GetPawn());
     if (!Enemy) return;
 
-    // ========================================
     // Location
-    // ========================================
     BB->SetValueAsVector(FName("HomeLocation"), Enemy->GetActorLocation());
 
-    // ========================================
     // Flags
-    // ========================================
     bool bHasSpline = Enemy->FindComponentByClass<USplineComponent>() != nullptr;
     BB->SetValueAsBool(FName("bHasSpline"), bHasSpline);
     BB->SetValueAsBool(FName("bIsWaveMode"), Enemy->IsForWave());
     BB->SetValueAsBool(FName("bIsDead"), false);
     BB->SetValueAsBool(FName("bIsHitted"), false);
 
-    // ========================================
     // Combat
-    // ========================================
     BB->SetValueAsInt(FName("AttackCount"), 0);
     BB->SetValueAsInt(FName("ConsecutiveAttacks"), 0);
     BB->SetValueAsFloat(FName("LastAttackTime"), -999.f);
     BB->SetValueAsFloat(FName("LastSpecialAttackTime"), -999.f);
 
-    // ========================================
     // Patrol
-    // ========================================
     BB->SetValueAsInt(FName("SplineIndex"), 0);
 
     UE_LOG(LogTemp, Log, TEXT("[AI] Blackboard initialized (WaveMode: %d, HasSpline: %d)"),

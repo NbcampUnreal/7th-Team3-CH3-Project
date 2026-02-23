@@ -19,13 +19,13 @@ protected:
     float SpecialAttackCooldown = 5.f;
 
     // 확률 설정
-    UPROPERTY(EditAnywhere, Category = "SpecialAttack|Melee", meta = (EditCondition = "AttackType == ESpecialAttackType::Melee"))
+    UPROPERTY(EditAnywhere, Category = "SpecialAttack", meta = (EditCondition = "AttackType == ESpecialAttackType::Melee"))
     float BaseChance = 0.1f;  // 10% 기본 확률(원거리에서의 특수 공격의 경우 1.0으로 설정)
 
-    UPROPERTY(EditAnywhere, Category = "SpecialAttack|Melee", meta = (EditCondition = "AttackType == ESpecialAttackType::Melee"))
+    UPROPERTY(EditAnywhere, Category = "SpecialAttack", meta = (EditCondition = "AttackType == ESpecialAttackType::Melee"))
     float ChancePerAttack = 0.15f;  // 공격마다 +15% (원거리에서는 0으로 설정)
 
-    UPROPERTY(EditAnywhere, Category = "SpecialAttack|Melee", meta = (EditCondition = "AttackType == ESpecialAttackType::Melee"))
+    UPROPERTY(EditAnywhere, Category = "SpecialAttack", meta = (EditCondition = "AttackType == ESpecialAttackType::Melee"))
     float MaxChance = 0.8f;  // 최대 80% (원거리에서는 1.0으로 설정)
 
     UPROPERTY(EditAnywhere, Category = "Blackboard")

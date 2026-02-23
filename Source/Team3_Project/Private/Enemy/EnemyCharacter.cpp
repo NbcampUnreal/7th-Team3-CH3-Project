@@ -6,13 +6,19 @@
 #include "DrawDebugHelpers.h"
 #include "../Team3_ProjectCharacter.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/SphereComponent.h"
 
 AEnemyCharacter::AEnemyCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
 	StatComp = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
-	
+
+	WeaponCollision = CreateDefaultSubobject<USphereComponent>(TEXT("WeaponCollision"));
+	WeaponCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	WeaponCollision->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
+	WeaponCollision->SetCollisionResponseToAllChannels(ECR_Ignore);
+	WeaponCollision->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 
 	LeftAttackCoolTime = 0.f;
 	bIsAttacking = false;
@@ -26,18 +32,34 @@ void AEnemyCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (StatComp && TypeData)
+	if (TypeData)
 	{
-		float Health = TypeData->BaseHP;
-		float Attack = TypeData->BaseAttack;
-		float Defense = TypeData->BaseDefense;
-		float WhiteKarma = TypeData->WhiteKarma;
-		float BlackKarma = TypeData->BlackKarma;
-		StatComp->InitializeStat(FName("Health"), Health, 0.f, Health);
-		StatComp->InitializeStat(FName("Attack"), Attack, 0.f, 200.f);
-		StatComp->InitializeStat(FName("Defence"), Defense, 0.f, 200.f);
-		StatComp->InitializeStat(FName("WhiteKarma"), WhiteKarma, 0.f, 200.f);
-		StatComp->InitializeStat(FName("BlackKarma"), BlackKarma, 0.f, 200.f);
+		if (StatComp)
+		{
+			float Health = TypeData->BaseHP;
+			float Attack = TypeData->BaseAttack;
+			float Defense = TypeData->BaseDefense;
+			float WhiteKarma = TypeData->WhiteKarma;
+			float BlackKarma = TypeData->BlackKarma;
+			StatComp->InitializeStat(FName("Health"), Health, 0.f, Health);
+			StatComp->InitializeStat(FName("Attack"), Attack, 0.f, 200.f);
+			StatComp->InitializeStat(FName("Defence"), Defense, 0.f, 200.f);
+			StatComp->InitializeStat(FName("WhiteKarma"), WhiteKarma, 0.f, 200.f);
+			StatComp->InitializeStat(FName("BlackKarma"), BlackKarma, 0.f, 200.f);
+		}
+		
+		if (WeaponCollision)
+		{
+			FName SocketName = TypeData->SocketName;
+			float WeaponRadius = TypeData->WeaponRadius;
+			WeaponCollision->SetupAttachment(GetMesh(), SocketName);
+			WeaponCollision->SetSphereRadius(WeaponRadius);
+
+			WeaponCollision->OnComponentBeginOverlap.AddDynamic(
+				this,
+				&AEnemyCharacter::OnWeaponBeginOverlap
+			);
+		}
 	}
 }
 
@@ -50,6 +72,23 @@ void AEnemyCharacter::Tick(float DeltaTime)
 		LeftAttackCoolTime = LeftAttackCoolTime - DeltaTime;
 		if (LeftAttackCoolTime < 0.f) LeftAttackCoolTime = 0.f;
 	}
+
+#if WITH_EDITOR
+	if (WeaponCollision && WeaponCollision->IsCollisionEnabled())
+	{
+		DrawDebugSphere(
+			GetWorld(),
+			WeaponCollision->GetComponentLocation(),
+			WeaponCollision->GetScaledSphereRadius(),
+			12,
+			FColor::Red,
+			false,
+			-1.f,
+			0,
+			2.f
+		);
+	}
+#endif
 }
 
 bool AEnemyCharacter::Attack()
@@ -60,7 +99,7 @@ bool AEnemyCharacter::Attack()
 		DeactiveMove();
 		PlayAnimMontage(GetAttackMontage());
 		//임시 공격처리
-		TryMeleeHit();
+		// TryMeleeHit();
 		return true;
 	}
 
@@ -85,6 +124,37 @@ void AEnemyCharacter::OnFinishAttack()
 {
 	bIsAttacking = false;
 	ActiveMove();
+}
+
+void AEnemyCharacter::EnableWeaponCollision()
+{
+	if (WeaponCollision)
+	{
+		WeaponCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+		ResetHitActors();  // 활성화와 동시에 Hit 목록 초기화
+
+		UE_LOG(LogTemp, Log, TEXT("[Combat] Weapon collision enabled"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Combat] WeaponCollision is null"));
+	}
+}
+
+void AEnemyCharacter::DisableWeaponCollision()
+{
+	if (WeaponCollision)
+	{
+		WeaponCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+		UE_LOG(LogTemp, Log, TEXT("[Combat] Weapon collision disabled"));
+	}
+}
+
+void AEnemyCharacter::ResetHitActors()
+{
+	HitActorsThisAttack.Empty();
+	UE_LOG(LogTemp, Log, TEXT("[Combat] Hit actors reset"));
 }
 
 
@@ -160,7 +230,7 @@ void AEnemyCharacter::TryMeleeHit()
 		AActor* HitActor = Hit.GetActor();
 		if (!IsValid(HitActor)) continue;
 		
-		ACharacter* Character = Cast<ACharacter>(HitActor);
+		ATeam3_ProjectCharacter* Character = Cast<ATeam3_ProjectCharacter>(HitActor);
 		if (!IsValid(HitActor)) continue;
 		if (!HitActor->ActorHasTag(FName("Player"))) continue;
 		if (HitActor == this) continue;
@@ -214,6 +284,7 @@ void AEnemyCharacter::OnDead()
 
 void AEnemyCharacter::OnFinishDead()
 {
+	EnableRagdoll();
 }
 
 float AEnemyCharacter::TakeDamage(
@@ -331,7 +402,7 @@ void AEnemyCharacter::ApplyWaveFlag(bool bInWave)
 
 	if (AEnemyController* EnemyController = Cast<AEnemyController>(GetController()))
 	{
-		EnemyController->TryApplyWaveSetup();
+		EnemyController->SetWaveMode(bInWave);
 	}
 }
 
@@ -403,4 +474,38 @@ void AEnemyCharacter::EnableRagdoll()
 	GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
 	GetMesh()->SetSimulatePhysics(true);
 	GetMesh()->WakeAllRigidBodies();
+}
+
+void AEnemyCharacter::OnWeaponBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (!OtherActor || OtherActor == this) return;
+
+	// 중복 타격 방지
+	if (HitActorsThisAttack.Contains(OtherActor))
+	{
+		return; // 이미 맞춤
+	}
+
+	// Team3_ProjectCharacter만 공격 (필요시 수정)
+	if (!OtherActor->IsA(ATeam3_ProjectCharacter::StaticClass()))
+	{
+		return;
+	}
+
+	// 데미지 적용
+	float Damage = StatComp->GetCurrentStatValue(FName("Attack"));
+
+	UGameplayStatics::ApplyDamage(
+		OtherActor,
+		Damage,
+		GetController(),
+		this,
+		UDamageType::StaticClass()
+	);
+
+	// 타격 목록에 추가
+	HitActorsThisAttack.Add(OtherActor);
+
+	UE_LOG(LogTemp, Warning, TEXT("[Combat] Hit: %s (Damage: %.1f)"),
+		*OtherActor->GetName(), Damage);
 }

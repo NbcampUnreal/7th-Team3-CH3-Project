@@ -35,6 +35,11 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|CoolTime")
 	float SpecialAttackCoolTime;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Collision")
+	FName SocketName;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Collision")
+	float WeaponRadius;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Move")
 	float PatrolMaxSpeed;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Move")

@@ -6,6 +6,7 @@
 #include "EnemyCharacter.generated.h"
 
 class UStatComponent;
+class USphereComponent;
 
 UCLASS()
 class TEAM3_PROJECT_API AEnemyCharacter : public ACharacter
@@ -29,6 +30,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void OnFinishAttack();
 
+	// 근접 공격 콜리전 제어
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void EnableWeaponCollision();
+
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void DisableWeaponCollision();
+	
+	// 공격 시 호출
+	void ResetHitActors();
+	
 	// 몽타주가 없어서 임시로 사용하는 데미지 처리
 	void TryMeleeHit();
 
@@ -93,6 +104,18 @@ public:
 	void ApplyDamageToStat(float DamageAmount);
 	void EnableRagdoll();
 
+private:
+	// 근접 공격 히트 처리
+	UFUNCTION()
+	void OnWeaponBeginOverlap(
+		UPrimitiveComponent* OverlappedComponent,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex,
+		bool bFromSweep,
+		const FHitResult& SweepResult
+	);
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
 	UStatComponent* StatComp;
@@ -102,6 +125,12 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Data")
 	TObjectPtr<UEnemyTypeData> TypeData;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	USphereComponent* WeaponCollision;
+	
+	// 중복 타격 방지
+	TSet<AActor*> HitActorsThisAttack;
 
 	float LeftAttackCoolTime;
 
@@ -114,4 +143,5 @@ protected:
 	bool bIsForWave;
 	bool bIsDead;
 	bool bRagdollEnabled;
+
 };

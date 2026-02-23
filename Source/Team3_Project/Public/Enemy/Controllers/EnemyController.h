@@ -21,7 +21,7 @@ public:
 	virtual void OnPossess(APawn* InPawn) override;
 
 	UFUNCTION(BlueprintCallable, Category = "AI")
-	void TryApplyWaveSetup();
+	void SetWaveMode(bool bInWave);
 	UFUNCTION(BlueprintCallable, Category = "AI")
 	bool IsForWave();
 	// FSM
