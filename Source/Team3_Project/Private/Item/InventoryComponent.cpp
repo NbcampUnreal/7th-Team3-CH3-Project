@@ -11,7 +11,13 @@
 UInventoryComponent::UInventoryComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
-	InitializeQuickSlots();
+	QuickSlots.Init(NAME_None, 8);
+
+	FInventoryItem EmptyItem;
+	EmptyItem.ItemID = NAME_None;
+	EmptyItem.Quantity = 0;
+
+	InventoryContents.Init(EmptyItem, Capacity);
 }
 
 int32 UInventoryComponent::AddItem(FName ItemID, int32 Quantity)
@@ -59,7 +65,7 @@ int32 UInventoryComponent::AddItem(FName ItemID, int32 Quantity, const TMap<EAtt
 	{
 		for (FInventoryItem& InventoryItem : InventoryContents)
 		{
-			if (InventoryItem.ItemID == ItemID)
+			if (!InventoryItem.ItemID.IsNone() && InventoryItem.ItemID == ItemID)
 			{
 				int32 AvailableSpace = MaxStack - InventoryItem.Quantity;
 				if (AvailableSpace > 0)
@@ -80,20 +86,29 @@ int32 UInventoryComponent::AddItem(FName ItemID, int32 Quantity, const TMap<EAtt
 	// 남은 수량을 새로운 스택으로 추가
 	while (RemainingQuantity > 0)
 	{
-		if (InventoryContents.Num() >= Capacity)
+		int32 EmptyIndex = INDEX_NONE;
+
+		for (int32 i = 0; i < InventoryContents.Num(); ++i)
+		{
+			if (InventoryContents[i].ItemID.IsNone())
+			{
+				EmptyIndex = i;
+				break;
+			}
+		}
+
+		if (EmptyIndex == INDEX_NONE)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Inventory is full"));
 			break;
 		}
+
 		int32 ToAdd = FMath::Min(MaxStack, RemainingQuantity);
 
-		FInventoryItem NewItem;
-		NewItem.ItemID = ItemID;
-		NewItem.Quantity = ToAdd;
+		InventoryContents[EmptyIndex].ItemID = ItemID;
+		InventoryContents[EmptyIndex].Quantity = ToAdd;
+		InventoryContents[EmptyIndex].AttachmentState = InAttachments;
 
-		NewItem.AttachmentState = InAttachments;
-
-		InventoryContents.Add(NewItem);
 		RemainingQuantity -= ToAdd;
 	}
 
@@ -119,7 +134,7 @@ bool UInventoryComponent::RemoveItem(FName ItemID, int32 Quantity)
 	// 뒤에서부터 제거하여 인덱스 문제 방지
 	for (int32 i = InventoryContents.Num() - 1; i >= 0 && RemainingToRemove > 0; --i)
 	{
-		if (InventoryContents[i].ItemID == ItemID)
+		if (!InventoryContents[i].ItemID.IsNone() && InventoryContents[i].ItemID == ItemID)
 		{
 			int32 AmountInSlot = InventoryContents[i].Quantity;
 			int32 AmountTaken = FMath::Min(AmountInSlot, RemainingToRemove);
@@ -129,7 +144,9 @@ bool UInventoryComponent::RemoveItem(FName ItemID, int32 Quantity)
 
 			if (InventoryContents[i].Quantity <= 0)
 			{
-				InventoryContents.RemoveAt(i);
+				InventoryContents[i].ItemID = NAME_None;
+				InventoryContents[i].AttachmentState.Empty();
+				InventoryContents[i].Quantity = 0;
 			}
 
 			if (RemainingToRemove <= 0)
@@ -237,11 +254,6 @@ int32 UInventoryComponent::GetItemQuantity(FName ItemID) const
 		}
 	}
 	return TotalQuantity;
-}
-
-void UInventoryComponent::InitializeQuickSlots()
-{
-	QuickSlots.Init(NAME_None, 8);
 }
 
 void UInventoryComponent::AssignToQuickSlot(int32 SlotIndex, FName ItemID)
@@ -358,6 +370,20 @@ void UInventoryComponent::UnequipAttachmentToSlot(EAttachmentType AttachmentSlot
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Invalid inventory index for unequipping attachment: %d"), TargetInventoryIndex);
 		return;
+	}
+
+	if (TargetInventoryIndex >= InventoryContents.Num())
+	{
+		if (InventoryContents.Num() >= Capacity)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Cannot unequip attachment to inventory index %d because inventory is full"), TargetInventoryIndex);
+			return;
+		}
+		TargetInventoryIndex = InventoryContents.Num();
+	}
+	if (TargetInventoryIndex == InventoryContents.Num())
+	{
+		InventoryContents.AddDefaulted();
 	}
 
 	AWeaponItem* Weapon = GetEquippedWeapon();
@@ -485,7 +511,7 @@ void UInventoryComponent::EquipItemFromInventory(int32 InventoryIndex, ESlotType
 			UE_LOG(LogTemp, Warning, TEXT("Invalid target slot type for equipping item: %d"), static_cast<int32>(TargetSlotType));
 			return;
 		}
-		OnItemEquipRequested.Broadcast(ItemToEquip.ItemID, TargetSlotType);
+		OnItemEquipRequested.Broadcast(ItemToEquip);
 	}
 
 
@@ -601,6 +627,106 @@ void UInventoryComponent::UnequipItemToInventory(ESlotType SourceSlotType, int32
 	OnInventoryUpdated.Broadcast();
 }
 
+void UInventoryComponent::DropItem(FName ItemID, int32 Quantity, int32 InventoryIndex)
+{
+	if (!InventoryContents.IsValidIndex(InventoryIndex))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Invalid inventory index for dropping item: %d"), InventoryIndex);
+		return;
+	}
+	UGameInstance* GameInstance = GetWorld()->GetGameInstance();
+	if (!GameInstance)
+	{
+		return;
+	}
+	UItemDataSubsystem* ItemDataSubsystem = GameInstance->GetSubsystem<UItemDataSubsystem>();
+	if (!ItemDataSubsystem)
+	{
+		return;
+	}
+
+
+	FInventoryItem ItemToDrop = InventoryContents[InventoryIndex];
+	ItemToDrop.Quantity = Quantity;
+
+	if (RemoveItem(ItemID, Quantity))
+	{
+		FItemData ItemData = ItemDataSubsystem->GetItemDataByID(ItemID);
+		UClass* SpawnClass = ItemData.ItemClass.LoadSynchronous();
+
+		if (SpawnClass)
+		{
+			AActor* OwnerActor = GetOwner();
+			FVector SpawnLocation = OwnerActor->GetActorLocation() + OwnerActor->GetActorForwardVector() * 100.0f;
+			FTransform SpawnTransform(OwnerActor->GetActorRotation(), SpawnLocation);
+
+			ABaseItem* DroppedItem = GetWorld()->SpawnActorDeferred<ABaseItem>(
+				SpawnClass,
+				SpawnTransform,
+				OwnerActor,
+				Cast<APawn>(OwnerActor),
+				ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn
+			);
+
+			if (DroppedItem)
+			{
+				DroppedItem->SetItemID(ItemID);
+				DroppedItem->SetQuantity(Quantity);
+
+				if (AWeaponItem* Weapon = Cast<AWeaponItem>(DroppedItem))
+				{
+					Weapon->ApplyAttachmentState(ItemToDrop.AttachmentState);
+				}
+
+				DroppedItem->FinishSpawning(SpawnTransform);
+			}
+		}
+		OnInventoryUpdated.Broadcast();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Failed to drop ItemID %s with quantity %d from inventory index %d"), *ItemID.ToString(), Quantity, InventoryIndex);
+	}
+}
+
+void UInventoryComponent::SortInventory()
+{
+	UGameInstance* GameInstance = GetWorld()->GetGameInstance();
+	if (!GameInstance)
+	{
+		return;
+	}
+	UItemDataSubsystem* ItemDataSubsystem = GameInstance->GetSubsystem<UItemDataSubsystem>();
+	if (!ItemDataSubsystem)
+	{
+		return;
+	}
+
+	InventoryContents.Sort([ItemDataSubsystem](const FInventoryItem& A, const FInventoryItem& B)
+		{
+			if (A.ItemID.IsNone() && B.ItemID.IsNone())
+			{
+				return false; // 둘 다 빈 슬롯이면 순서 유지
+			}
+			if (A.ItemID.IsNone())
+			{
+				return false; // A가 빈 슬롯이면 B가 앞에 오도록
+			}
+			if (B.ItemID.IsNone())
+			{
+				return true; // B가 빈 슬롯이면 A가 앞에 오도록
+			}
+
+			FItemData ItemDataA = ItemDataSubsystem->GetItemDataByID(A.ItemID);
+			FItemData ItemDataB = ItemDataSubsystem->GetItemDataByID(B.ItemID);
+
+			return ItemDataA.DisplayName.ToString() < ItemDataB.DisplayName.ToString(); // 이름 기준으로 정렬
+		}
+	);
+
+	OnInventoryUpdated.Broadcast();
+}
+
 
 bool UInventoryComponent::HandleAttachmentEquip(const FItemData& Data, FName ItemID)
 {
@@ -623,9 +749,11 @@ bool UInventoryComponent::HandleAttachmentEquip(const FItemData& Data, FName Ite
 			AddItem(RemovedAttachmentID, 1);
 		}
 		UE_LOG(LogTemp, Warning, TEXT("Equipped attachment ItemID %s"), *ItemID.ToString());
+		OnInventoryUpdated.Broadcast();
 		return true;
 	}
 	UE_LOG(LogTemp, Warning, TEXT("Failed to remove attachment ItemID %s from inventory"), *ItemID.ToString());
+	OnInventoryUpdated.Broadcast();
 	return false;
 }
 

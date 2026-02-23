@@ -7,6 +7,7 @@
 #include "ItemTypes.generated.h"
 
 class ABaseItem;
+class AWeaponItem;
 
 UENUM(BlueprintType)
 enum class EItemType : uint8
@@ -108,6 +109,10 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSoftClassPtr<ABaseItem> ItemClass;
+
+	// Transform 조정용
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FTransform WeaponSocketTransform;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 MaxStack;
