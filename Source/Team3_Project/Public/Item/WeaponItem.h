@@ -19,6 +19,8 @@ class TEAM3_PROJECT_API AWeaponItem : public ABaseItem
 public:
 	AWeaponItem();
 
+	virtual void BeginPlay() override;
+
 	virtual void Tick(float DeltaTime) override;
 
     UFUNCTION(BlueprintCallable, Category = "Weapon|Input")
@@ -42,12 +44,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Weapon|Attachment")
 	virtual void UnequipAttachment(FName AttachmentID);
 
-
+	UFUNCTION(BlueprintCallable, Category = "Weapon|Attachment")
 	const TMap<EAttachmentType, FName>& GetAttachmentState() const { return EquippedAttachments; }
 
+	UFUNCTION(BlueprintCallable, Category = "Weapon|Attachment")
 	void ApplyAttachmentState(const TMap<EAttachmentType, FName>& InAttachments);
 
 	void ResetRecoil() { CurrentRecoilPitch = 0.0f; }
+
+	virtual void Interact(AActor* Interactor) override;
+
+	UFUNCTION(BlueprintCallable, Category = "Weapon|Attachment")
+	void InitializeDroppedWeapon(const TMap<EAttachmentType, FName>& SavedAttachments);
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon|Components")

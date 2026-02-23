@@ -104,7 +104,7 @@ void UInventoryItemSlot::ClearSlot()
 	}
 	if (SlotButton)
 	{
-		SlotButton->SetIsEnabled(false);
+		SlotButton->SetVisibility(ESlateVisibility::Hidden);
 	}
 	else
 	{
@@ -192,6 +192,11 @@ FReply UInventoryItemSlot::NativeOnMouseButtonDown(const FGeometry& InGeometry, 
 
 void UInventoryItemSlot::NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation)
 {
+	if (ParentInventoryWidget)
+	{
+		ParentInventoryWidget->CloseContextMenu();
+	}
+
 	Super::NativeOnDragDetected(InGeometry, InMouseEvent, OutOperation);
 	UE_LOG(LogTemp, Warning, TEXT("NativeOnDragDetected: Slot=%s ItemID=%s"), *GetNameSafe(this), *CurrentItemID.ToString());
 
