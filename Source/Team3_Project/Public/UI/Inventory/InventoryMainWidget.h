@@ -13,6 +13,7 @@ class UInventoryItemSlot;
 class UPanelWidget;
 class UImage;
 class UInventoryActionMenu;
+class UTextBlock;
 struct FInventoryItem;
 
 UCLASS()
@@ -89,6 +90,21 @@ protected:
 	UInventoryItemSlot* Slot_Weapon;
 	UPROPERTY(meta = (BindWidgetOptional))
 	UInventoryItemSlot* Slot_Armor;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	UTextBlock* Txt_Scope;
+	UPROPERTY(meta = (BindWidgetOptional))
+	UTextBlock* Txt_Barrel;
+	UPROPERTY(meta = (BindWidgetOptional))
+	UTextBlock* Txt_Magazine;
+	UPROPERTY(meta = (BindWidgetOptional))
+	UTextBlock* Txt_Underbarrel;
+	UPROPERTY(meta = (BindWidgetOptional))
+	UTextBlock* Txt_Stock;
+	UPROPERTY(meta = (BindWidgetOptional))
+	UTextBlock* Txt_Weapon;
+	UPROPERTY(meta = (BindWidgetOptional))
+	UTextBlock* Txt_Armor;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	UImage* Img_Weapon;

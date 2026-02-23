@@ -20,9 +20,12 @@ class TEAM3_PROJECT_API ABaseItem : public AActor, public IInteractionInterface
 public:	
 	ABaseItem();
 
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	virtual void Interact(AActor* Interactor) override;
 
 	virtual void BeginPlay() override;
+
+	virtual void Tick(float DeltaTime) override;
 
 	const FName& GetItemID() const { return ItemID; }
 
@@ -41,32 +44,18 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item")
 	USphereComponent* SphereComp;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ExposeOnSpawn = "true"), Category = "Item")
 	FName ItemID;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ExposeOnSpawn = "true"), Category = "Item")
 	int32 Quantity = 1;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item")
 	UWidgetComponent* LootWidget;
 
-	UFUNCTION()
-	void OnSphereOverlap(
-		UPrimitiveComponent* OverlappedComp,
-		AActor* OtherActor,
-		UPrimitiveComponent* OtherComp,
-		int32 OtherBodyIndex,
-		bool bFromSweep,
-		const FHitResult& SweepResult
-	);
 
-	UFUNCTION()
-	void OnSphereEndOverlap(
-		UPrimitiveComponent* OverlappedComp,
-		AActor* OtherActor,
-		UPrimitiveComponent* OtherComp,
-		int32 OtherBodyIndex
-	);
-
+	UFUNCTION(BlueprintCallable, Category = "Item")
 	void SetItemFocus(bool bIsFocus);
+
+	void UpdateLootWidgetTransform();
 };

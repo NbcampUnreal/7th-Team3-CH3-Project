@@ -16,6 +16,7 @@
 #include "UI/Inventory/InventoryActionMenu.h"
 #include "UI/Inventory/InventoryTooltip.h"
 #include "Components/HorizontalBoxSlot.h"
+#include "Components/TextBlock.h"
 
 void UInventoryMainWidget::NativeConstruct()
 {
@@ -87,22 +88,27 @@ void UInventoryMainWidget::NativeConstruct()
 	{
 		// 무기 부착 슬롯은 고정 타입/인덱스를 부여
 		Slot_Scope->SetSlotType(ESlotType::ST_Attachment, (int32)EAttachmentType::AT_Scope);
+		Slot_Scope->ParentInventoryWidget = this;
 	}
 	if (Slot_Barrel)
 	{
 		Slot_Barrel->SetSlotType(ESlotType::ST_Attachment, (int32)EAttachmentType::AT_Barrel);
+		Slot_Barrel->ParentInventoryWidget = this;
 	}
 	if (Slot_Magazine)
 	{
 		Slot_Magazine->SetSlotType(ESlotType::ST_Attachment, (int32)EAttachmentType::AT_Magazine);
+		Slot_Magazine->ParentInventoryWidget = this;
 	}
 	if (Slot_Underbarrel)
 	{
 		Slot_Underbarrel->SetSlotType(ESlotType::ST_Attachment, (int32)EAttachmentType::AT_Underbarrel);
+		Slot_Underbarrel->ParentInventoryWidget = this;
 	}
 	if (Slot_Stock)
 	{
 		Slot_Stock->SetSlotType(ESlotType::ST_Attachment, (int32)EAttachmentType::AT_Stock);
+		Slot_Stock->ParentInventoryWidget = this;
 	}
 	if (Slot_Weapon)
 	{
@@ -117,7 +123,14 @@ void UInventoryMainWidget::NativeConstruct()
 
 	if (Img_Weapon)
 	{
-		Img_Weapon->SetVisibility(ESlateVisibility::Hidden);
+		if (InventoryComp->GetEquippedWeapon())
+		{
+			Img_Weapon->SetVisibility(ESlateVisibility::Visible);
+		}
+		else
+		{
+			Img_Weapon->SetVisibility(ESlateVisibility::Hidden);
+		}
 	}
 
 	APlayerController* PC = GetOwningPlayer();
@@ -143,6 +156,9 @@ void UInventoryMainWidget::NativeDestruct()
 {
 	Super::NativeDestruct();
 	UE_LOG(LogTemp, Warning, TEXT("NativeDestruct: Begin"));
+
+	CloseContextMenu();
+	HideTooltip();
 
 	APlayerController* PC = GetOwningPlayer();
 	if (PC)
@@ -402,11 +418,32 @@ void UInventoryMainWidget::UpdateWeaponPanel()
 		{
 			Img_Weapon->SetVisibility(ESlateVisibility::Hidden);
 		}
-		if (Slot_Barrel) Slot_Barrel->SetVisibility(ESlateVisibility::Hidden);
-		if (Slot_Magazine) Slot_Magazine->SetVisibility(ESlateVisibility::Hidden);
-		if (Slot_Scope) Slot_Scope->SetVisibility(ESlateVisibility::Hidden);
-		if (Slot_Underbarrel) Slot_Underbarrel->SetVisibility(ESlateVisibility::Hidden);
-		if (Slot_Stock) Slot_Stock->SetVisibility(ESlateVisibility::Hidden);
+		if (Slot_Barrel && Txt_Barrel)
+		{
+			Slot_Barrel->SetVisibility(ESlateVisibility::Hidden);
+			Txt_Barrel->SetVisibility(ESlateVisibility::Hidden);
+		}
+
+		if (Slot_Magazine && Txt_Magazine)
+		{
+			Slot_Magazine->SetVisibility(ESlateVisibility::Hidden);
+			Txt_Magazine->SetVisibility(ESlateVisibility::Hidden);
+		}
+		if (Slot_Scope && Txt_Scope)
+		{
+			Slot_Scope->SetVisibility(ESlateVisibility::Hidden);
+			Txt_Scope->SetVisibility(ESlateVisibility::Hidden);
+		}
+		if (Slot_Underbarrel && Txt_Underbarrel)
+		{
+			Slot_Underbarrel->SetVisibility(ESlateVisibility::Hidden);
+			Txt_Underbarrel->SetVisibility(ESlateVisibility::Hidden);
+		}
+		if (Slot_Stock && Txt_Stock)
+		{
+			Slot_Stock->SetVisibility(ESlateVisibility::Hidden);
+			Txt_Stock->SetVisibility(ESlateVisibility::Hidden);
+		}
 		if (Slot_Weapon) Slot_Weapon->ClearSlot();
 
 		return;
@@ -443,30 +480,81 @@ void UInventoryMainWidget::UpdateWeaponPanel()
 		Slot_Weapon->InitSlot(WeaponSlotItem);
 	}
 
-	if (Slot_Scope) Slot_Scope->SetVisibility(ESlateVisibility::Visible);
-	if (Slot_Barrel) Slot_Barrel->SetVisibility(ESlateVisibility::Visible);
-	if (Slot_Magazine) Slot_Magazine->SetVisibility(ESlateVisibility::Visible);
-	if (Slot_Underbarrel) Slot_Underbarrel->SetVisibility(ESlateVisibility::Visible);
-	if (Slot_Stock) Slot_Stock->SetVisibility(ESlateVisibility::Visible);
-
+	if (Slot_Scope && Txt_Scope)
+	{
+		Slot_Scope->SetVisibility(ESlateVisibility::Visible);
+		Txt_Scope->SetVisibility(ESlateVisibility::Visible);
+	}
+	if (Slot_Barrel && Txt_Barrel)
+	{
+		Slot_Barrel->SetVisibility(ESlateVisibility::Visible);
+		Txt_Barrel->SetVisibility(ESlateVisibility::Visible);
+	}
+	if (Slot_Magazine && Txt_Magazine)
+	{
+		Slot_Magazine->SetVisibility(ESlateVisibility::Visible);
+		Txt_Magazine->SetVisibility(ESlateVisibility::Visible);
+	}
+	if (Slot_Underbarrel && Txt_Underbarrel)
+	{
+		Slot_Underbarrel->SetVisibility(ESlateVisibility::Visible);
+		Txt_Underbarrel->SetVisibility(ESlateVisibility::Visible);
+	}
+	if (Slot_Stock && Txt_Stock)
+	{
+		Slot_Stock->SetVisibility(ESlateVisibility::Visible);
+		Txt_Stock->SetVisibility(ESlateVisibility::Visible);
+	}
 	switch (WeaponData.WeaponType)
 	{
 	case EWeaponType::WT_Pistol:
 		UE_LOG(LogTemp, Warning, TEXT("UpdateWeaponPanel: WeaponType=Pistol"));
-		if (Slot_Underbarrel) Slot_Underbarrel->SetVisibility(ESlateVisibility::Hidden);
-		if (Slot_Stock) Slot_Stock->SetVisibility(ESlateVisibility::Hidden);
+		if (Slot_Underbarrel && Txt_Underbarrel)
+		{
+			Slot_Underbarrel->SetVisibility(ESlateVisibility::Hidden);
+			Txt_Underbarrel->SetVisibility(ESlateVisibility::Hidden);
+		}
+		if (Slot_Stock && Txt_Stock)
+		{
+			Slot_Stock->SetVisibility(ESlateVisibility::Hidden);
+			Txt_Stock->SetVisibility(ESlateVisibility::Hidden);
+		}
 		break;
 	case EWeaponType::WT_Shotgun:
 		UE_LOG(LogTemp, Warning, TEXT("UpdateWeaponPanel: WeaponType=Shotgun"));
-		if (Slot_Magazine) Slot_Magazine->SetVisibility(ESlateVisibility::Hidden);
+		if (Slot_Magazine && Txt_Magazine)
+		{
+			Slot_Magazine->SetVisibility(ESlateVisibility::Hidden);
+			Txt_Magazine->SetVisibility(ESlateVisibility::Hidden);
+		}
 		break;
 	case EWeaponType::WT_Melee:
 		UE_LOG(LogTemp, Warning, TEXT("UpdateWeaponPanel: WeaponType=Melee"));
-		if (Slot_Scope) Slot_Scope->SetVisibility(ESlateVisibility::Hidden);
-		if (Slot_Barrel) Slot_Barrel->SetVisibility(ESlateVisibility::Hidden);
-		if (Slot_Magazine) Slot_Magazine->SetVisibility(ESlateVisibility::Hidden);
-		if (Slot_Underbarrel) Slot_Underbarrel->SetVisibility(ESlateVisibility::Hidden);
-		if (Slot_Stock) Slot_Stock->SetVisibility(ESlateVisibility::Hidden);
+		if (Slot_Scope && Txt_Scope)
+		{
+			Slot_Scope->SetVisibility(ESlateVisibility::Hidden);
+			Txt_Scope->SetVisibility(ESlateVisibility::Hidden);
+		}
+		if (Slot_Barrel && Txt_Barrel)
+		{
+			Slot_Barrel->SetVisibility(ESlateVisibility::Hidden);
+			Txt_Barrel->SetVisibility(ESlateVisibility::Hidden);
+		}
+		if (Slot_Magazine && Txt_Magazine)
+		{
+			Slot_Magazine->SetVisibility(ESlateVisibility::Hidden);
+			Txt_Magazine->SetVisibility(ESlateVisibility::Hidden);
+		}
+		if (Slot_Underbarrel && Txt_Underbarrel)
+		{
+			Slot_Underbarrel->SetVisibility(ESlateVisibility::Hidden);
+			Txt_Underbarrel->SetVisibility(ESlateVisibility::Hidden);
+		}
+		if (Slot_Stock && Txt_Stock)
+		{
+			Slot_Stock->SetVisibility(ESlateVisibility::Hidden);
+			Txt_Stock->SetVisibility(ESlateVisibility::Hidden);
+		}
 		break;
 	}
 
@@ -632,13 +720,34 @@ void UInventoryMainWidget::CloseContextMenu()
 void UInventoryMainWidget::UpdateTooltipPosition()
 {
 	// 툴팁을 마우스 커서 근처로 이동
-	if (APlayerController* PC = GetOwningPlayer())
+	APlayerController* PC = GetOwningPlayer();
+	if (!PC || !ActiveTooltip)
 	{
-		float MouseX, MouseY;
-		if (PC->GetMousePosition(MouseX, MouseY))
+		return;
+	}
+	float MouseX, MouseY;
+	if (PC->GetMousePosition(MouseX, MouseY))
+	{
+		ActiveTooltip->ForceLayoutPrepass();
+		FVector2D TooltipSize = ActiveTooltip->GetDesiredSize();
+
+		FVector2D ViewportSize = UWidgetLayoutLibrary::GetViewportSize(this);
+		float DPIScale = UWidgetLayoutLibrary::GetViewportScale(this);
+
+		FVector2D RealTooltipSize = TooltipSize * DPIScale;
+
+		FVector2D TargetPosition(MouseX, MouseY);
+
+		if (TargetPosition.X + RealTooltipSize.X > ViewportSize.X)
 		{
-			ActiveTooltip->SetPositionInViewport(FVector2D(MouseX + 15.f, MouseY + 15.f));
+			TargetPosition.X = MouseX - RealTooltipSize.X - 10;
 		}
+		if (TargetPosition.Y + RealTooltipSize.Y > ViewportSize.Y)
+		{
+			TargetPosition.Y = MouseY - RealTooltipSize.Y - 10;
+		}
+
+		ActiveTooltip->SetPositionInViewport(TargetPosition);
 	}
 }
 
