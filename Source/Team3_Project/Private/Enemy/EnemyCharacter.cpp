@@ -1,4 +1,4 @@
-﻿#include "Enemy/EnemyCharacter.h"
+#include "Enemy/EnemyCharacter.h"
 #include "Shared/Component/StatComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Enemy/Controllers/EnemyController.h"

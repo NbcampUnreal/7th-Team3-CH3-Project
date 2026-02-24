@@ -6,6 +6,9 @@
 #include "UI/QuestItemWidget.h"
 #include "UI/ResultWidget.h"
 #include "Item/InventoryComponent.h"
+#include "Core/ItemDataSubsystem.h"
+#include "Shared/ItemTypes.h"
+#include "Item/WeaponItem.h"
 
 UMainHUD::UMainHUD(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -21,7 +24,10 @@ void UMainHUD::NativeConstruct()
 {
     Super::NativeConstruct();
 
-    // 델리게이트 바인딩
+    SlotArray = { Slot_0, Slot_1, Slot_2, Slot_3, Slot_4, Slot_5, Slot_6, Slot_7 };
+    SlotNumArray = { Txt_SlotNum_1, Txt_SlotNum_2, Txt_SlotNum_3, Txt_SlotNum_4,
+                     Txt_SlotNum_5, Txt_SlotNum_6, Txt_SlotNum_7, Txt_SlotNum_8 };
+    /* 델리게이트 바인딩
     OnWhiteKarmaChanged.AddDynamic(this, &UMainHUD::UpdateWhiteKarma);
     OnBlackKarmaChanged.AddDynamic(this, &UMainHUD::UpdateBlackKarma);
     OnScoreChanged.AddDynamic(this, &UMainHUD::UpdateScore);
@@ -31,9 +37,22 @@ void UMainHUD::NativeConstruct()
     OnQuestAdded.AddDynamic(this, &UMainHUD::AddNewQuest);
     OnQuestFinished.AddDynamic(this, &UMainHUD::FinishQuest);
     OnWaveStarted.AddDynamic(this, &UMainHUD::StartWaveUI);
-    OnWaveEnded.AddDynamic(this, &UMainHUD::ReceiveTeamData);
+    OnWaveEnded.AddDynamic(this, &UMainHUD::ReceiveTeamData);*/
 
+    APawn* PlayerPawn = GetOwningPlayerPawn();
+    if (PlayerPawn)
+    {
+        UInventoryComponent* InvComp = PlayerPawn->FindComponentByClass<UInventoryComponent>();
+        if (InvComp)
+        {
+            InvComp->OnQuickSlotUpdated.AddDynamic(this, &UMainHUD::OnQuickSlotRefreshAll);
+           // InvComp->OnEquipmentChanged.AddDynamic(this, &UMainHUD::UpdateQuickSlotUI);
+            InvComp->OnWeaponChanged.AddDynamic(this, &UMainHUD::OnWeaponEquipChanged);
 
+            UpdateQuickSlotUI();
+        }
+    }
+   
 
     if (Timer) Timer->SetVisibility(ESlateVisibility::Collapsed);
     RefreshQuestIcon();
@@ -266,4 +285,120 @@ void UMainHUD::ReceiveTeamData(bool bSuccess, int32 Bonus)
 {
     bPendingSuccess = bSuccess;
     PendingBonus = Bonus;
+}
+
+void UMainHUD::UpdateQuickSlotImage(int32 SlotIndex, UTexture2D* IconTexture)
+{
+    if (SlotArray.IsValidIndex(SlotIndex))
+    {
+        if (IconTexture)
+        {
+            // 아이템 O -> 반투명
+            SlotArray[SlotIndex]->SetBrushFromTexture(IconTexture);
+            SlotArray[SlotIndex]->SetOpacity(1.0f);
+        }
+        else
+        {
+            // 아이템 X -> 투명
+            SlotArray[SlotIndex]->SetOpacity(0.5f);
+        }
+    }
+}
+
+void UMainHUD::OnQuickSlotItemChanged(int32 SlotIndex, FName ItemID)
+{
+    UItemDataSubsystem* ItemSubsystem = GetGameInstance()->GetSubsystem<UItemDataSubsystem>();
+    if (ItemSubsystem)
+    {
+        FItemData ItemData = ItemSubsystem->GetItemDataByID(ItemID);
+
+        // ID가 비어있지 않은지 확인 -> 유효한 데이터인지 체크
+        if (!ItemData.ItemID.IsNone())
+        {
+            // TSoftObjectPtr인 Icon을 동기 로드 
+            UTexture2D* LoadedIcon = ItemData.Icon.LoadSynchronous();
+            UpdateQuickSlotImage(SlotIndex, LoadedIcon);
+        }
+        else
+        {
+            // 데이터가 없으면 슬롯 비우기
+            UpdateQuickSlotImage(SlotIndex, nullptr);
+        }
+    }
+}
+
+void UMainHUD::UpdateQuickSlotUI()
+{
+    APawn* PlayerPawn = GetOwningPlayerPawn();
+    if (PlayerPawn)
+    {
+        UInventoryComponent* InvComp = PlayerPawn->FindComponentByClass<UInventoryComponent>();
+        if (InvComp)
+        {
+            // 인벤토리의 QuickSlots 배열을 순회
+            for (int32 i = 0; i < InvComp->QuickSlots.Num(); ++i)
+            {
+                // HUD의 슬롯 배열(SlotArray) 범위 내에 있는지 확인
+                if (SlotArray.IsValidIndex(i))
+                {
+                    // 해당 인덱스의 아이템 ID를 가져와서 UI를 갱신
+                    FName ItemID = InvComp->QuickSlots[i];
+                    OnQuickSlotItemChanged(i, ItemID);
+                }
+            }
+        }
+    }
+}
+
+void UMainHUD::OnEquipmentChanged()
+{
+    // 장비 변경 시 필요한 로직 (나중에 구현)
+    UpdateQuickSlotUI();
+}
+
+void UMainHUD::OnQuickSlotRefreshAll()
+{
+    UpdateQuickSlotUI();
+}
+
+void UMainHUD::HighlightQuickSlot(int32 SlotIndex)
+{
+    for (int32 i = 0; i < SlotNumArray.Num(); ++i)
+    {
+        if (SlotNumArray[i])
+        {
+            // 선택된 인덱스(i == SlotIndex)면 빨강, 아니면 하양
+            FLinearColor TargetColor = (i == SlotIndex) ? FLinearColor::Red : FLinearColor::White;
+            SlotNumArray[i]->SetColorAndOpacity(FSlateColor(TargetColor));
+
+        }
+    }
+}
+
+void UMainHUD::OnWeaponEquipChanged(bool bIsEquipping, FName ItemID)
+{
+    if (!ItemDataSubsystem)
+    {
+        ItemDataSubsystem = GetGameInstance()->GetSubsystem<UItemDataSubsystem>();
+    }
+
+    if (bIsEquipping && !ItemID.IsNone() && ItemDataSubsystem)
+    {
+        FItemData Data = ItemDataSubsystem->GetItemDataByID(ItemID);
+
+        if (!Data.ItemID.IsNone())
+        {
+            UTexture2D* IconTexture = Data.Icon.LoadSynchronous();
+
+            if (IconTexture)
+            {
+                Img_GunInformation->SetBrushFromTexture(IconTexture);
+                Img_GunInformation->SetVisibility(ESlateVisibility::Visible);
+            }
+        }
+    }
+    else
+    {
+        Img_GunInformation->SetVisibility(ESlateVisibility::Hidden);
+    }
 }
