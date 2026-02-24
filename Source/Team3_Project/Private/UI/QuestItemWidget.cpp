@@ -1,8 +1,10 @@
 #include "UI/QuestItemWidget.h"
 #include "Components/TextBlock.h"
 
-void UQuestItemWidget::SetQuestText(FString Title, FString Description)
+void UQuestItemWidget::SetQuestText(int32 ID, FString Title, FString Description)
 {
+    QuestID = ID;
+
     if (Txt_QuestTitle)
     {
         Txt_QuestTitle->SetText(FText::FromString(Title));

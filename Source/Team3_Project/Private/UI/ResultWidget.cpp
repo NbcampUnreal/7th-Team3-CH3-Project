@@ -4,14 +4,24 @@
 
 void UResultWidget::SetupSuccess(int32 InBaseScore, int32 InBonus, int32 InKills)
 {
-    BaseScore = InBaseScore;
-    TargetBonus = (float)InBonus;
-    CurrentDisplayBonus = 0.0f;
-    bIsCounting = true; 
+    if (Txt_KillCount)
+        Txt_KillCount->SetText(FText::AsNumber(Kills));
 
-    Txt_ResultTitle->SetText(FText::FromString(TEXT("WAVE CLEAR")));
-    Txt_ResultTitle->SetColorAndOpacity(FLinearColor::Green); 
-    Txt_KillCount->SetText(FText::AsNumber(InKills));
+    if (Txt_WaveScore)
+        Txt_WaveScore->SetText(FText::AsNumber(Score));
+
+    if (Txt_BonusScore)
+        Txt_BonusScore->SetText(FText::AsNumber(Bonus));
+
+    if (Txt_ResultTitle)
+    {
+        FString ResultStr = bIsSuccess ? TEXT("WAVE CLEAR") : TEXT("WAVE FAILED");
+        Txt_ResultTitle->SetText(FText::FromString(ResultStr));
+
+        // 성공은 파랑, 실패는 빨강
+        FLinearColor TitleColor = bIsSuccess ? FLinearColor::Blue : FLinearColor::Red;
+        Txt_ResultTitle->SetColorAndOpacity(TitleColor);
+    }
 }
 
 void UResultWidget::SetupFailure()

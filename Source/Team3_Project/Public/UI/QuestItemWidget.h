@@ -17,7 +17,7 @@ protected:
     class UTextBlock* Txt_QuestDesc;
 
 public:
-    void SetQuestText(FString Title, FString Description);
+    void SetQuestText(int32 ID, FString Title, FString Description);
     void CompleteQuest();
     FString GetQuestTitle() const;
 
@@ -27,4 +27,5 @@ private:
     void DestroyQuestItem();
 
     FTimerHandle DestroyTimerHandle;
+    int32 QuestID;
 };
