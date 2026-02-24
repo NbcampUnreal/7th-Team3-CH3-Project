@@ -11,7 +11,7 @@ ACraftingStation::ACraftingStation()
 
 }
 
-void ACraftingStation::Interact(AActor* Interactor)
+void ACraftingStation::Interact_Implementation(AActor* Interactor)
 {
 }
 

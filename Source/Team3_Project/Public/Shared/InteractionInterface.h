@@ -13,7 +13,7 @@ class UInteractionInterface : public UInterface
 };
 
 /**
- * 
+ *
  */
 class TEAM3_PROJECT_API IInteractionInterface
 {
@@ -21,8 +21,11 @@ class TEAM3_PROJECT_API IInteractionInterface
 
 public:
 
-	virtual void Interact(AActor* Interactor) = 0;
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interaction")
+	void Interact(AActor* Interactor);
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interaction")
-	FText GetInteractionPrompt();
+	void SetInteractFocus(bool bIsFocus);
+
+
 };

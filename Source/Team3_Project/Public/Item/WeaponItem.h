@@ -52,7 +52,7 @@ public:
 
 	void ResetRecoil() { CurrentRecoilPitch = 0.0f; }
 
-	virtual void Interact(AActor* Interactor) override;
+	virtual void Interact_Implementation(AActor* Interactor) override;
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon|Attachment")
 	void InitializeDroppedWeapon(const TMap<EAttachmentType, FName>& SavedAttachments);
