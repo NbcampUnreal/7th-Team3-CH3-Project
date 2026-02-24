@@ -4,7 +4,7 @@
 #include "Enemy/Controllers/EnemyController.h"
 #include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
-#include "../Team3_ProjectCharacter.h"
+#include "Player/PlayerCharacter.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SphereComponent.h"
 
@@ -52,8 +52,15 @@ void AEnemyCharacter::BeginPlay()
 		{
 			FName SocketName = TypeData->SocketName;
 			float WeaponRadius = TypeData->WeaponRadius;
-			WeaponCollision->SetupAttachment(GetMesh(), SocketName);
+			ensureMsgf(FMath::IsFinite(WeaponRadius), TEXT("WeaponRadius is not finite"));
+			ensureMsgf(WeaponRadius >= 0.f, TEXT("WeaponRadius is negative: %f"), WeaponRadius);
+
 			WeaponCollision->SetSphereRadius(WeaponRadius);
+			WeaponCollision->AttachToComponent(
+				GetMesh(),
+				FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+				SocketName
+			);
 
 			WeaponCollision->OnComponentBeginOverlap.AddDynamic(
 				this,
@@ -61,6 +68,8 @@ void AEnemyCharacter::BeginPlay()
 			);
 		}
 	}
+
+	ActiveMove();
 }
 
 void AEnemyCharacter::Tick(float DeltaTime)
@@ -96,10 +105,10 @@ bool AEnemyCharacter::Attack()
 	if (IsAttackable())
 	{
 		LeftAttackCoolTime = GetAttackCoolTime();
-		DeactiveMove();
 		PlayAnimMontage(GetAttackMontage());
 		//임시 공격처리
 		// TryMeleeHit();
+		OnAttackSignature.Broadcast();
 		return true;
 	}
 
@@ -113,8 +122,10 @@ bool AEnemyCharacter::SpecialAttack()
 		LeftAttackCoolTime = GetAttackCoolTime();
 		PlayAnimMontage(GetSpecialAttackMontage());
 		DeactiveMove();
+
+		OnSepcialAttackSignature.Broadcast();
 		// 임시 공격처리
-		TryMeleeHit();
+		//TryMeleeHit();
 		return true;
 	}
 	return false;
@@ -123,11 +134,18 @@ bool AEnemyCharacter::SpecialAttack()
 void AEnemyCharacter::OnFinishAttack()
 {
 	bIsAttacking = false;
-	ActiveMove();
+	OnFinishAttackSignature.Broadcast();
+}
+
+void AEnemyCharacter::OnFinishSpecialAttack()
+{
+	bIsAttacking = false;
+	OnFinishSpecialAttackSignature.Broadcast();
 }
 
 void AEnemyCharacter::EnableWeaponCollision()
 {
+	if (bIsDead) return;
 	if (WeaponCollision)
 	{
 		WeaponCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
@@ -229,11 +247,11 @@ void AEnemyCharacter::TryMeleeHit()
 	{
 		AActor* HitActor = Hit.GetActor();
 		if (!IsValid(HitActor)) continue;
-		
-		ATeam3_ProjectCharacter* Character = Cast<ATeam3_ProjectCharacter>(HitActor);
-		if (!IsValid(HitActor)) continue;
-		if (!HitActor->ActorHasTag(FName("Player"))) continue;
 		if (HitActor == this) continue;
+		
+		APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(HitActor);
+		if (!IsValid(PlayerCharacter)) continue;
+		// if (!HitActor->ActorHasTag(FName("Player"))) continue;
 		if (DamagedActor.Contains(HitActor)) continue;
 
 		DamagedActor.Add(HitActor);
@@ -253,14 +271,22 @@ void AEnemyCharacter::TryMeleeHit()
 void AEnemyCharacter::OnHitted()
 {
 	StopAnimMontage();
-	PlayAnimMontage(GetHittedMontage());
-	DeactiveMove();
-	UE_LOG(LogTemp, Warning, TEXT("%s Hitted!"), *(GetActorLabel()));
+	if (UAnimMontage* Montage = GetHittedMontage())
+	{
+		PlayAnimMontage(Montage);
+		DeactiveMove();
+		UE_LOG(LogTemp, Warning, TEXT("%s Hitted!"), *(GetActorLabel()));
+	}
+	else
+	{
+		OnFinishHitted();
+	}
 }
 
 void AEnemyCharacter::OnFinishHitted()
 {
 	ActiveMove();
+	OnFinishHittedSignature.Broadcast();
 }
 
 void AEnemyCharacter::OnDead()
@@ -277,14 +303,16 @@ void AEnemyCharacter::OnDead()
 	}
 	else
 	{
-		EnableRagdoll();
-		SetLifeSpan(5.f);
+		OnFinishDead();
 	}
 }
 
 void AEnemyCharacter::OnFinishDead()
 {
 	EnableRagdoll();
+	DisableWeaponCollision();
+	SetLifeSpan(5.f);
+	OnFinishDeadSignature.Broadcast();
 }
 
 float AEnemyCharacter::TakeDamage(
@@ -296,29 +324,28 @@ float AEnemyCharacter::TakeDamage(
 {
 	if (bIsDead)
 	{
-		if (!bRagdollEnabled) EnableRagdoll();
+		// if (!bRagdollEnabled) EnableRagdoll();
 		return DamageAmount;
-	}
-	// 피격 상태로 전환
-	if (AEnemyController* EnemyController = Cast<AEnemyController>(GetController()))
-	{
-		EnemyController->ChangeState(EnemyController->GetHittedState());
 	}
 
 	// 데미지 처리
 	ApplyDamageToStat(DamageAmount);
 
 	// Hitted or Dead 상태 전환
-	AEnemyController* EnemyController = Cast<AEnemyController>(GetController());
-	if (!EnemyController) return DamageAmount;
+	//AEnemyController* EnemyController = Cast<AEnemyController>(GetController());
+	AAIController* AIController = Cast<AAIController>(GetController());
+	if (!AIController) return DamageAmount;
+
 	if (StatComp->GetBaseStatValue(FName("Health")) <= 0.f)
 	{
-		EnemyController->ChangeState(EnemyController->GetDeadState());
+		//EnemyController->ChangeState(EnemyController->GetDeadState());
+		OnDeadSignature.Broadcast();
 		bIsDead = true;
 	}
 	else
 	{
-		EnemyController->ChangeState(EnemyController->GetHittedState());
+		OnHittedSignature.Broadcast();
+		//EnemyController->ChangeState(EnemyController->GetHittedState());
 	}
 
 	return DamageAmount;
@@ -400,20 +427,19 @@ void AEnemyCharacter::ApplyWaveFlag(bool bInWave)
 {
 	bIsForWave = bInWave;
 
-	if (AEnemyController* EnemyController = Cast<AEnemyController>(GetController()))
-	{
-		EnemyController->SetWaveMode(bInWave);
-	}
+	OnWaveModeSignature.Broadcast(bIsForWave);
 }
 
 void AEnemyCharacter::ActiveMove()
 {
 	bIsMovable = true;
+	OnMovableChangedSignature.Broadcast(bIsMovable);
 }
 
 void AEnemyCharacter::DeactiveMove()
 {
 	bIsMovable = false;
+	OnMovableChangedSignature.Broadcast(bIsMovable);
 }
 
 UAnimMontage* AEnemyCharacter::GetAttackMontage() const
@@ -464,6 +490,9 @@ void AEnemyCharacter::ApplyDamageToStat(float DamageAmount)
 
 	StatComp->SetBaseStatValue(FName("Health"), CurrentHealth - Damage);
 	UE_LOG(LogTemp, Warning, TEXT("Get %f damage! Defence : %f, Take ActualDamage : %f | CurrentHealth : %f"), DamageAmount, Defence, Damage, StatComp->GetCurrentStatValue(FName("Health")));
+	OnHealthChangedSignature.Broadcast(
+		StatComp->GetCurrentStatValue(FName("Health")),
+		StatComp->GetMaxStatValue(FName("Health")));
 }
 
 void AEnemyCharacter::EnableRagdoll()
@@ -478,6 +507,7 @@ void AEnemyCharacter::EnableRagdoll()
 
 void AEnemyCharacter::OnWeaponBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+	if (bIsDead) return;
 	if (!OtherActor || OtherActor == this) return;
 
 	// 중복 타격 방지
@@ -487,7 +517,7 @@ void AEnemyCharacter::OnWeaponBeginOverlap(UPrimitiveComponent* OverlappedCompon
 	}
 
 	// Team3_ProjectCharacter만 공격 (필요시 수정)
-	if (!OtherActor->IsA(ATeam3_ProjectCharacter::StaticClass()))
+	if (!OtherActor->IsA(APlayerCharacter::StaticClass()))
 	{
 		return;
 	}

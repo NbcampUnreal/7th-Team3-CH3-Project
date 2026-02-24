@@ -2,7 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "BehaviorTree/BTTaskNode.h"
+#include "Navigation/PathFollowingComponent.h"
 #include "BTTask_ChaseTarget.generated.h"
+
+class AAIController;
 
 UCLASS()
 class TEAM3_PROJECT_API UBTTask_ChaseTarget : public UBTTaskNode
@@ -13,8 +16,12 @@ public:
     UBTTask_ChaseTarget();
 
     virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
-    virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
+    // virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
     virtual void OnTaskFinished(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTNodeResult::Type TaskResult) override;
+
+private:
+    UFUNCTION()
+    void HandleMoveCompleted(FAIRequestID RequestID, EPathFollowingResult::Type Result);
 
 protected:
     UPROPERTY(EditAnywhere, Category = "Chase")
@@ -34,4 +41,8 @@ protected:
 
 private:
     float LastMoveTime = 0.f;
+
+    UPROPERTY()
+    UBehaviorTreeComponent* CachedOwnerComp = nullptr;
+    TWeakObjectPtr<AAIController> CachedAICon;
 };
