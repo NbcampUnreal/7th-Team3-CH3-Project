@@ -13,7 +13,7 @@ class UInteractionInterface : public UInterface
 };
 
 /**
- * 
+ *
  */
 class TEAM3_PROJECT_API IInteractionInterface
 {

@@ -50,6 +50,8 @@ public:
 	TMap<int32, TWeakObjectPtr<AEnemySpawner>> EnemySpawners;
 	UPROPERTY(VisibleAnywhere, Category = "SpanwedActors")
 	TMap<int32, TWeakObjectPtr<AEventZone>> EventZones;
+	/*UPROPERTY(VisibleAnywhere, Category = "SpanwedActors")
+	TArray<AEnemyCharacter> SpawnedMonster;*/
 	
 	FTimerDelegate EnemySpawnDelegate;
 	FTimerHandle WaveStartTimer;
@@ -64,7 +66,7 @@ public:
 
 	void FindSpawner(const int32 Id ,class AEnemySpawner* Spawner);
 	void FindEventZone(const int32 Id, class AEventZone* EventZone);
-	void OnTriggerEvent(const int32 Id);
+	void OnTriggerEvent(const int32 Id, bool bIsPlayerIn);
 	void WaveStart();
 	void WaveEnd();
 
@@ -74,4 +76,6 @@ public:
 
 private:
 	bool bIsRunningSpawner = false;
+	bool bPlayerOnBox;
+	//bool bPlayerUseBomb;
 };

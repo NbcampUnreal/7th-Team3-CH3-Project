@@ -97,6 +97,13 @@ void APlayerCharacter::EquipWeapon(FName ItemID)
 		return;
 	}
 
+	// 기존 무기 제거
+	if (CurrentWeapon)
+	{
+		CurrentWeapon->Destroy();
+		CurrentWeapon = nullptr;
+	}
+
 	// 데이터 조회
 	UGameInstance* GI = UGameplayStatics::GetGameInstance(this);
 	if (!GI) return;
@@ -105,13 +112,6 @@ void APlayerCharacter::EquipWeapon(FName ItemID)
 	if (!Subsystem) return;
 
 	FItemData Data = Subsystem->GetItemDataByID(ItemID);
-
-	// 기존 무기 제거
-	if (CurrentWeapon)
-	{
-		CurrentWeapon->Destroy();
-		CurrentWeapon = nullptr;
-	}
 
 	// Weapon 타입이 아니거나 클래스가 없으면 스킵
 	if (Data.ItemType != EItemType::IT_Weapon || Data.ItemClass.IsNull())

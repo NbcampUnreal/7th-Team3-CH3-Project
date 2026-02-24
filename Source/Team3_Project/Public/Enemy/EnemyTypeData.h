@@ -38,7 +38,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Collision")
 	FName SocketName;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Collision")
-	float WeaponRadius;
+	float WeaponRadius = 32.f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Move")
 	float PatrolMaxSpeed;

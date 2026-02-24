@@ -25,6 +25,7 @@ void AEventZone::BeginPlay()
 	Super::BeginPlay();
 	Debug::Print(FString::FromInt(Id) + TEXT("EventZone생성"), FColor::Blue);
 	BoxComp->OnComponentBeginOverlap.AddDynamic(this, &AEventZone::OnComponentBeginOverlap);
+	BoxComp->OnComponentEndOverlap.AddDynamic(this, &AEventZone::OnComponentEndOverlap);
 }
 
 void AEventZone::OnComponentBeginOverlap(
@@ -35,10 +36,6 @@ void AEventZone::OnComponentBeginOverlap(
 	bool bFromSweep,
 	const FHitResult& SweepResult)
 {
-	/*Debug::Print(*OverlappedComponent->GetName(),FColor::Blue);
-	Debug::Print(*OtherActor->GetName(),FColor::Red);
-	Debug::Print(*OtherComp->GetName(),FColor::Green);*/
-
 	AMainGameState* CurrentGameState = AMainGameState::Get(GetWorld());
 
 	if (CurrentGameState == nullptr)
@@ -52,8 +49,29 @@ void AEventZone::OnComponentBeginOverlap(
 		//@TODO_Core : 플레이어 들어왔습니다 이벤트 시작 고고
 		
 		Debug::Print(TEXT("Player EventZone 통과 이벤트 발생합니다!"));
-		CurrentGameState->OnTriggerEvent(GetId());
+		CurrentGameState->OnTriggerEvent(GetId(), true);
 	}
 
-	//@TODO_Core : 이벤트 시작 전달 해주는 로직 구현 OtherActor == player 검사 후 true 라면 스포너 작동, false라면 무시 
+	//@TODO_Core : 이벤트 시작 전달 해주는 로직 구현 OtherActor == player 검사 후 true 라면 스포너 작동, false라면 무시		
+}
+
+void AEventZone::OnComponentEndOverlap(
+	UPrimitiveComponent* EndOverlapComponent,
+	AActor* OtherActor,
+	UPrimitiveComponent* OtherComp,
+	int32 OtherBodyIndex
+)
+{
+	AMainGameState* CurrentGameState = AMainGameState::Get(GetWorld());
+
+	if (CurrentGameState == nullptr)
+	{
+		return;
+	}
+
+	if (OtherActor->ActorHasTag("Player"))
+	{
+		Debug::Print(TEXT("Player EventZone 벗어남!"));
+		CurrentGameState->OnTriggerEvent(GetId(), false);
+	}
 }

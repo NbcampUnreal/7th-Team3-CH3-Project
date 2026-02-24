@@ -15,6 +15,7 @@ AMainGameState::AMainGameState()
 	MaxSpawnCount = 10;
 	CurrentSpawnCount = 0;
 	CurrentScore = 0;
+	bPlayerOnBox = false;
 }
 
 AMainGameState* AMainGameState::Get(const UWorld* WorldObject)
@@ -56,8 +57,10 @@ void AMainGameState::FindEventZone(const int32 Id, class AEventZone* EventZone)
 	EventZones.Add(Id, EventZone);
 }
 
-void AMainGameState::OnTriggerEvent(const int32 Id)
+void AMainGameState::OnTriggerEvent(const int32 Id, bool bIsPlayerIn)
 {
+	bPlayerOnBox = bIsPlayerIn;
+
 	if (bIsRunningSpawner)
 	{
 		Debug::Print(TEXT("스폰 이벤트가 이미 실행중입니다."));
@@ -72,7 +75,6 @@ void AMainGameState::OnTriggerEvent(const int32 Id)
 		return;
 	}
 
-	Debug::Print(TEXT("함수 바인딩 시작"));
 	EnemySpawnDelegate.BindUObject(this, &AMainGameState::SpawnMonster, Id);
 	WaveStart();
 }
@@ -89,6 +91,7 @@ void AMainGameState::SpawnMonster(const int32 Id)
 	{
 		if (FoundSpawner1->IsValid())
 		{
+			Debug::Print(TEXT("SpawnEnemy1 작동"));
 			FoundSpawner1->Get()->SpawnEnemy(EnemyClass);
 		}
 	}
@@ -97,15 +100,10 @@ void AMainGameState::SpawnMonster(const int32 Id)
 	{
 		if (FoundSpawner2->IsValid())
 		{
-			Debug::Print(TEXT("SpawnEnemy 작동"));
+			Debug::Print(TEXT("SpawnEnemy2 작동"));
 			FoundSpawner2->Get()->SpawnEnemy(EnemyClass);
 		}
 	}
-	
-	/*if (MaxSpawnCount > CurrentSpawnCount)
-	{
-		
-	}*/
 }
 void AMainGameState::WaveStart()
 {

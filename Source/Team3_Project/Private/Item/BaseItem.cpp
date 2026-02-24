@@ -68,6 +68,11 @@ void ABaseItem::Interact_Implementation(AActor* Interactor)
 	}
 }
 
+void ABaseItem::SetInteractFocus_Implementation(bool bIsFocus)
+{
+
+}
+
 void ABaseItem::BeginPlay()
 {
 	Super::BeginPlay();

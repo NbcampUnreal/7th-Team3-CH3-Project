@@ -25,6 +25,13 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave")
+	int32 MaxSpawnMonster;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave")
+	int32 CurrentSpawnMonster;
+
 private:
 	UPROPERTY(VisibleInstanceOnly, Category = "ID")
 	int32 Id = 0;

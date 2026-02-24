@@ -36,6 +36,14 @@ public:
 		const FHitResult& SweepResult
 	);
 
+	UFUNCTION()
+	void OnComponentEndOverlap(
+		UPrimitiveComponent* EndOverlapComponent,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex
+		);
+
 	
 protected:
 	virtual void BeginPlay() override;

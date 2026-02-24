@@ -5,12 +5,7 @@
 #include "Components/Image.h"
 #include "MainHUD.generated.h"
 
-// 델리게이트 선언
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHUDInt32Changed, int32, NewValue);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHUDFloatChanged, float, NewValue);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWaveStarted, FString, Message, float, Duration);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWaveEnded, bool, bSuccess, int32, Bonus);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnQuestAdded, int32, QuestID, FString, Title, FString, Desc);
+
 
 UCLASS()
 class TEAM3_PROJECT_API UMainHUD : public UUserWidget
@@ -19,18 +14,6 @@ class TEAM3_PROJECT_API UMainHUD : public UUserWidget
 
 public:
     UMainHUD(const FObjectInitializer& ObjectInitializer);
-
-    // --- 델리게이트 변수 --- 
-    UPROPERTY(BlueprintAssignable, Category = "HUD|Events") FOnHUDFloatChanged OnWhiteKarmaChanged;
-    UPROPERTY(BlueprintAssignable, Category = "HUD|Events") FOnHUDFloatChanged OnBlackKarmaChanged;
-    UPROPERTY(BlueprintAssignable, Category = "HUD|Events") FOnHUDInt32Changed OnScoreChanged;
-    UPROPERTY(BlueprintAssignable, Category = "HUD|Events") FOnHUDInt32Changed OnKillsChanged;
-    UPROPERTY(BlueprintAssignable, Category = "HUD|Events") FOnHUDFloatChanged OnHealthChanged;
-    UPROPERTY(BlueprintAssignable, Category = "HUD|Events") FOnHUDFloatChanged OnStaminaChanged;
-    UPROPERTY(BlueprintAssignable, Category = "HUD|Events") FOnQuestAdded OnQuestAdded;
-    UPROPERTY(BlueprintAssignable, Category = "HUD|Events") FOnHUDInt32Changed OnQuestFinished;
-    UPROPERTY(BlueprintAssignable, Category = "HUD|Events") FOnWaveStarted OnWaveStarted;
-    UPROPERTY(BlueprintAssignable, Category = "HUD|Events") FOnWaveEnded OnWaveEnded;
 
 protected:
     virtual void NativeConstruct() override;
@@ -48,6 +31,18 @@ protected:
     UPROPERTY(meta = (BindWidget)) class UImage* img_Quest;
     UPROPERTY(meta = (BindWidget)) class UTextBlock* Txt_WaveMessage;
 
+    UPROPERTY(meta = (BindWidget)) class UTextBlock* Txt_SlotNum_1;
+    UPROPERTY(meta = (BindWidget)) class UTextBlock* Txt_SlotNum_2;
+    UPROPERTY(meta = (BindWidget)) class UTextBlock* Txt_SlotNum_3;
+    UPROPERTY(meta = (BindWidget)) class UTextBlock* Txt_SlotNum_4;
+    UPROPERTY(meta = (BindWidget)) class UTextBlock* Txt_SlotNum_5;
+    UPROPERTY(meta = (BindWidget)) class UTextBlock* Txt_SlotNum_6;
+    UPROPERTY(meta = (BindWidget)) class UTextBlock* Txt_SlotNum_7;
+    UPROPERTY(meta = (BindWidget)) class UTextBlock* Txt_SlotNum_8;
+
+    UPROPERTY() TArray<class UTextBlock*> SlotNumArray;
+
+    UPROPERTY() class UItemDataSubsystem* ItemDataSubsystem;
 public:
     UPROPERTY(meta = (BindWidget), BlueprintReadOnly) class UImage* Slot_0;
     UPROPERTY(meta = (BindWidget), BlueprintReadOnly) class UImage* Slot_1;
@@ -63,6 +58,8 @@ public:
 protected:
     UPROPERTY(EditAnywhere, Category = "Quest") TSubclassOf<class UQuestItemWidget> QuestItemClass;
     UPROPERTY(EditAnywhere, Category = "UI") TSubclassOf<class UResultWidget> ResultWidgetClass;
+
+   
 
     // 내부 상태 및 보간 변수 
     float InterpSpeed = 5.0f;
@@ -95,6 +92,22 @@ public:
     UFUNCTION(BlueprintCallable, Category = "HUD") void AddNewQuest(int32 ID, FString Title, FString Desc);
     UFUNCTION(BlueprintCallable, Category = "HUD") void FinishQuest(int32 ID);
     UFUNCTION(BlueprintCallable, Category = "HUD") void ReceiveTeamData(bool bSuccess, int32 Bonus);
+
     UFUNCTION(BlueprintCallable, Category = "HUD") void RefreshQuestIcon();
     UFUNCTION(BlueprintCallable, Category = "HUD") void HideWaveMessage();
+
+    UFUNCTION(BlueprintCallable, Category = "HUD")
+    void UpdateQuickSlotImage(int32 SlotIndex, UTexture2D* IconTexture);
+    UFUNCTION(BlueprintCallable, Category = "HUD")
+    void UpdateQuickSlotUI();
+    UFUNCTION()
+    void OnQuickSlotItemChanged(int32 SlotIndex, FName ItemID);
+    UFUNCTION()
+    void OnEquipmentChanged();
+    UFUNCTION()
+    void OnQuickSlotRefreshAll();
+    UFUNCTION(BlueprintCallable)
+    void HighlightQuickSlot(int32 SlotIndex);
+    UFUNCTION()
+    void OnWeaponEquipChanged(bool bIsEquipping, FName ItemID);
 };

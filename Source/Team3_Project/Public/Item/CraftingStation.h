@@ -16,7 +16,6 @@ class TEAM3_PROJECT_API ACraftingStation : public AActor, public IInteractionInt
 	GENERATED_BODY()
 	
 public:	
-	// Sets default values for this actor's properties
 	ACraftingStation();
 
 	virtual void Interact_Implementation(AActor* Interactor) override;
