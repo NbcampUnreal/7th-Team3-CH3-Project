@@ -34,14 +34,16 @@ void ULootTagWidget::InitLootTag(FName InItemID, int32 InQuantity)
 
 	if (Txt_Quantity)
 	{
-		if (InQuantity > 1)
+		if (ItemData.ItemType == EItemType::IT_Weapon ||
+			ItemData.ItemType == EItemType::IT_Armor ||
+			ItemData.ItemType == EItemType::IT_Attachment)
 		{
-			Txt_Quantity->SetText(FText::Format(NSLOCTEXT("LootTag", "Qty", "x{0}"), InQuantity));
-			Txt_Quantity->SetVisibility(ESlateVisibility::Visible);
+			Txt_Quantity->SetVisibility(ESlateVisibility::Collapsed);
 		}
 		else
 		{
-			Txt_Quantity->SetVisibility(ESlateVisibility::Hidden);
+			Txt_Quantity->SetVisibility(ESlateVisibility::Visible);
+			Txt_Quantity->SetText(FText::Format(NSLOCTEXT("LootTag", "Qty", "x{0}"), InQuantity));
 		}
 	}
 	else

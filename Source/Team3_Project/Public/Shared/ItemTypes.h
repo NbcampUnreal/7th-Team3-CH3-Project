@@ -144,16 +144,27 @@ struct FInventoryItem
 };
 
 USTRUCT(BlueprintType)
+struct FCraftingIngredient
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName ItemID = NAME_None;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 Quantity = 1;
+};
+
+USTRUCT(BlueprintType)
 struct FCraftingRecipe : public FTableRowBase
 {
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName ResultItemID;
+	FName ResultItemID = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 ResultAmount;
+	int32 ResultQuantity = 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TMap<FName, int32> RequiredIngredients;
+	TArray<FCraftingIngredient> RequiredIngredients;
 };

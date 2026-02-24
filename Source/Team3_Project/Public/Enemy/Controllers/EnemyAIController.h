@@ -36,6 +36,20 @@ protected:
     // Blackboard 초기화
     void InitializeBlackboard();
 
+    UFUNCTION()
+    void OnHitted();
+
+    UFUNCTION()
+    void OnFinishHitted();
+
+    UFUNCTION()
+    void OnDead();
+    UFUNCTION()
+    void OnFinishDead();
+
+    UFUNCTION()
+    void SetMovable(bool IsMovable);
+
 protected:
     // Components & Config
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
