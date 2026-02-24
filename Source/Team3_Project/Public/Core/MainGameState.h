@@ -50,6 +50,8 @@ public:
 	TMap<int32, TWeakObjectPtr<AEnemySpawner>> EnemySpawners;
 	UPROPERTY(VisibleAnywhere, Category = "SpanwedActors")
 	TMap<int32, TWeakObjectPtr<AEventZone>> EventZones;
+	/*UPROPERTY(VisibleAnywhere, Category = "SpanwedActors")
+	TArray<AEnemyCharacter> SpawnedMonster;*/
 	
 	FTimerDelegate EnemySpawnDelegate;
 	FTimerHandle WaveStartTimer;

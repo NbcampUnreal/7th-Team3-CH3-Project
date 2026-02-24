@@ -21,7 +21,9 @@ public:
 	ABaseItem();
 
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
-	virtual void Interact(AActor* Interactor) override;
+	virtual void Interact_Implementation(AActor* Interactor) override;
+
+	virtual void SetInteractFocus_Implementation(bool bIsFocus) override;
 
 	virtual void BeginPlay() override;
 
@@ -34,8 +36,6 @@ public:
 	void SetItemID(FName NewItemID) { ItemID = NewItemID; }
 
 	void SetQuantity(int32 NewQuantity) { Quantity = NewQuantity; }
-
-	virtual FText GetInteractionPrompt_Implementation() override;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item")

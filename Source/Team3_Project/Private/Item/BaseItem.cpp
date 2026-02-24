@@ -37,7 +37,7 @@ ABaseItem::ABaseItem()
 
 }
 
-void ABaseItem::Interact(AActor* Interactor)
+void ABaseItem::Interact_Implementation(AActor* Interactor)
 {
 	// 상호작용하는 액터가 유효한지 확인
 	if (!Interactor)
@@ -66,6 +66,11 @@ void ABaseItem::Interact(AActor* Interactor)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Interactor has no InventoryComponent"));
 	}
+}
+
+void ABaseItem::SetInteractFocus_Implementation(bool bIsFocus)
+{
+
 }
 
 void ABaseItem::BeginPlay()
@@ -152,25 +157,6 @@ void ABaseItem::Tick(float DeltaTime)
 	if (LootWidget && LootWidget->IsVisible())
 	{
 		UpdateLootWidgetTransform();
-	}
-}
-
-FText ABaseItem::GetInteractionPrompt_Implementation()
-{
-	UGameInstance* GameInstance = UGameplayStatics::GetGameInstance(this);
-	if (!GameInstance)
-	{
-		return FText::GetEmpty();
-	}
-	UItemDataSubsystem* ItemDataSubsystem = GameInstance->GetSubsystem<UItemDataSubsystem>();
-	if (ItemDataSubsystem)
-	{
-		FItemData Data = ItemDataSubsystem->GetItemDataByID(ItemID);
-		return FText::Format(NSLOCTEXT("Interaction", "PickupPrompt", "Press E to pick up {0}"), Data.DisplayName);
-	}
-	else
-	{
-		return FText::GetEmpty();
 	}
 }
 

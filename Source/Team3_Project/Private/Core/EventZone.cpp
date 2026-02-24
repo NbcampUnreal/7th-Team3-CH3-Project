@@ -36,10 +36,6 @@ void AEventZone::OnComponentBeginOverlap(
 	bool bFromSweep,
 	const FHitResult& SweepResult)
 {
-	/*Debug::Print(*OverlappedComponent->GetName(),FColor::Blue);
-	Debug::Print(*OtherActor->GetName(),FColor::Red);
-	Debug::Print(*OtherComp->GetName(),FColor::Green);*/
-
 	AMainGameState* CurrentGameState = AMainGameState::Get(GetWorld());
 
 	if (CurrentGameState == nullptr)
