@@ -8,6 +8,7 @@
 #include "CraftingStation.generated.h"
 
 class UStaticMeshComponent;
+class UUserWidget;
 
 UCLASS()
 class TEAM3_PROJECT_API ACraftingStation : public AActor, public IInteractionInterface
@@ -18,7 +19,9 @@ public:
 	// Sets default values for this actor's properties
 	ACraftingStation();
 
-	virtual void Interact(AActor* Interactor) override;
+	virtual void Interact_Implementation(AActor* Interactor) override;
+
+	virtual void SetInteractFocus_Implementation(bool bIsFocus) override;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Crafting")
@@ -26,4 +29,7 @@ protected:
 
 	UFUNCTION(BlueprintCallable, Category = "Crafting")
 	void OpenCraftingUI(APlayerController* PC);
+
+	UPROPERTY(EditDefaultsOnly, Category = "Crafting|UI")
+	TSubclassOf<UUserWidget> CraftingWidgetClass;
 };

@@ -3,6 +3,7 @@
 
 #include "Item/CraftingStation.h"
 #include "Kismet/GameplayStatics.h"
+#include "Blueprint/UserWidget.h"
 
 // Sets default values
 ACraftingStation::ACraftingStation()
@@ -15,7 +16,7 @@ ACraftingStation::ACraftingStation()
 
 }
 
-void ACraftingStation::Interact(AActor* Interactor)
+void ACraftingStation::Interact_Implementation(AActor* Interactor)
 {
 	APawn* PlayerPawn = Cast<APawn>(Interactor);
 	if (!PlayerPawn)
@@ -34,11 +35,35 @@ void ACraftingStation::Interact(AActor* Interactor)
 	PC->bShowMouseCursor = true;
 
 	OpenCraftingUI(PC);
-}	
-
-void ACraftingStation::OpenCraftingUI(APlayerController* PC)
+}
+void ACraftingStation::SetInteractFocus_Implementation(bool bIsFocus)
 {
+	if (StationMesh)
+	{
+		StationMesh->SetRenderCustomDepth(bIsFocus);
 
+		if (bIsFocus)
+		{
+			StationMesh->SetCustomDepthStencilValue(1); // 스텐실 값 설정 (예: 252)
+		}
+		else
+		{
+			StationMesh->SetCustomDepthStencilValue(0); // 스텐실 값 초기화
+		}
+	}
 }
 
 
+void ACraftingStation::OpenCraftingUI(APlayerController* PC)
+{
+	if (!CraftingWidgetClass || !PC)
+	{
+		return;
+	}
+
+	UUserWidget* CraftingWidget = CreateWidget<UUserWidget>(PC, CraftingWidgetClass);
+	if (CraftingWidget)
+	{
+		CraftingWidget->AddToViewport();
+	}
+}
