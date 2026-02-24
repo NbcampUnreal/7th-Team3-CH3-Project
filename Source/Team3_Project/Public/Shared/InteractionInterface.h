@@ -21,8 +21,11 @@ class TEAM3_PROJECT_API IInteractionInterface
 
 public:
 
-	virtual void Interact(AActor* Interactor) = 0;
-
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interaction")
-	FText GetInteractionPrompt();
+	void Interact(AActor* Interactor);
+	
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interaction")
+	void SetInteractFocus(bool bIsFocus);
+
+
 };
