@@ -44,6 +44,11 @@ protected:
 
     UFUNCTION()
     void OnDead();
+    UFUNCTION()
+    void OnFinishDead();
+
+    UFUNCTION()
+    void SetMovable(bool IsMovable);
 
 protected:
     // Components & Config

@@ -65,8 +65,7 @@ void AEnemyAIController::OnPossess(APawn* InPawn)
     AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(InPawn);
     if (!Enemy)
     {
-        UE_LOG(LogTemp, Error, TEXT("[AI]
-            OnPossess: Not an EnemyCharacter"));
+        UE_LOG(LogTemp, Error, TEXT("[AI] OnPossess: Not an EnemyCharacter"));
         return;
     }
 
@@ -74,9 +73,12 @@ void AEnemyAIController::OnPossess(APawn* InPawn)
     InitializeBlackboard();
 
     // Binding
+    Enemy->OnWaveModeSignature.AddDynamic(this, &AEnemyAIController::SetWaveMode);
+    Enemy->OnMovableChangedSignature.AddDynamic(this, &AEnemyAIController::SetMovable);
     Enemy->OnHittedSignature.AddDynamic(this, &AEnemyAIController::OnHitted);
     Enemy->OnFinishHittedSignature.AddDynamic(this, &AEnemyAIController::OnFinishHitted);
     Enemy->OnDeadSignature.AddDynamic(this, &AEnemyAIController::OnDead);
+    Enemy->OnFinishDeadSignature.AddDynamic(this, &AEnemyAIController::OnFinishDead);
     
     // Behavior Tree 실행
     if (BehaviorTree)
@@ -109,8 +111,9 @@ void AEnemyAIController::InitializeBlackboard()
     bool bHasSpline = Enemy->FindComponentByClass<USplineComponent>() != nullptr;
     BB->SetValueAsBool(FName("bHasSpline"), bHasSpline);
     BB->SetValueAsBool(FName("bIsWaveMode"), Enemy->IsForWave());
-    BB->SetValueAsBool(FName("bIsDead"), false);
+    BB->SetValueAsBool(FName("bIsDead"), Enemy->IsDead());
     BB->SetValueAsBool(FName("bIsHitted"), false);
+    BB->SetValueAsBool(FName("bIsMovable"), Enemy->IsMovable());
 
     // Combat
     BB->SetValueAsInt(FName("AttackCount"), 0);
@@ -131,6 +134,13 @@ void AEnemyAIController::SetWaveMode(bool bEnabled)
     {
         BB->SetValueAsBool(FName("bIsWaveMode"), bEnabled);
         UE_LOG(LogTemp, Log, TEXT("[AI] Wave mode set to: %d"), bEnabled);
+
+
+        if (ACharacter* PlayerCharacter = Cast<ACharacter>(GetWorld()->GetFirstPlayerController()->GetPawn()))
+        {
+            BB->SetValueAsObject(FName("TargetActor"), PlayerCharacter);
+        }
+        
     }
 }
 
@@ -200,6 +210,8 @@ void AEnemyAIController::OnTargetPerceptionForgotten(AActor* Actor)
 
 void AEnemyAIController::OnHitted()
 {
+    StopMovement();
+
     UBlackboardComponent* BB = GetBlackboardComponent();
     if (!BB) return;
     BB->SetValueAsBool(FName("bIsHitted"), true);
@@ -214,7 +226,26 @@ void AEnemyAIController::OnFinishHitted()
 
 void AEnemyAIController::OnDead()
 {
+    StopMovement();
+
     UBlackboardComponent* BB = GetBlackboardComponent();
     if (!BB) return;
     BB->SetValueAsBool(FName("bIsDead"), true);
+}
+
+void AEnemyAIController::OnFinishDead()
+{
+    StopMovement();
+    if (UBrainComponent* Brain = GetBrainComponent())
+    {
+        Brain->StopLogic(TEXT("Dead"));
+    }
+    ClearFocus(EAIFocusPriority::Gameplay);
+}
+
+void AEnemyAIController::SetMovable(bool IsMovable)
+{
+    UBlackboardComponent* BB = GetBlackboardComponent();
+    if (!BB) return;
+    BB->SetValueAsBool(FName("bIsMovable"), IsMovable);
 }

@@ -68,6 +68,8 @@ void AEnemyCharacter::BeginPlay()
 			);
 		}
 	}
+
+	ActiveMove();
 }
 
 void AEnemyCharacter::Tick(float DeltaTime)
@@ -103,7 +105,6 @@ bool AEnemyCharacter::Attack()
 	if (IsAttackable())
 	{
 		LeftAttackCoolTime = GetAttackCoolTime();
-		DeactiveMove();
 		PlayAnimMontage(GetAttackMontage());
 		//임시 공격처리
 		// TryMeleeHit();
@@ -121,8 +122,10 @@ bool AEnemyCharacter::SpecialAttack()
 		LeftAttackCoolTime = GetAttackCoolTime();
 		PlayAnimMontage(GetSpecialAttackMontage());
 		DeactiveMove();
+
+		OnSepcialAttackSignature.Broadcast();
 		// 임시 공격처리
-		TryMeleeHit();
+		//TryMeleeHit();
 		return true;
 	}
 	return false;
@@ -132,11 +135,17 @@ void AEnemyCharacter::OnFinishAttack()
 {
 	bIsAttacking = false;
 	OnFinishAttackSignature.Broadcast();
-	ActiveMove();
+}
+
+void AEnemyCharacter::OnFinishSpecialAttack()
+{
+	bIsAttacking = false;
+	OnFinishSpecialAttackSignature.Broadcast();
 }
 
 void AEnemyCharacter::EnableWeaponCollision()
 {
+	if (bIsDead) return;
 	if (WeaponCollision)
 	{
 		WeaponCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
@@ -262,15 +271,22 @@ void AEnemyCharacter::TryMeleeHit()
 void AEnemyCharacter::OnHitted()
 {
 	StopAnimMontage();
-	PlayAnimMontage(GetHittedMontage());
-	DeactiveMove();
-	UE_LOG(LogTemp, Warning, TEXT("%s Hitted!"), *(GetActorLabel()));
+	if (UAnimMontage* Montage = GetHittedMontage())
+	{
+		PlayAnimMontage(Montage);
+		DeactiveMove();
+		UE_LOG(LogTemp, Warning, TEXT("%s Hitted!"), *(GetActorLabel()));
+	}
+	else
+	{
+		OnFinishHitted();
+	}
 }
 
 void AEnemyCharacter::OnFinishHitted()
 {
 	ActiveMove();
-	OnFinishDeadSignature.Broadcast();
+	OnFinishHittedSignature.Broadcast();
 }
 
 void AEnemyCharacter::OnDead()
@@ -287,14 +303,15 @@ void AEnemyCharacter::OnDead()
 	}
 	else
 	{
-		EnableRagdoll();
-		SetLifeSpan(5.f);
+		OnFinishDead();
 	}
 }
 
 void AEnemyCharacter::OnFinishDead()
 {
 	EnableRagdoll();
+	DisableWeaponCollision();
+	SetLifeSpan(5.f);
 	OnFinishDeadSignature.Broadcast();
 }
 
@@ -307,7 +324,7 @@ float AEnemyCharacter::TakeDamage(
 {
 	if (bIsDead)
 	{
-		if (!bRagdollEnabled) EnableRagdoll();
+		// if (!bRagdollEnabled) EnableRagdoll();
 		return DamageAmount;
 	}
 
@@ -410,20 +427,19 @@ void AEnemyCharacter::ApplyWaveFlag(bool bInWave)
 {
 	bIsForWave = bInWave;
 
-	if (AEnemyController* EnemyController = Cast<AEnemyController>(GetController()))
-	{
-		EnemyController->SetWaveMode(bInWave);
-	}
+	OnWaveModeSignature.Broadcast(bIsForWave);
 }
 
 void AEnemyCharacter::ActiveMove()
 {
 	bIsMovable = true;
+	OnMovableChangedSignature.Broadcast(bIsMovable);
 }
 
 void AEnemyCharacter::DeactiveMove()
 {
 	bIsMovable = false;
+	OnMovableChangedSignature.Broadcast(bIsMovable);
 }
 
 UAnimMontage* AEnemyCharacter::GetAttackMontage() const
@@ -474,6 +490,9 @@ void AEnemyCharacter::ApplyDamageToStat(float DamageAmount)
 
 	StatComp->SetBaseStatValue(FName("Health"), CurrentHealth - Damage);
 	UE_LOG(LogTemp, Warning, TEXT("Get %f damage! Defence : %f, Take ActualDamage : %f | CurrentHealth : %f"), DamageAmount, Defence, Damage, StatComp->GetCurrentStatValue(FName("Health")));
+	OnHealthChangedSignature.Broadcast(
+		StatComp->GetCurrentStatValue(FName("Health")),
+		StatComp->GetMaxStatValue(FName("Health")));
 }
 
 void AEnemyCharacter::EnableRagdoll()
@@ -488,6 +507,7 @@ void AEnemyCharacter::EnableRagdoll()
 
 void AEnemyCharacter::OnWeaponBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+	if (bIsDead) return;
 	if (!OtherActor || OtherActor == this) return;
 
 	// 중복 타격 방지

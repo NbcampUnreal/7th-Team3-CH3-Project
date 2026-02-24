@@ -31,10 +31,10 @@ EBTNodeResult::Type UBTTask_HandleDeath::ExecuteTask(UBehaviorTreeComponent& Own
     AIController->GetBrainComponent()->StopLogic(TEXT("Dead"));
 
     // 사망 애니메이션 또는 Ragdoll
-    Enemy->OnDead();
+    // Enemy->OnDead();
 
     // Blackboard 플래그
-    BB->SetValueAsBool(bIsDeadKey.SelectedKeyName, true);
+    // BB->SetValueAsBool(bIsDeadKey.SelectedKeyName, true);
 
     // 시간 기록
     StartTime = AIController->GetWorld()->GetTimeSeconds();
@@ -44,36 +44,36 @@ EBTNodeResult::Type UBTTask_HandleDeath::ExecuteTask(UBehaviorTreeComponent& Own
 
 void UBTTask_HandleDeath::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
-    AAIController* AIController = OwnerComp.GetAIOwner();
-    if (!AIController)
-    {
-        FinishLatentTask(OwnerComp, EBTNodeResult::Failed);
-        return;
-    }
+    //AAIController* AIController = OwnerComp.GetAIOwner();
+    //if (!AIController)
+    //{
+    //    FinishLatentTask(OwnerComp, EBTNodeResult::Failed);
+    //    return;
+    //}
 
-    AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(AIController->GetPawn());
-    if (!Enemy)
-    {
-        FinishLatentTask(OwnerComp, EBTNodeResult::Failed);
-        return;
-    }
+    //AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(AIController->GetPawn());
+    //if (!Enemy)
+    //{
+    //    FinishLatentTask(OwnerComp, EBTNodeResult::Failed);
+    //    return;
+    //}
 
-    float CurrentTime = AIController->GetWorld()->GetTimeSeconds();
-    float ElapsedTime = CurrentTime - StartTime;
+    //float CurrentTime = AIController->GetWorld()->GetTimeSeconds();
+    //float ElapsedTime = CurrentTime - StartTime;
 
-    if (Enemy->IsDead() && !Enemy->IsPlayingRootMotion())
-    {
-        // 몽타주 완료 → Ragdoll 활성화 (아직 안 했으면)
-        if (!Enemy->IsRagdollEnabled())
-        {
-            Enemy->EnableRagdoll();
-        }
-    }
+    //if (Enemy->IsDead() && !Enemy->IsPlayingRootMotion())
+    //{
+    //    // 몽타주 완료 → Ragdoll 활성화 (아직 안 했으면)
+    //    if (!Enemy->IsRagdollEnabled())
+    //    {
+    //        Enemy->EnableRagdoll();
+    //    }
+    //}
 
-    if (ElapsedTime >= DestroyDelay)
-    {
-        UE_LOG(LogTemp, Log, TEXT("[BT] Destroying enemy: %s"), *(Enemy->GetName().ToString()));
-        Enemy->Destroy();
-        FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
-    }
+    //if (ElapsedTime >= DestroyDelay)
+    //{
+    //    UE_LOG(LogTemp, Log, TEXT("[BT] Destroying enemy: %s"), *(Enemy->GetName().ToString()));
+    //    Enemy->Destroy();
+    //    FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
+    //}
 }

@@ -8,8 +8,13 @@
 class UStatComponent;
 class USphereComponent;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChanged, float, NewValue, float, MaxValue);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMovableChanged, bool, NewValue);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWaveMode, bool, NewValue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAttack);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnFinishAttack);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSpecialAttack);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnFinishSpecialAttack);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnHitted);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnFinishHitted);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDead);
@@ -30,12 +35,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	bool Attack();
-	
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	bool SpecialAttack();
-
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void OnFinishAttack();
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void OnFinishSpecialAttack();
 
 	// 근접 공격 콜리전 제어
 	UFUNCTION(BlueprintCallable, Category = "Combat")
@@ -126,9 +131,19 @@ private:
 public:
 	// Delegates
 	UPROPERTY(BlueprintAssignable)
+	FOnHealthChanged OnHealthChangedSignature;
+	UPROPERTY(BlueprintAssignable)
+	FOnMovableChanged OnMovableChangedSignature;
+	UPROPERTY(BlueprintAssignable)
+	FOnWaveMode OnWaveModeSignature;
+	UPROPERTY(BlueprintAssignable)
 	FOnAttack OnAttackSignature;
 	UPROPERTY(BlueprintAssignable)
 	FOnFinishAttack OnFinishAttackSignature;
+	UPROPERTY(BlueprintAssignable)
+	FOnSpecialAttack OnSepcialAttackSignature;
+	UPROPERTY(BlueprintAssignable)
+	FOnFinishSpecialAttack OnFinishSpecialAttackSignature;
 	UPROPERTY(BlueprintAssignable)
 	FOnHitted OnHittedSignature;
 	UPROPERTY(BlueprintAssignable)
