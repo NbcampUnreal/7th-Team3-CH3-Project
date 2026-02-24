@@ -1,4 +1,4 @@
-#include "Enemy/EnemyCharacter.h"
+﻿#include "Enemy/EnemyCharacter.h"
 #include "Shared/Component/StatComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Enemy/Controllers/EnemyController.h"
@@ -106,8 +106,7 @@ bool AEnemyCharacter::Attack()
 	{
 		LeftAttackCoolTime = GetAttackCoolTime();
 		PlayAnimMontage(GetAttackMontage());
-		//임시 공격처리
-		// TryMeleeHit();
+		
 		OnAttackSignature.Broadcast();
 		return true;
 	}
@@ -271,6 +270,8 @@ void AEnemyCharacter::TryMeleeHit()
 void AEnemyCharacter::OnHitted()
 {
 	StopAnimMontage();
+	OnHittedSignature.Broadcast();
+
 	if (UAnimMontage* Montage = GetHittedMontage())
 	{
 		PlayAnimMontage(Montage);
@@ -291,8 +292,10 @@ void AEnemyCharacter::OnFinishHitted()
 
 void AEnemyCharacter::OnDead()
 {
+	bIsDead = true;
 	StopAnimMontage();
 	DeactiveMove();
+	OnDeadSignature.Broadcast();
 
 	UCapsuleComponent* Capsule = GetCapsuleComponent();
 	Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -309,10 +312,13 @@ void AEnemyCharacter::OnDead()
 
 void AEnemyCharacter::OnFinishDead()
 {
+	OnFinishDeadSignature.Broadcast();
 	EnableRagdoll();
 	DisableWeaponCollision();
 	SetLifeSpan(5.f);
-	OnFinishDeadSignature.Broadcast();
+	UE_LOG(LogTemp, Warning, TEXT("Pause=%d Sim=%d"),
+    GetMesh()->bPauseAnims,
+    GetMesh()->IsSimulatingPhysics());
 }
 
 float AEnemyCharacter::TakeDamage(
@@ -332,20 +338,16 @@ float AEnemyCharacter::TakeDamage(
 	ApplyDamageToStat(DamageAmount);
 
 	// Hitted or Dead 상태 전환
-	//AEnemyController* EnemyController = Cast<AEnemyController>(GetController());
 	AAIController* AIController = Cast<AAIController>(GetController());
 	if (!AIController) return DamageAmount;
 
 	if (StatComp->GetBaseStatValue(FName("Health")) <= 0.f)
 	{
-		//EnemyController->ChangeState(EnemyController->GetDeadState());
-		OnDeadSignature.Broadcast();
-		bIsDead = true;
+		OnDead();
 	}
 	else
 	{
-		OnHittedSignature.Broadcast();
-		//EnemyController->ChangeState(EnemyController->GetHittedState());
+		OnHitted();
 	}
 
 	return DamageAmount;
@@ -490,6 +492,7 @@ void AEnemyCharacter::ApplyDamageToStat(float DamageAmount)
 
 	StatComp->SetBaseStatValue(FName("Health"), CurrentHealth - Damage);
 	UE_LOG(LogTemp, Warning, TEXT("Get %f damage! Defence : %f, Take ActualDamage : %f | CurrentHealth : %f"), DamageAmount, Defence, Damage, StatComp->GetCurrentStatValue(FName("Health")));
+	
 	OnHealthChangedSignature.Broadcast(
 		StatComp->GetCurrentStatValue(FName("Health")),
 		StatComp->GetMaxStatValue(FName("Health")));
@@ -500,6 +503,8 @@ void AEnemyCharacter::EnableRagdoll()
 	if (!GetMesh()) return;
 
 	bRagdollEnabled = true;
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetMesh()->bPauseAnims = true;
 	GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
 	GetMesh()->SetSimulatePhysics(true);
 	GetMesh()->WakeAllRigidBodies();

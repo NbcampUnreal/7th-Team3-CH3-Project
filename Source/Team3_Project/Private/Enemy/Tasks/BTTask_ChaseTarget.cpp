@@ -38,7 +38,8 @@ EBTNodeResult::Type UBTTask_ChaseTarget::ExecuteTask(
     }
 
     AIController->ReceiveMoveCompleted.AddDynamic(this, &UBTTask_ChaseTarget::HandleMoveCompleted);
-
+    AIController->SetFocus(TargetActor);
+    UE_LOG(LogTemp, Warning, TEXT("Focus=%s"), *GetNameSafe(AIController->GetFocusActor()));
     // ========================================
     // 추적 속도 설정
     // ========================================
@@ -57,7 +58,7 @@ EBTNodeResult::Type UBTTask_ChaseTarget::ExecuteTask(
         AcceptanceRadius,
         bStopOnOverlap,
         true,  // bUsePathfinding
-        true,  // bCanStrafe
+        false,  // bCanStrafe
         nullptr,
         bAllowPartialPath
     );
@@ -148,10 +149,13 @@ void UBTTask_ChaseTarget::OnTaskFinished(
 
 void UBTTask_ChaseTarget::HandleMoveCompleted(FAIRequestID RequestID, EPathFollowingResult::Type Result)
 {
-    // 델리게이트 해제
-    if (AAIController* AICon = CachedAICon.Get())
-        AICon->ReceiveMoveCompleted.RemoveDynamic(this, &UBTTask_ChaseTarget::HandleMoveCompleted);
+    if (AAIController* AIController = CachedAICon.Get())
+    {
+        // 델리게이트 해제
+        AIController->ReceiveMoveCompleted.RemoveDynamic(this, &UBTTask_ChaseTarget::HandleMoveCompleted);
 
+        AIController->ClearFocus(EAIFocusPriority::Gameplay);
+    }
     if (!CachedOwnerComp) return;
 
     const bool bSuccess = Result == EPathFollowingResult::Type::Success;
