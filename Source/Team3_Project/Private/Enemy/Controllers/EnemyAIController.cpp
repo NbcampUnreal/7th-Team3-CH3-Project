@@ -8,6 +8,7 @@
 #include "Perception/AISense_Hearing.h"
 #include "Enemy/EnemyCharacter.h"
 #include "Components/SplineComponent.h"
+#include "Player/PlayerCharacter.h"
 
 AEnemyAIController::AEnemyAIController()
 {
@@ -146,7 +147,7 @@ void AEnemyAIController::SetWaveMode(bool bEnabled)
 
 void AEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
-    ACharacter* PlayerCharacter = Cast<ACharacter>(Actor);
+    APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(Actor);
     if (!PlayerCharacter) return;
 
     AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(GetPawn());
@@ -231,16 +232,23 @@ void AEnemyAIController::OnDead()
     UBlackboardComponent* BB = GetBlackboardComponent();
     if (!BB) return;
     BB->SetValueAsBool(FName("bIsDead"), true);
-}
 
-void AEnemyAIController::OnFinishDead()
-{
-    StopMovement();
     if (UBrainComponent* Brain = GetBrainComponent())
     {
         Brain->StopLogic(TEXT("Dead"));
     }
     ClearFocus(EAIFocusPriority::Gameplay);
+}
+
+void AEnemyAIController::OnFinishDead()
+{
+    StopMovement();
+    ClearFocus(EAIFocusPriority::Gameplay);
+
+    if (UBrainComponent* Brain = GetBrainComponent())
+    {
+        Brain->StopLogic(TEXT("Dead"));
+    }
 }
 
 void AEnemyAIController::SetMovable(bool IsMovable)

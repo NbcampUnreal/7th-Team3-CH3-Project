@@ -16,6 +16,7 @@
 #include "Enemy/DeadState.h"
 #include "NavigationSystem.h"
 #include "Navigation//PathFollowingComponent.h"
+#include "Player/PlayerCharacter.h"
 
 AEnemyController::AEnemyController()
     :AIPerceptionComponent(nullptr),
@@ -121,9 +122,11 @@ void AEnemyController::OnPossess(APawn* InPawn)
         if (UCharacterMovementComponent* MoveComp = PossessedCharacter->GetCharacterMovement())
         {
             MoveComp->bOrientRotationToMovement = true;
-
         }
         TargetLocation = InPawn->GetActorLocation();
+
+        // Binding
+        PossessedCharacter->OnWaveModeSignature.AddDynamic(this, &AEnemyController::SetWaveMode);
 
         if (PossessedCharacter->IsForWave())
         {
@@ -270,8 +273,11 @@ float AEnemyController::GetChaseSpeed() const
 
 void AEnemyController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
+    // Wave 모드면 아예 갱신을 막아버리자
+    if (IsForWave()) return;
+
     // PlayerCharacter 클래스로 추후 수정
-    ACharacter* PlayerCharacter = Cast<ACharacter>(Actor);
+    APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(Actor);
     if (!PlayerCharacter && !PlayerCharacter->ActorHasTag(FName("Player"))) return;
 
     AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(GetPawn());
@@ -320,13 +326,9 @@ void AEnemyController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stim
 
 void AEnemyController::OnTargetPerceptionForgotten(AActor* Actor)
 {
-    if (AEnemyCharacter* EnemyCharacter = Cast<AEnemyCharacter>(GetPawn()))
-    {
-        if (EnemyCharacter->IsForWave())
-        {
-            return;
-        }
-    }
+
+    // Wave 모드면 갱신을 막아버리자
+    if (IsForWave()) return;
 
     if (UBlackboardComponent* BB = GetBlackboardComponent())
     {
