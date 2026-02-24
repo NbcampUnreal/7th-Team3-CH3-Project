@@ -8,6 +8,7 @@
 #include "CraftingStation.generated.h"
 
 class UStaticMeshComponent;
+class UUserWidget;
 
 UCLASS()
 class TEAM3_PROJECT_API ACraftingStation : public AActor, public IInteractionInterface
@@ -19,10 +20,15 @@ public:
 
 	virtual void Interact_Implementation(AActor* Interactor) override;
 
-	UFUNCTION(BlueprintCallable, Category="Crafting")
-	bool TryCraftItem(AActor* Crafter, FName RecipeID);
+	virtual void SetInteractFocus_Implementation(bool bIsFocus) override;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Crafting")
 	UStaticMeshComponent* StationMesh;
+
+	UFUNCTION(BlueprintCallable, Category = "Crafting")
+	void OpenCraftingUI(APlayerController* PC);
+
+	UPROPERTY(EditDefaultsOnly, Category = "Crafting|UI")
+	TSubclassOf<UUserWidget> CraftingWidgetClass;
 };

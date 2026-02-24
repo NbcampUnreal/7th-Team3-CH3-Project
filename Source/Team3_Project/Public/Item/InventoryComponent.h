@@ -11,6 +11,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryUpdated);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnQuickSlotUpdated);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnQuickSlotItemChanged, int32, SlotIndex, FName, ItemID);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnEquipmentChanged, bool, bIsEquipping, FName, ItemID);
 
 //테스트용 딜리게이트
@@ -61,6 +63,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Inventory")
 	FOnQuickSlotUpdated OnQuickSlotUpdated;
+
+	UPROPERTY(BlueprintAssignable, Category = "Inventory")
+	FOnQuickSlotItemChanged OnQuickSlotItemChanged;
 
 	int32 GetCapacity() const { return Capacity; }
 
@@ -114,6 +119,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void SortInventory();
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Crafting")
+	bool CraftItem(const FCraftingRecipe& Recipe);
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")

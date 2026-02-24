@@ -262,6 +262,7 @@ void UInventoryComponent::AssignToQuickSlot(int32 SlotIndex, FName ItemID)
 	{
 		QuickSlots[SlotIndex] = ItemID;
 		OnQuickSlotUpdated.Broadcast();
+		OnQuickSlotItemChanged.Broadcast(SlotIndex, ItemID);
 		UE_LOG(LogTemp, Warning, TEXT("Assigned ItemID %s to Quick Slot %d"), *ItemID.ToString(), SlotIndex);
 	}
 }
@@ -287,6 +288,7 @@ void UInventoryComponent::UseItemFromQuickSlot(int32 SlotIndex)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Used ItemID %s from Quick Slot %d"), *TargetItemID.ToString(), SlotIndex);
 			OnQuickSlotUpdated.Broadcast();
+			OnQuickSlotItemChanged.Broadcast(SlotIndex, TargetItemID);
 		}
 		else
 		{
@@ -366,24 +368,23 @@ void UInventoryComponent::EquipAttachmentFromSlot(int32 InventoryIndex, EAttachm
 
 void UInventoryComponent::UnequipAttachmentToSlot(EAttachmentType AttachmentSlot, int32 TargetInventoryIndex)
 {
-	if (!InventoryContents.IsValidIndex(TargetInventoryIndex))
+	if (TargetInventoryIndex <= -1 || TargetInventoryIndex >= InventoryContents.Num())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Invalid inventory index for unequipping attachment: %d"), TargetInventoryIndex);
-		return;
-	}
-
-	if (TargetInventoryIndex >= InventoryContents.Num())
-	{
-		if (InventoryContents.Num() >= Capacity)
+		TargetInventoryIndex = INDEX_NONE;
+		for (int32 i = 0; i < InventoryContents.Num(); ++i)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Cannot unequip attachment to inventory index %d because inventory is full"), TargetInventoryIndex);
+			if (InventoryContents[i].ItemID.IsNone())
+			{
+				TargetInventoryIndex = i;
+				break;
+			}
+		}
+
+		if (TargetInventoryIndex == INDEX_NONE)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Cannot unequip item to inventory because it is full"));
 			return;
 		}
-		TargetInventoryIndex = InventoryContents.Num();
-	}
-	if (TargetInventoryIndex == InventoryContents.Num())
-	{
-		InventoryContents.AddDefaulted();
 	}
 
 	AWeaponItem* Weapon = GetEquippedWeapon();
@@ -523,7 +524,9 @@ void UInventoryComponent::EquipItemFromInventory(int32 InventoryIndex, ESlotType
 	}
 	else
 	{
-		InventoryContents.RemoveAt(InventoryIndex);
+		InventoryContents[InventoryIndex].ItemID = NAME_None;
+		InventoryContents[InventoryIndex].Quantity = 0;
+		InventoryContents[InventoryIndex].AttachmentState.Empty();
 	}
 
 
@@ -547,18 +550,23 @@ void UInventoryComponent::UnequipItemToInventory(ESlotType SourceSlotType, int32
 		return;
 	}
 
-	if (TargetInventoryIndex >= InventoryContents.Num())
+	if (TargetInventoryIndex <= -1 || TargetInventoryIndex >= InventoryContents.Num())
 	{
-		if (InventoryContents.Num() >= Capacity)
+		TargetInventoryIndex = INDEX_NONE;
+		for (int32 i = 0; i < InventoryContents.Num(); ++i)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Inventory is full, cannot unequip item from slot %d"), static_cast<int32>(SourceSlotType));
+			if (InventoryContents[i].ItemID.IsNone())
+			{
+				TargetInventoryIndex = i;
+				break;
+			}
+		}
+
+		if (TargetInventoryIndex == INDEX_NONE)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Cannot unequip item to inventory because it is full"));
 			return;
 		}
-		TargetInventoryIndex = InventoryContents.Num();
-	}
-	if (TargetInventoryIndex == InventoryContents.Num())
-	{
-		InventoryContents.AddDefaulted();
 	}
 
 	FInventoryItem& TargetSlotItem = InventoryContents[TargetInventoryIndex];
@@ -621,7 +629,7 @@ void UInventoryComponent::UnequipItemToInventory(ESlotType SourceSlotType, int32
 		else
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Unequipped item from slot %d to new inventory index %d"), static_cast<int32>(SourceSlotType), InventoryContents.Num() - 1);
-			UnequipItemToInventory(SourceSlotType, InventoryContents.Num());
+			UnequipItemToInventory(SourceSlotType, -1);
 		}
 	}
 	OnInventoryUpdated.Broadcast();
@@ -704,27 +712,75 @@ void UInventoryComponent::SortInventory()
 
 	InventoryContents.Sort([ItemDataSubsystem](const FInventoryItem& A, const FInventoryItem& B)
 		{
-			if (A.ItemID.IsNone() && B.ItemID.IsNone())
+			bool isAEmpty = A.ItemID.IsNone() || !A.ItemID.IsValid();
+			bool isBEmpty = B.ItemID.IsNone() || !B.ItemID.IsValid();
+
+			if (isAEmpty && isBEmpty)
 			{
-				return false; // 둘 다 빈 슬롯이면 순서 유지
+				return false; // 둘 다 비어있으면 순서 유지
 			}
-			if (A.ItemID.IsNone())
+			if (isAEmpty)
 			{
-				return false; // A가 빈 슬롯이면 B가 앞에 오도록
+				return false; // A가 비어있으면 B가 앞에 오도록
 			}
-			if (B.ItemID.IsNone())
+			if (isBEmpty)
 			{
-				return true; // B가 빈 슬롯이면 A가 앞에 오도록
+				return true; // B가 비어있으면 A가 앞에 오도록
 			}
 
 			FItemData ItemDataA = ItemDataSubsystem->GetItemDataByID(A.ItemID);
 			FItemData ItemDataB = ItemDataSubsystem->GetItemDataByID(B.ItemID);
 
-			return ItemDataA.DisplayName.ToString() < ItemDataB.DisplayName.ToString(); // 이름 기준으로 정렬
+			FString NameA = ItemDataA.DisplayName.IsEmpty() ? TEXT("") : ItemDataA.DisplayName.ToString();
+			FString NameB = ItemDataB.DisplayName.IsEmpty() ? TEXT("") : ItemDataB.DisplayName.ToString();
+
+			if (NameA == NameB)
+			{
+				return A.Quantity > B.Quantity; // 이름이 같으면 수량이 많은 순서로
+			}
+
+			return NameA < NameB; // 이름이 다르면 알파벳 순서로
 		}
 	);
 
 	OnInventoryUpdated.Broadcast();
+}
+
+bool UInventoryComponent::CraftItem(const FCraftingRecipe& Recipe)
+{
+	for (const FCraftingIngredient& Ingredient : Recipe.RequiredIngredients)
+	{
+		if (!HasItem(Ingredient.ItemID, Ingredient.Quantity))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Missing ingredient ItemID %s with quantity %d for crafting"), *Ingredient.ItemID.ToString(), Ingredient.Quantity);
+			return false;
+		}
+	}
+
+	//인벤토리 용량 체크
+	int32 EmptySlots = 0;
+	for (const FInventoryItem& InventoryItem : InventoryContents)
+	{
+		if (InventoryItem.ItemID.IsNone())
+		{
+			EmptySlots++;
+		}
+	}
+	if (EmptySlots < 1)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Not enough inventory space to craft item"));
+		return false;
+	}
+
+	for (const FCraftingIngredient& Ingredient : Recipe.RequiredIngredients)
+	{
+		RemoveItem(Ingredient.ItemID, Ingredient.Quantity);
+	}
+	AddItem(Recipe.ResultItemID, Recipe.ResultQuantity);
+	UE_LOG(LogTemp, Warning, TEXT("Crafted item ItemID %s with quantity %d"), *Recipe.ResultItemID.ToString(), Recipe.ResultQuantity);
+	OnInventoryUpdated.Broadcast();
+
+	return true;
 }
 
 

@@ -160,7 +160,8 @@ void ABaseItem::Tick(float DeltaTime)
 	}
 }
 
-void ABaseItem::SetItemFocus(bool bIsFocus)
+
+void ABaseItem::SetInteractFocus_Implementation(bool bIsFocus)
 {
 	if (LootWidget)
 	{
