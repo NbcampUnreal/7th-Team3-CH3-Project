@@ -37,7 +37,7 @@ ABaseItem::ABaseItem()
 
 }
 
-void ABaseItem::Interact(AActor* Interactor)
+void ABaseItem::Interact_Implementation(AActor* Interactor)
 {
 	// 상호작용하는 액터가 유효한지 확인
 	if (!Interactor)
@@ -155,26 +155,8 @@ void ABaseItem::Tick(float DeltaTime)
 	}
 }
 
-FText ABaseItem::GetInteractionPrompt_Implementation()
-{
-	UGameInstance* GameInstance = UGameplayStatics::GetGameInstance(this);
-	if (!GameInstance)
-	{
-		return FText::GetEmpty();
-	}
-	UItemDataSubsystem* ItemDataSubsystem = GameInstance->GetSubsystem<UItemDataSubsystem>();
-	if (ItemDataSubsystem)
-	{
-		FItemData Data = ItemDataSubsystem->GetItemDataByID(ItemID);
-		return FText::Format(NSLOCTEXT("Interaction", "PickupPrompt", "Press E to pick up {0}"), Data.DisplayName);
-	}
-	else
-	{
-		return FText::GetEmpty();
-	}
-}
 
-void ABaseItem::SetItemFocus(bool bIsFocus)
+void ABaseItem::SetInteractFocus_Implementation(bool bIsFocus)
 {
 	if (LootWidget)
 	{

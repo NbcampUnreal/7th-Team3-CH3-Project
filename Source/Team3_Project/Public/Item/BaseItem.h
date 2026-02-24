@@ -20,8 +20,8 @@ class TEAM3_PROJECT_API ABaseItem : public AActor, public IInteractionInterface
 public:	
 	ABaseItem();
 
-	UFUNCTION(BlueprintCallable, Category = "Interaction")
-	virtual void Interact(AActor* Interactor) override;
+	
+	virtual void Interact_Implementation(AActor* Interactor) override;
 
 	virtual void BeginPlay() override;
 
@@ -34,8 +34,6 @@ public:
 	void SetItemID(FName NewItemID) { ItemID = NewItemID; }
 
 	void SetQuantity(int32 NewQuantity) { Quantity = NewQuantity; }
-
-	virtual FText GetInteractionPrompt_Implementation() override;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item")
@@ -53,9 +51,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item")
 	UWidgetComponent* LootWidget;
 
-
-	UFUNCTION(BlueprintCallable, Category = "Item")
-	void SetItemFocus(bool bIsFocus);
+	virtual void SetInteractFocus_Implementation(bool bIsFocus) override;
 
 	void UpdateLootWidgetTransform();
 };

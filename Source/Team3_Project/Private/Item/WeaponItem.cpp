@@ -549,7 +549,7 @@ void AWeaponItem::ApplyAttachmentState(const TMap<EAttachmentType, FName>& InAtt
 	}
 }
 
-void AWeaponItem::Interact(AActor* Interactor)
+void AWeaponItem::Interact_Implementation(AActor* Interactor)
 {
 	if (!Interactor)
 	{
