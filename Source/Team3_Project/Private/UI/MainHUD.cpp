@@ -9,6 +9,8 @@
 #include "Core/ItemDataSubsystem.h"
 #include "Shared/ItemTypes.h"
 #include "Item/WeaponItem.h"
+#include "Player/PlayerCharacter.h"
+#include "Core/MainGameState.h"
 
 UMainHUD::UMainHUD(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -38,6 +40,13 @@ void UMainHUD::NativeConstruct()
     OnQuestFinished.AddDynamic(this, &UMainHUD::FinishQuest);
     OnWaveStarted.AddDynamic(this, &UMainHUD::StartWaveUI);
     OnWaveEnded.AddDynamic(this, &UMainHUD::ReceiveTeamData);*/
+   
+    /*AMainGameState* GameState = GetWorld()->GetGameState<AMainGameState>();
+    if (GameState)
+    {
+        GameState->OnWaveStart.AddDynamic(this, &UMainHUD::StartWaveUI);
+        GameState->OnWaveEnd.AddDynamic(this, &UMainHUD::EndWaveUI);
+    }*/
 
     APawn* PlayerPawn = GetOwningPlayerPawn();
     if (PlayerPawn)
@@ -46,13 +55,22 @@ void UMainHUD::NativeConstruct()
         if (InvComp)
         {
             InvComp->OnQuickSlotUpdated.AddDynamic(this, &UMainHUD::OnQuickSlotRefreshAll);
-           // InvComp->OnEquipmentChanged.AddDynamic(this, &UMainHUD::UpdateQuickSlotUI);
+            InvComp->OnQuickSlotItemChanged.AddDynamic(this, &UMainHUD::OnQuickSlotItemChanged);
+
             InvComp->OnWeaponChanged.AddDynamic(this, &UMainHUD::OnWeaponEquipChanged);
 
             UpdateQuickSlotUI();
         }
     }
    
+    /*APlayerCharacter* PlayerChar = Cast<APlayerCharacter>(PlayerPawn);
+    if (PlayerChar)
+    {
+        PlayerChar->OnHealthChanged.AddDynamic(this, &UMainHUD::UpdateHealth);
+        PlayerChar->OnStaminaChanged.AddDynamic(this, &UMainHUD::UpdateStamina);
+        //PlayerChar->OnWhiteKarmaChanged.AddDynamic(this, &UMainHUD::UpdateWhiteKarma);
+        //PlayerChar->OnBlackKarmaChanged.AddDynamic(this, &UMainHUD::UpdateBlackKarma);
+    }*/
 
     if (Timer) Timer->SetVisibility(ESlateVisibility::Collapsed);
     RefreshQuestIcon();
@@ -147,14 +165,14 @@ void UMainHUD::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
     }
 }
 
-void UMainHUD::AddNewQuest(int32 ID, FString Title, FString Desc)
+void UMainHUD::AddNewQuest(int32 ID, FString Title, FString Desc, int32 MaxCount)
 {
     if (QuestList && QuestItemClass)
     {
         UQuestItemWidget* NewItem = CreateWidget<UQuestItemWidget>(this, QuestItemClass);
         if (NewItem)
         {
-            NewItem->SetQuestText(ID, Title, Desc); // ID 전달
+            NewItem->UpdateQuestProgress(Title, Desc, 0, MaxCount);
             QuestList->AddChildToVerticalBox(NewItem);
             QuestMap.Add(ID, NewItem);
             RefreshQuestIcon();
@@ -194,22 +212,22 @@ void UMainHUD::UpdateKills(int32 Kills)
 
 void UMainHUD::UpdateHealth(float Health) 
 { 
-    TargetHealth = Health; 
+    TargetHealth = FMath::Clamp(Health / 100.0f, 0.0f, 1.0f);
 }
 
 void UMainHUD::UpdateStamina(float Stamina) 
 {
-    TargetStamina = Stamina; 
+    TargetStamina = FMath::Clamp(Stamina / 100.0f, 0.0f, 1.0f);
 }
 
 void UMainHUD::UpdateWhiteKarma(float White) 
 { 
-    TargetWhiteKarma = White; 
+    TargetWhiteKarma = FMath::Clamp(White / 100.0f, 0.0f, 1.0f);
 }
 
 void UMainHUD::UpdateBlackKarma(float Black) 
 { 
-    TargetBlackKarma = Black; 
+    TargetBlackKarma = FMath::Clamp(Black / 100.0f, 0.0f, 1.0f);
 }
 
 void UMainHUD::StartWaveUI(FString Message, float WaveTime)
@@ -297,21 +315,21 @@ void UMainHUD::UpdateQuickSlotImage(int32 SlotIndex, UTexture2D* IconTexture)
     {
         if (IconTexture)
         {
-            // 아이템 O -> 불투명
+            // 아이템 O 
             SlotArray[SlotIndex]->SetBrushFromTexture(IconTexture);
             SlotArray[SlotIndex]->SetOpacity(1.0f);
         }
         else
         {
-            // 아이템 X -> 반투명
-            SlotArray[SlotIndex]->SetOpacity(0.5f);
+            // 아이템 X 
+            SlotArray[SlotIndex]->SetOpacity(0.2f);
         }
     }
 }
 
 void UMainHUD::OnQuickSlotItemChanged(int32 SlotIndex, FName ItemID)
 {
-    UItemDataSubsystem* ItemSubsystem = GetGameInstance()->GetSubsystem<UItemDataSubsystem>();
+   /* UItemDataSubsystem* ItemSubsystem = GetGameInstance()->GetSubsystem<UItemDataSubsystem>();
     if (ItemSubsystem)
     {
         FItemData ItemData = ItemSubsystem->GetItemDataByID(ItemID);
@@ -328,7 +346,23 @@ void UMainHUD::OnQuickSlotItemChanged(int32 SlotIndex, FName ItemID)
             // 데이터가 없으면 슬롯 비우기
             UpdateQuickSlotImage(SlotIndex, nullptr);
         }
+    }*/
+
+    UItemDataSubsystem* ItemSubsystem = GetGameInstance()->GetSubsystem<UItemDataSubsystem>();
+    if (!ItemSubsystem) return;
+
+    if (!ItemID.IsNone())
+    {
+        FItemData ItemData = ItemSubsystem->GetItemDataByID(ItemID);
+        if (!ItemData.ItemID.IsNone())
+        {
+            UTexture2D* LoadedIcon = ItemData.Icon.LoadSynchronous();
+            UpdateQuickSlotImage(SlotIndex, LoadedIcon);
+            return;
+        }
     }
+
+    UpdateQuickSlotImage(SlotIndex, nullptr);
 }
 
 void UMainHUD::UpdateQuickSlotUI()
@@ -339,13 +373,10 @@ void UMainHUD::UpdateQuickSlotUI()
         UInventoryComponent* InvComp = PlayerPawn->FindComponentByClass<UInventoryComponent>();
         if (InvComp)
         {
-            // 인벤토리의 QuickSlots 배열을 순회
             for (int32 i = 0; i < InvComp->QuickSlots.Num(); ++i)
             {
-                // HUD의 슬롯 배열(SlotArray) 범위 내에 있는지 확인
                 if (SlotArray.IsValidIndex(i))
                 {
-                    // 해당 인덱스의 아이템 ID를 가져와서 UI를 갱신
                     FName ItemID = InvComp->QuickSlots[i];
                     OnQuickSlotItemChanged(i, ItemID);
                 }
@@ -396,21 +427,54 @@ void UMainHUD::OnWeaponEquipChanged(bool bIsEquipping, FName ItemID)
 
             if (IconTexture)
             {
-                Img_GunInformation->SetBrushFromTexture(IconTexture);
-                Img_GunInformation->SetVisibility(ESlateVisibility::Visible);
+                Img_GunInformation->SetBrushFromTexture(IconTexture);  
+            }
+
+            if (bIsEquipping)
+            {
+                Img_GunInformation->SetOpacity(1.0f);
+            }
+            else
+            {
+                Img_GunInformation->SetOpacity(0.3f);
             }
         }
     }
-    else
+    /*else
     {
-        Img_GunInformation->SetVisibility(ESlateVisibility::Hidden);
+        //Img_GunInformation->SetVisibility(ESlateVisibility::Hidden);
 
-        /*if (Txt_CurrentAmmo && Txt_Divider && Txt_MaxAmmo)
+        if (Txt_CurrentAmmo && Txt_Divider && Txt_MaxAmmo)
         {
             Txt_CurrentAmmo->SetVisibility(ESlateVisibility::Hidden);
             Txt_Divider->SetVisibility(ESlateVisibility::Hidden);
             Txt_MaxAmmo->SetVisibility(ESlateVisibility::Hidden);
-        }*/
+        }
+    }*/
+
+    APawn* PlayerPawn = GetOwningPlayerPawn();
+    if (PlayerPawn)
+    {
+        UInventoryComponent* InvComp = PlayerPawn->FindComponentByClass<UInventoryComponent>();
+        if (InvComp)
+        {
+            AWeaponItem* EquippedWeapon = InvComp->GetEquippedWeapon();
+            if (EquippedWeapon)
+            {
+                EquippedWeapon->OnAmmoChanged.RemoveDynamic(this, &UMainHUD::OnAmmoChanged);
+                if (bIsEquipping)
+                {
+                    EquippedWeapon->OnAmmoChanged.AddDynamic(this, &UMainHUD::OnAmmoChanged);
+                    OnAmmoChanged(0,0);
+                }
+                else
+                {
+                    Txt_CurrentAmmo->SetVisibility(ESlateVisibility::Hidden);
+                    Txt_Divider->SetVisibility(ESlateVisibility::Hidden);
+                    Txt_MaxAmmo->SetVisibility(ESlateVisibility::Hidden);
+                }
+            }
+        }
     }
 }
 
@@ -438,6 +502,19 @@ void UMainHUD::OnAmmoChanged(int32 CurrentAmmo, int32 MaxAmmo)
         else
         {
             Txt_CurrentAmmo->SetColorAndOpacity(FSlateColor(FLinearColor::White));
+        }
+    }
+}
+
+void UMainHUD::UpdateQuestCount(int32 ID, FString Title, FString Desc, int32 Current, int32 Max)
+{
+    if (QuestMap.Contains(ID))
+    {
+        QuestMap[ID]->UpdateQuestProgress(Title, Desc, Current, Max);
+
+        if (Current >= Max)
+        {
+            FinishQuest(ID);
         }
     }
 }

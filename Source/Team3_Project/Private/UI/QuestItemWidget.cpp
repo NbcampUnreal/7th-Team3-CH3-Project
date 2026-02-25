@@ -26,3 +26,27 @@ void UQuestItemWidget::DestroyQuestItem()
 {
     RemoveFromParent();
 }
+
+void UQuestItemWidget::UpdateQuestProgress(FString Title, FString Desc, int32 Current, int32 Max)
+{
+    if (Txt_QuestTitle)
+    {
+        Txt_QuestTitle->SetText(FText::FromString(Title));
+    }
+
+    if (Txt_QuestDesc)
+    {
+        FString ProgressText;
+
+        if (Max > 1)
+        {
+            ProgressText = FString::Printf(TEXT("%s (%d/%d)"), *Desc, Current, Max);
+        }
+        else
+        {
+            ProgressText = Desc;
+        }
+
+        Txt_QuestDesc->SetText(FText::FromString(ProgressText));
+    }
+}

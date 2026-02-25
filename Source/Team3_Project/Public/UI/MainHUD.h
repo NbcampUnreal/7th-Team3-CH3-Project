@@ -93,7 +93,7 @@ public:
     UFUNCTION(BlueprintCallable, Category = "HUD") void UpdateBlackKarma(float Black);
     UFUNCTION(BlueprintCallable, Category = "HUD") void StartWaveUI(FString Message, float WaveTime);
     UFUNCTION(BlueprintCallable, Category = "HUD") void EndWaveUI(bool bSuccess, int32 Bonus);
-    UFUNCTION(BlueprintCallable, Category = "HUD") void AddNewQuest(int32 ID, FString Title, FString Desc);
+    UFUNCTION(BlueprintCallable, Category = "HUD") void AddNewQuest(int32 ID, FString Title, FString Desc, int32 MaxCount);
     UFUNCTION(BlueprintCallable, Category = "HUD") void FinishQuest(int32 ID);
     UFUNCTION(BlueprintCallable, Category = "HUD") void ReceiveTeamData(bool bSuccess, int32 Bonus);
 
@@ -108,4 +108,5 @@ public:
     UFUNCTION(BlueprintCallable) void HighlightQuickSlot(int32 SlotIndex);
     UFUNCTION() void OnWeaponEquipChanged(bool bIsEquipping, FName ItemID);
     UFUNCTION(BlueprintCallable, Category = "HUD") void OnAmmoChanged(int32 CurrentAmmo, int32 MaxAmmo);
+    UFUNCTION(BlueprintCallable) void UpdateQuestCount(int32 ID, FString Title, FString Desc, int32 Current, int32 Max);
 };
