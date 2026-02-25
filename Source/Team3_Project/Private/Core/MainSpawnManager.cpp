@@ -18,11 +18,12 @@ AMainSpawnManager::AMainSpawnManager() :
 
 void AMainSpawnManager::SpawnEventZone()
 {
-	if (ZoneLocation.IsValidIndex(-1)) return;
+	if (ZoneLocation.IsEmpty()) return;
 
 	if (EventZoneClass == nullptr) return;
 
 	AMainGameState* CurrentGameState = AMainGameState::Get(GetWorld());
+	if (!CurrentGameState) return;
 
 	for (int i = 0; i < ZoneLocation.Num(); i++)
 	{
@@ -34,19 +35,24 @@ void AMainSpawnManager::SpawnEventZone()
 			FRotator::ZeroRotator
 		);
 
+		if (EventZoneInstance)
+		{
 		EventZoneInstance->InitId(SpawnerId);
 		CurrentGameState->FindEventZone(SpawnerId, EventZoneInstance);
+		}
 	}
 }
 
 void AMainSpawnManager::SpawnEnemySpawner()
 {
-	if (SpawnerLocation.IsValidIndex(-1)) return;
+	if (SpawnerLocation.IsEmpty()) return;
 
 	if (EnemySpawnerClass == nullptr) return;
 
 	AMainGameState* CurrentGameState = AMainGameState::Get(GetWorld());
 	
+	if (!CurrentGameState) return;
+
 	for (int i = 0; i < SpawnerLocation.Num(); i++)
 	{
 		const int32 SpawnerId = i + 1;
@@ -57,11 +63,13 @@ void AMainSpawnManager::SpawnEnemySpawner()
 			FRotator::ZeroRotator
 		);
 
-		SpawnerInstance->InitId(SpawnerId);
-		CurrentGameState->FindSpawner(SpawnerId, SpawnerInstance);
+		if (SpawnerInstance)
+		{
+			SpawnerInstance->InitId(SpawnerId);
+			CurrentGameState->FindSpawner(SpawnerId, SpawnerInstance);
+		}
 	}
 }
-
 void AMainSpawnManager::BeginPlay()
 {
 	Super::BeginPlay();

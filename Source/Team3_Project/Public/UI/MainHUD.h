@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
@@ -39,6 +39,8 @@ protected:
     UPROPERTY(meta = (BindWidget)) class UTextBlock* Txt_SlotNum_6;
     UPROPERTY(meta = (BindWidget)) class UTextBlock* Txt_SlotNum_7;
     UPROPERTY(meta = (BindWidget)) class UTextBlock* Txt_SlotNum_8;
+
+	UPROPERTY(meta = (BindWidget)) class UTextBlock* Txt_AmmoInfo;
 
     UPROPERTY() TArray<class UTextBlock*> SlotNumArray;
 
@@ -110,4 +112,7 @@ public:
     void HighlightQuickSlot(int32 SlotIndex);
     UFUNCTION()
     void OnWeaponEquipChanged(bool bIsEquipping, FName ItemID);
+
+    UFUNCTION()
+	void OnAmmoChanged(int32 CurrentAmmo, int32 MaxAmmo);
 };

@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Player/PlayerCharacter.h"
@@ -17,12 +17,15 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
+#include "Shared/InteractionInterface.h"
+#include "Item/InventoryComponent.h"
 
 APlayerCharacter::APlayerCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
 	StatComp = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
+	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComponent"));
 	CurrentState = ECharacterState::Idle;
 }
 
@@ -45,6 +48,94 @@ void APlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	PrintDebugInfo();
+	UpdateInteractableFocus();
+}
+
+void APlayerCharacter::UpdateInteractableFocus()
+{
+	FVector TraceStart;
+	FRotator TraceRot;
+
+	if (GetController())
+	{
+		GetController()->GetPlayerViewPoint(TraceStart, TraceRot);
+	}
+	else
+	{
+		TraceStart = GetActorLocation();
+		TraceRot = GetActorRotation();
+	}
+
+	FVector TraceEnd = TraceStart + (TraceRot.Vector() * InteractionRange);
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(this);
+
+	FHitResult HitResult;
+	AActor* TargetActor = nullptr;
+
+	if (GetWorld()->LineTraceSingleByChannel(
+		HitResult,
+		TraceStart, 
+		TraceEnd, 
+		ECC_Visibility, 
+		QueryParams
+	))
+	{
+		AActor* HitActor = HitResult.GetActor();
+		if (HitActor && HitActor->Implements<UInteractionInterface>())
+		{
+			TargetActor = HitActor;
+		}
+	}
+
+	if (!TargetActor)
+	{
+		FVector SweepStart = GetActorLocation();
+		FCollisionShape SphereShape = FCollisionShape::MakeSphere(InteractionRadius);
+		TArray<FHitResult> OverlapResults;
+
+		if (GetWorld()->SweepMultiByChannel(
+			OverlapResults,
+			SweepStart,
+			SweepStart,
+			FQuat::Identity,
+			ECC_Visibility,
+			SphereShape,
+			QueryParams
+		))
+		{
+			float MinDistance = MAX_FLT;
+
+			for (const FHitResult& Result : OverlapResults)
+			{
+				AActor* OverlappedActor = Result.GetActor();
+				if (OverlappedActor && OverlappedActor->Implements<UInteractionInterface>())
+				{
+					float Distance = FVector::Dist(SweepStart, OverlappedActor->GetActorLocation());
+					if (Distance < MinDistance)
+					{
+						MinDistance = Distance;
+						TargetActor = OverlappedActor;
+					}
+				}
+			}
+		}
+	}
+
+	if (CurrentFocusItem != TargetActor)
+	{
+		if (CurrentFocusItem && CurrentFocusItem->Implements<UInteractionInterface>())
+		{
+			IInteractionInterface::Execute_SetInteractFocus(CurrentFocusItem, false);
+		}
+
+		CurrentFocusItem = TargetActor;
+
+		if (CurrentFocusItem && CurrentFocusItem->Implements<UInteractionInterface>())
+		{
+			IInteractionInterface::Execute_SetInteractFocus(CurrentFocusItem, true);
+		}
+	}
 }
 
 void APlayerCharacter::NotifyControllerChanged()
@@ -69,7 +160,7 @@ void APlayerCharacter::Attack()
 {
 	if (CurrentWeapon)
 	{
-		CurrentWeapon->StartFire(); // ¿¬»ç/´Ü»ç ·ÎÁ÷Àº WeaponItem ³»ºÎ Å¸ÀÌ¸Ó°¡ Ã³¸®ÇÔ
+		CurrentWeapon->StartFire(); // ì—°ì‚¬/ë‹¨ì‚¬ ë¡œì§ì€ WeaponItem ë‚´ë¶€ íƒ€ì´ë¨¸ê°€ ì²˜ë¦¬í•¨
 	}
 }
 
@@ -87,7 +178,7 @@ void APlayerCharacter::Reload()
 
 void APlayerCharacter::EquipWeapon(FName ItemID)
 {
-	// Åä±Û : °°Àº ¹«±â ´Ù½Ã ´©¸£¸é ÇØÁ¦
+	// í† ê¸€ : ê°™ì€ ë¬´ê¸° ë‹¤ì‹œ ëˆ„ë¥´ë©´ í•´ì œ
 	if (CurrentWeaponItemID == ItemID && CurrentWeapon)
 	{
 		CurrentWeapon->Destroy();
@@ -97,7 +188,7 @@ void APlayerCharacter::EquipWeapon(FName ItemID)
 		return;
 	}
 
-	// µ¥ÀÌÅÍ Á¶È¸
+	// ë°ì´í„° ì¡°íšŒ
 	UGameInstance* GI = UGameplayStatics::GetGameInstance(this);
 	if (!GI) return;
 
@@ -106,21 +197,21 @@ void APlayerCharacter::EquipWeapon(FName ItemID)
 
 	FItemData Data = Subsystem->GetItemDataByID(ItemID);
 
-	// ±âÁ¸ ¹«±â Á¦°Å
+	// ê¸°ì¡´ ë¬´ê¸° ì œê±°
 	if (CurrentWeapon)
 	{
 		CurrentWeapon->Destroy();
 		CurrentWeapon = nullptr;
 	}
 
-	// Weapon Å¸ÀÔÀÌ ¾Æ´Ï°Å³ª Å¬·¡½º°¡ ¾øÀ¸¸é ½ºÅµ
+	// Weapon íƒ€ìž…ì´ ì•„ë‹ˆê±°ë‚˜ í´ëž˜ìŠ¤ê°€ ì—†ìœ¼ë©´ ìŠ¤í‚µ
 	if (Data.ItemType != EItemType::IT_Weapon || Data.ItemClass.IsNull())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("EquipWeapon: Invalid item or no WeaponActorClass: %s"), *ItemID.ToString());
 		return;
 	}
 
-	// ºñµ¿±â ·Îµå (°ÔÀÓ ¾È¸ØÃß°í ¹é±×¶ó¿îµå¿¡¼­ ·Îµå)
+	// ë¹„ë™ê¸° ë¡œë“œ (ê²Œìž„ ì•ˆë©ˆì¶”ê³  ë°±ê·¸ë¼ìš´ë“œì—ì„œ ë¡œë“œ)
 	FStreamableManager& Streamable = UAssetManager::GetStreamableManager();
 	WeaponLoadHandle = Streamable.RequestAsyncLoad(
 		Data.ItemClass.ToSoftObjectPath(),
@@ -154,44 +245,44 @@ void APlayerCharacter::OnWeaponClassLoaded(FName ItemID)
 	);
 	if (!NewWeapon) return;
 
-	// ¼ÒÄÏ¿¡ ºÙÀÌ±â
+	// ì†Œì¼“ì— ë¶™ì´ê¸°
 	NewWeapon->AttachToComponent(
 		GetMesh(),
 		FAttachmentTransformRules::SnapToTargetNotIncludingScale,
 		WeaponSocketName
 	);
 
-	// WeaponSocketTransformÀÌ ÀÖÀ¸¸é ¿ÀÇÁ¼Â Àû¿ë
+	// WeaponSocketTransformì´ ìžˆìœ¼ë©´ ì˜¤í”„ì…‹ ì ìš©
 	if (!Data.WeaponSocketTransform.Equals(FTransform::Identity))
 	{
 		NewWeapon->SetActorRelativeTransform(Data.WeaponSocketTransform);
 	}
 
-	// ¹«±â No Collision
+	// ë¬´ê¸° No Collision
 	// NewWeapon->GetRootComponent()->SetCollisionProfileName(TEXT("NoCollision"));
 
-	// »óÅÂ ¾÷µ¥ÀÌÆ® -> ABP°¡ ÀÌ°É ÀÐ¾î¼­ Æ÷Áî ÀüÈ¯
+	// ìƒíƒœ ì—…ë°ì´íŠ¸ -> ABPê°€ ì´ê±¸ ì½ì–´ì„œ í¬ì¦ˆ ì „í™˜
 	CurrentWeapon = NewWeapon;
 	CurrentWeaponItemID = ItemID;
-	CurrentOverlayState = Data.WeaponType; // EWeaponType ±×´ë·Î »ç¿ë
+	CurrentOverlayState = Data.WeaponType; // EWeaponType ê·¸ëŒ€ë¡œ ì‚¬ìš©
 }
 
 void APlayerCharacter::StartSprint()
 {
-	// ´Þ¸®±â ½ÃÀÛÇÏ´Ï±î È¸º¹ Å¸ÀÌ¸Ó ÁßÁö
+	// ë‹¬ë¦¬ê¸° ì‹œìž‘í•˜ë‹ˆê¹Œ íšŒë³µ íƒ€ì´ë¨¸ ì¤‘ì§€
 	GetWorld()->GetTimerManager().ClearTimer(StaminaRecoveryTimerHandle);
-	// ÀÌ¹Ì Å¸ÀÌ¸Ó°¡ µ¹°í ÀÖÀ¸¸é ¹«½Ã
+	// ì´ë¯¸ íƒ€ì´ë¨¸ê°€ ëŒê³  ìžˆìœ¼ë©´ ë¬´ì‹œ
 	if (GetWorld()->GetTimerManager().IsTimerActive(SprintTimerHandle)) return;
 
 	CurrentState = ECharacterState::Sprinting;
 
-	// Å¸ÀÌ¸Ó ½ÃÀÛ (0.1ÃÊ¸¶´Ù HandleSprintCost ¹Ýº¹ ½ÇÇà)
+	// íƒ€ì´ë¨¸ ì‹œìž‘ (0.1ì´ˆë§ˆë‹¤ HandleSprintCost ë°˜ë³µ ì‹¤í–‰)
 	GetWorld()->GetTimerManager().SetTimer(
 		SprintTimerHandle,
 		this,
 		&APlayerCharacter::HandleSprintCost,
 		0.1f,
-		true // Loop ¿©ºÎ
+		true // Loop ì—¬ë¶€
 	);
 }
 
@@ -199,7 +290,7 @@ void APlayerCharacter::StopSprint()
 {
 	CurrentState = ECharacterState::Walking;
 
-	// ¼Ò¸ð Å¸ÀÌ¸Ó »èÁ¦
+	// ì†Œëª¨ íƒ€ì´ë¨¸ ì‚­ì œ
 	GetWorld()->GetTimerManager().ClearTimer(SprintTimerHandle);
 
 	float Current = StatComp->GetCurrentStatValue("Stamina");
@@ -217,6 +308,11 @@ void APlayerCharacter::StopSprint()
 
 void APlayerCharacter::TryInteract()
 {
+
+	if (CurrentFocusItem && CurrentFocusItem->Implements<UInteractionInterface>())
+	{
+		IInteractionInterface::Execute_Interact(CurrentFocusItem, this);
+	}
 }
 
 float APlayerCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
@@ -233,14 +329,82 @@ void APlayerCharacter::PrintDebugInfo()
 	FString StateStr = (CurrentState == ECharacterState::Sprinting) ? TEXT("RUNNING >>") : TEXT("Walking..");
 	FColor TextColor = (CurrentState == ECharacterState::Sprinting) ? FColor::Yellow : FColor::Green;
 
-	// Key°ªÀÌ 0ÀÌ¸é ¸Þ½ÃÁö°¡ ½×ÀÌÁö ¾Ê°í ÇÑ ÁÙ¿¡¼­ ¼ýÀÚ¸¸ ¹Ù²ñ (°»½Å)
+	// Keyê°’ì´ 0ì´ë©´ ë©”ì‹œì§€ê°€ ìŒ“ì´ì§€ ì•Šê³  í•œ ì¤„ì—ì„œ ìˆ«ìžë§Œ ë°”ë€œ (ê°±ì‹ )
 	FString Msg = FString::Printf(TEXT("[%s] Stamina: %.1f / %.0f"), *StateStr, Current, MaxStamina);
 
 	if (GEngine)
 	{
-		// Key: 0 (°íÁ¤µÈ À§Ä¡), Time: 0.0f (Áï½Ã °»½Å)
+		// Key: 0 (ê³ ì •ëœ ìœ„ì¹˜), Time: 0.0f (ì¦‰ì‹œ ê°±ì‹ )
 		GEngine->AddOnScreenDebugMessage(0, 0.0f, TextColor, Msg);
 	}
+}
+
+void APlayerCharacter::EquipItemByData(const FInventoryItem& ItemData, ESlotType SlotType)
+{
+	UGameInstance* GI = GetWorld()->GetGameInstance();
+	if (!GI) return;
+	UItemDataSubsystem* Subsystem = GI->GetSubsystem<UItemDataSubsystem>();
+	if (!Subsystem) return;
+	FName ItemID = ItemData.ItemID;
+	FItemData Data = Subsystem->GetItemDataByID(ItemID);
+
+	if (Data.ItemType == EItemType::IT_Weapon)
+	{
+		UClass* WeaponClass = Data.ItemClass.LoadSynchronous();
+		if (!WeaponClass) return;
+		FTransform SpawnTransform = GetActorTransform();
+		AWeaponItem* SpawnedWeapon = GetWorld()->SpawnActorDeferred<AWeaponItem>(
+			WeaponClass,
+			SpawnTransform,
+			this,
+			this,
+			ESpawnActorCollisionHandlingMethod::AlwaysSpawn
+		);
+		if (SpawnedWeapon)
+		{
+			SpawnedWeapon->SetItemID(ItemID);
+			SpawnedWeapon->ApplyAttachmentState(ItemData.AttachmentState);
+			SpawnedWeapon->SetCurrentAmmo(ItemData.CurrentAmmo);
+			UGameplayStatics::FinishSpawningActor(SpawnedWeapon, SpawnTransform);
+
+			SpawnedWeapon->SetEquippedState();
+
+			if (GetMesh())
+			{
+				SpawnedWeapon->AttachToComponent(
+					GetMesh(),
+					FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+					WeaponSocketName
+				);
+				CurrentWeapon = SpawnedWeapon;
+				CurrentWeaponItemID = ItemID;
+				CurrentOverlayState = Data.WeaponType;
+			}
+
+			InventoryComponent->SetEquippedWeapon(SpawnedWeapon);
+			InventoryComponent->OnWeaponChanged.Broadcast(true, CurrentWeaponItemID);
+			SpawnedWeapon->OnAmmoChanged.Broadcast(SpawnedWeapon->GetCurrentAmmo(), SpawnedWeapon->GetMaxAmmo());
+		}
+	}
+}
+
+FInventoryItem APlayerCharacter::UnequipItemBySlot(ESlotType SlotType)
+{
+	if (CurrentWeapon)
+	{
+		FInventoryItem ItemData;
+		ItemData.ItemID = CurrentWeaponItemID;
+		ItemData.Quantity = 1; // ë¬´ê¸°ëŠ” ìˆ˜ëŸ‰ 1ë¡œ ê°„ì£¼
+		ItemData.AttachmentState = CurrentWeapon->GetAttachmentState();
+		ItemData.CurrentAmmo = CurrentWeapon->GetCurrentAmmo();
+		CurrentWeapon->Destroy();
+		CurrentWeapon = nullptr;
+		CurrentWeaponItemID = NAME_None;
+		InventoryComponent->SetEquippedWeapon(nullptr);
+		InventoryComponent->OnWeaponChanged.Broadcast(false, ItemData.ItemID);
+		return ItemData;
+	}
+	else return FInventoryItem();	
 }
 
 void APlayerCharacter::HandleSprintCost()
@@ -249,7 +413,7 @@ void APlayerCharacter::HandleSprintCost()
 
 	float CurrentStamina = StatComp->GetCurrentStatValue("Stamina");
 
-	// 0.1ÃÊ¸¸Å­ÀÇ ºñ¿ë °è»ê
+	// 0.1ì´ˆë§Œí¼ì˜ ë¹„ìš© ê³„ì‚°
 	float Cost = SprintCostPerSecond * 0.1f;
 	float NewStamina = CurrentStamina - Cost;
 
@@ -257,9 +421,10 @@ void APlayerCharacter::HandleSprintCost()
 	{
 		NewStamina = 0.f;
 		StopSprint();
-		if (GEngine) GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Red, TEXT("Å»Áø! (Stamina Depleted)"));
+		if (GEngine) GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Red, TEXT("íƒˆì§„! (Stamina Depleted)"));
 	}
 
+	OnStaminaChanged.Broadcast(NewStamina);
 	StatComp->SetCurrentStatValue("Stamina", NewStamina);
 }
 
@@ -275,11 +440,11 @@ void APlayerCharacter::HandleStaminaRecovery()
 		return;
 	}
 
-	// È¸º¹ °è»ê (ÃÊ´ç È¸º¹·® * 0.1ÃÊ)
+	// íšŒë³µ ê³„ì‚° (ì´ˆë‹¹ íšŒë³µëŸ‰ * 0.1ì´ˆ)
 	float Recovery = StaminaRecoveryRate * 0.1f;
 	float NewValue = Current + Recovery;
 
 	if (NewValue > MaxStamina) NewValue = MaxStamina;
+	OnStaminaChanged.Broadcast(NewValue);
 	StatComp->SetCurrentStatValue("Stamina", NewValue);
 }
-

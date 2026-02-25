@@ -1,4 +1,4 @@
-#include "Enemy/EnemyCharacter.h"
+﻿#include "Enemy/EnemyCharacter.h"
 #include "Shared/Component/StatComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Enemy/Controllers/EnemyController.h"
@@ -297,14 +297,15 @@ void AEnemyCharacter::OnDead()
 	UCapsuleComponent* Capsule = GetCapsuleComponent();
 	Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GetMesh()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
-	if (UAnimMontage* Montage = GetDeadMontage())
-	{
-		PlayAnimMontage(Montage);
-	}
-	else
-	{
-		OnFinishDead();
-	}
+	//if (UAnimMontage* Montage = GetDeadMontage())
+	//{
+	//	PlayAnimMontage(Montage);
+	//}
+	//else
+	//{
+	//	OnFinishDead();
+	//}
+	OnFinishDead();
 }
 
 void AEnemyCharacter::OnFinishDead()
@@ -332,20 +333,21 @@ float AEnemyCharacter::TakeDamage(
 	ApplyDamageToStat(DamageAmount);
 
 	// Hitted or Dead 상태 전환
-	//AEnemyController* EnemyController = Cast<AEnemyController>(GetController());
-	AAIController* AIController = Cast<AAIController>(GetController());
-	if (!AIController) return DamageAmount;
+	AEnemyController* EnemyController = Cast<AEnemyController>(GetController());
+
+	/*AAIController* AIController = Cast<AAIController>(GetController());
+	if (!AIController) return DamageAmount;*/
 
 	if (StatComp->GetBaseStatValue(FName("Health")) <= 0.f)
 	{
-		//EnemyController->ChangeState(EnemyController->GetDeadState());
+		EnemyController->ChangeState(EnemyController->GetDeadState());
 		OnDeadSignature.Broadcast();
 		bIsDead = true;
 	}
 	else
 	{
 		OnHittedSignature.Broadcast();
-		//EnemyController->ChangeState(EnemyController->GetHittedState());
+		EnemyController->ChangeState(EnemyController->GetHittedState());
 	}
 
 	return DamageAmount;

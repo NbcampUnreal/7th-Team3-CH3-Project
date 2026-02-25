@@ -141,6 +141,11 @@ struct FInventoryItem
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TMap<EAttachmentType, FName> AttachmentState;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 CurrentAmmo;
+
+	FInventoryItem() : Quantity(1), CurrentAmmo(0) {}
+
 };
 
 USTRUCT(BlueprintType)

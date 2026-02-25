@@ -125,6 +125,7 @@ void AMainGameState::WaveStart()
 		MaxWaveTime,
 		false
 	);
+	OnWaveStart.Broadcast(TEXT("Wave Started!"), MaxWaveTime);
 }
 void AMainGameState::WaveEnd()
 {
@@ -139,6 +140,7 @@ void AMainGameState::WaveEnd()
 	//UMainGameInstance::Get(GetWorld())->TotalScore += CurrentScore; // GI에 현재 웨이브에서 얻은 점수 전달
 
 	//웨이브 종료 전달. 
+	OnWaveEnd.Broadcast(true, CurrentScore);
 }
 
 void AMainGameState::OnGameStart()

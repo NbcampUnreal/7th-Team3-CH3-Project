@@ -1,4 +1,4 @@
-#include "UI/MainHUD.h"
+﻿#include "UI/MainHUD.h"
 #include "Components/TextBlock.h"
 #include "Components/ProgressBar.h"
 #include "Components/Image.h"
@@ -9,6 +9,8 @@
 #include "Core/ItemDataSubsystem.h"
 #include "Shared/ItemTypes.h"
 #include "Item/WeaponItem.h"
+#include "Core/MainGameState.h"
+#include "Player/PlayerCharacter.h"
 
 UMainHUD::UMainHUD(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -35,9 +37,14 @@ void UMainHUD::NativeConstruct()
     OnHealthChanged.AddDynamic(this, &UMainHUD::UpdateHealth);
     OnStaminaChanged.AddDynamic(this, &UMainHUD::UpdateStamina);
     OnQuestAdded.AddDynamic(this, &UMainHUD::AddNewQuest);
-    OnQuestFinished.AddDynamic(this, &UMainHUD::FinishQuest);
-    OnWaveStarted.AddDynamic(this, &UMainHUD::StartWaveUI);
-    OnWaveEnded.AddDynamic(this, &UMainHUD::ReceiveTeamData);*/
+    OnQuestFinished.AddDynamic(this, &UMainHUD::FinishQuest);*/
+
+	AMainGameState* GameState = GetWorld()->GetGameState<AMainGameState>();
+    if (GameState)
+    {
+        GameState->OnWaveStart.AddDynamic(this, &UMainHUD::StartWaveUI);
+        GameState->OnWaveEnd.AddDynamic(this, &UMainHUD::EndWaveUI);
+	}
 
     APawn* PlayerPawn = GetOwningPlayerPawn();
     if (PlayerPawn)
@@ -52,6 +59,14 @@ void UMainHUD::NativeConstruct()
             UpdateQuickSlotUI();
         }
     }
+	APlayerCharacter* PlayerChar = Cast<APlayerCharacter>(PlayerPawn);
+    if (PlayerChar)
+    {
+        /*PlayerChar->OnHealthChanged.AddDynamic(this, &UMainHUD::UpdateHealth);*/
+        PlayerChar->OnStaminaChanged.AddDynamic(this, &UMainHUD::UpdateStamina);
+        //PlayerChar->OnWhiteKarmaChanged.AddDynamic(this, &UMainHUD::UpdateWhiteKarma);
+        //PlayerChar->OnBlackKarmaChanged.AddDynamic(this, &UMainHUD::UpdateBlackKarma);
+	}
    
 
     if (Timer) Timer->SetVisibility(ESlateVisibility::Collapsed);
@@ -195,7 +210,7 @@ void UMainHUD::UpdateHealth(float Health)
 
 void UMainHUD::UpdateStamina(float Stamina) 
 {
-    TargetStamina = Stamina; 
+    TargetStamina = Stamina / 100.0f; 
 }
 
 void UMainHUD::UpdateWhiteKarma(float White) 
@@ -388,17 +403,55 @@ void UMainHUD::OnWeaponEquipChanged(bool bIsEquipping, FName ItemID)
 
         if (!Data.ItemID.IsNone())
         {
-            UTexture2D* IconTexture = Data.Icon.LoadSynchronous();
+            UTexture2D* IconTexture = Data.WeaponImage.LoadSynchronous();
 
             if (IconTexture)
             {
                 Img_GunInformation->SetBrushFromTexture(IconTexture);
                 Img_GunInformation->SetVisibility(ESlateVisibility::Visible);
+                if (Txt_AmmoInfo)
+                {
+                    Txt_AmmoInfo->SetVisibility(ESlateVisibility::Visible);
+				}
             }
         }
     }
     else
     {
         Img_GunInformation->SetVisibility(ESlateVisibility::Hidden);
+        if (Txt_AmmoInfo)
+        {
+			Txt_AmmoInfo->SetVisibility(ESlateVisibility::Hidden);
+		}
     }
+
+	APawn* PlayerPawn = GetOwningPlayerPawn();
+    if (PlayerPawn)
+    {
+        UInventoryComponent* InvComp = PlayerPawn->FindComponentByClass<UInventoryComponent>();
+        if (InvComp)
+        {
+			AWeaponItem* EquippedWeapon = InvComp->GetEquippedWeapon();
+            if (EquippedWeapon)
+            {
+                if (bIsEquipping)
+                {
+                    EquippedWeapon->OnAmmoChanged.AddDynamic(this, &UMainHUD::OnAmmoChanged);
+                }
+                else
+                {
+                    EquippedWeapon->OnAmmoChanged.RemoveDynamic(this, &UMainHUD::OnAmmoChanged);
+				}
+            }
+        }
+	}
+}
+
+void UMainHUD::OnAmmoChanged(int32 CurrentAmmo, int32 MaxAmmo)
+{
+    if (Txt_AmmoInfo)
+    {
+        FString AmmoText = FString::Printf(TEXT("%d / %d"), CurrentAmmo, MaxAmmo);
+        Txt_AmmoInfo->SetText(FText::FromString(AmmoText));
+	}
 }

@@ -1,10 +1,11 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Shared/ItemTypes.h"
+#include "Shared/EquipableInterface.h"
 #include "PlayerCharacter.generated.h"
 
 class USpringArmComponent;
@@ -14,6 +15,7 @@ class UInputAction;
 class UParkourComponent;
 class UStatComponent;
 class AWeaponItem;
+class UInventoryComponent;
 struct FInputActionValue;
 
 UENUM(BlueprintType)
@@ -23,16 +25,18 @@ enum class ECharacterState : uint8
 };
 
 UENUM(BlueprintType)
-enum class EOverlayState : uint8 
+enum class EOverlayState : uint8
 {
-	Default, // ¸Ç¼Õ
-	Melee,   // ±ÙÁ¢ ¹«±â
-	Pistol,  // ±ÇÃÑ
-	Rifle    // ¼ÒÃÑ
+	Default, // ë§¨ì†
+	Melee,   // ê·¼ì ‘ ë¬´ê¸°
+	Pistol,  // ê¶Œì´
+	Rifle    // ì†Œì´
 };
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStaminaChanged, float, Stamina);
+
 UCLASS(Blueprintable, BlueprintType)
-class TEAM3_PROJECT_API APlayerCharacter : public ACharacter
+class TEAM3_PROJECT_API APlayerCharacter : public ACharacter, public IEquipableInterface
 {
 	GENERATED_BODY()
 
@@ -43,7 +47,7 @@ public:
 	APlayerCharacter();
 
 public:
-	// --- »óÅÂ º¯°æ ---
+	// --- ìƒíƒœ ë³€ê²½ ---
 	UFUNCTION(BlueprintCallable, Category = "State")
 	void SetCharacterState(ECharacterState NewState);
 
@@ -53,17 +57,17 @@ public:
 	//UPROPERTY(BlueprintAssignable, Category = "Events")
 	//FOnStateChanged OnStateChanged;
 
-	// --- ÄÄÆ÷³ÍÆ® --- 
+	// --- ì»´í¬ë„ŒíŠ¸ --- 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Component")
 	UStatComponent* StatComp;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Component")
 	UParkourComponent* ParkourComp;
 
-	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Component")
-	//UInventoryComponent* InventoryComponent;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Component")
+	UInventoryComponent* InventoryComponent;
 
-	// --- ¹«±â & ÀüÅõ °ü·Ã ---
+	// --- ë¬´ê¸° & ì „íˆ¬ ê´€ë ¨ ---
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
 	EWeaponType CurrentOverlayState = EWeaponType::WT_None;
 
@@ -73,6 +77,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
 	FName WeaponSocketName = FName("hand_r_weapon");
 
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnStaminaChanged OnStaminaChanged;
+
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void StartAiming();
 
@@ -80,13 +87,13 @@ public:
 	void StopAiming();
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
-	void Attack(); // -> CurrentWeapon->Fire() È£Ãâ
+	void Attack(); // -> CurrentWeapon->Fire() í˜¸ì¶œ
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void StopAttack();
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
-	void Reload(); // -> CurrentWeapon->Reload() È£Ãâ
+	void Reload(); // -> CurrentWeapon->Reload() í˜¸ì¶œ
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	void EquipWeapon(FName ItemID);
@@ -97,11 +104,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Movement")
 	void StopSprint();
 
-	// --- »óÈ£ÀÛ¿ë ---
+	// --- ìƒí˜¸ì‘ìš© ---
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void TryInteract();
 
-	// --- µ¥¹ÌÁö & Á×À½ ---
+	// --- ë°ë¯¸ì§€ & ì£½ìŒ ---
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
 	void Die();
@@ -119,7 +126,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
 	UInputAction* InteractAction;
 
-	// --- ½ºÅÈ °ªµé ---
+	// --- ìŠ¤íƒ¯ ê°’ë“¤ ---
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat Config")
 	float MaxStamina = 100.f;
 
@@ -129,17 +136,32 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat Config")
 	float StaminaRecoveryRate = 20.f;
 
-	void PrintDebugInfo(); // ÀÓ½Ã µğ¹ö±×¿ë -> °ğ »èÁ¦
+	void PrintDebugInfo(); // ì„ì‹œ ë””ë²„ê·¸ìš© -> ê³§ ì‚­ì œ
+
+	virtual void EquipItemByData(const FInventoryItem& ItemData, ESlotType SlotType) override;
+
+	virtual FInventoryItem UnequipItemBySlot(ESlotType SlotType) override;
 
 protected:
-	// Á¶ÁØ ÁßÀÎÁö È®ÀÎ (»óÅÂ¿Í º°°³·Î Ã¼Å© - ÃßÈÄ »óÇÏÃ¼ µ¿ÀÛ ºĞ¸® À§ÇØ..¾Æ¸¶..?)
+	// ì¡°ì¤€ ì¤‘ì¸ì§€ í™•ì¸ (ìƒíƒœì™€ ë³„ê°œë¡œ ì²´í¬ - ì¶”í›„ ìƒí•˜ì²´ ë™ì‘ ë¶„ë¦¬ ìœ„í•´..ì•„ë§ˆ..?)
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State")
 	bool bIsAiming;
 
 	FTimerHandle SprintTimerHandle;
-	FTimerHandle StaminaRecoveryTimerHandle; // È¸º¹¿ë
+	FTimerHandle StaminaRecoveryTimerHandle; // íšŒë³µìš©
 	void HandleSprintCost();
 	void HandleStaminaRecovery();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction|Config")
+	float InteractionRange = 300.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction|Config")
+	float InteractionRadius = 150.0f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Transient, Category = "Interaction")
+	AActor* CurrentFocusItem;
+
+	void UpdateInteractableFocus();
 
 protected:
 	virtual void NotifyControllerChanged() override;
@@ -151,6 +173,6 @@ protected:
 private:
 	FName CurrentWeaponItemID = NAME_None;
 	TSharedPtr<struct FStreamableHandle> WeaponLoadHandle;
-	void OnWeaponClassLoaded(FName ItemID); // ¹«±â ·Îµå ¿Ï·áµÆÀ»¶§ Äİ¹éÇÔ¼ö
+	void OnWeaponClassLoaded(FName ItemID); // ë¬´ê¸° ë¡œë“œ ì™„ë£Œëì„ë•Œ ì½œë°±í•¨ìˆ˜
 
 };
