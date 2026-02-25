@@ -38,7 +38,6 @@ EBTNodeResult::Type UBTTask_ChaseTarget::ExecuteTask(
     }
 
     AIController->ReceiveMoveCompleted.AddDynamic(this, &UBTTask_ChaseTarget::HandleMoveCompleted);
-    AIController->SetFocus(TargetActor);
     UE_LOG(LogTemp, Warning, TEXT("Focus=%s"), *GetNameSafe(AIController->GetFocusActor()));
     // ========================================
     // 추적 속도 설정
@@ -153,8 +152,6 @@ void UBTTask_ChaseTarget::HandleMoveCompleted(FAIRequestID RequestID, EPathFollo
     {
         // 델리게이트 해제
         AIController->ReceiveMoveCompleted.RemoveDynamic(this, &UBTTask_ChaseTarget::HandleMoveCompleted);
-
-        AIController->ClearFocus(EAIFocusPriority::Gameplay);
     }
     if (!CachedOwnerComp) return;
 

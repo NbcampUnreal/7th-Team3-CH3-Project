@@ -32,7 +32,6 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
 public:
-
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	bool Attack();
 	UFUNCTION(BlueprintCallable, Category = "Combat")
@@ -115,6 +114,8 @@ public:
 
 	void ApplyDamageToStat(float DamageAmount);
 	void EnableRagdoll();
+
+	void SetForAIMove();
 
 private:
 	// 근접 공격 히트 처리

@@ -7,10 +7,13 @@
 #include "Player/PlayerCharacter.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SphereComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 AEnemyCharacter::AEnemyCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
+
+	SetForAIMove();
 
 	StatComp = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
 
@@ -508,6 +511,17 @@ void AEnemyCharacter::EnableRagdoll()
 	GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
 	GetMesh()->SetSimulatePhysics(true);
 	GetMesh()->WakeAllRigidBodies();
+}
+
+void AEnemyCharacter::SetForAIMove()
+{
+	bUseControllerRotationYaw = false;  // AI가 직접 회전하지 않으므로 false로 설정해야 함.
+	bUseControllerRotationPitch = false;
+	bUseControllerRotationRoll = false;
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->bOrientRotationToMovement = true; // 이동 방향으로 회전
+	}
 }
 
 void AEnemyCharacter::OnWeaponBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)

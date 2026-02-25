@@ -69,6 +69,7 @@ void AEnemyAIController::OnPossess(APawn* InPawn)
         UE_LOG(LogTemp, Error, TEXT("[AI] OnPossess: Not an EnemyCharacter"));
         return;
     }
+    Enemy->SetForAIMove();
 
     // Blackboard 초기화
     InitializeBlackboard();
