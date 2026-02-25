@@ -40,6 +40,10 @@ protected:
     UPROPERTY(meta = (BindWidget)) class UTextBlock* Txt_SlotNum_7;
     UPROPERTY(meta = (BindWidget)) class UTextBlock* Txt_SlotNum_8;
 
+    UPROPERTY(meta = (BindWidget)) class UTextBlock* Txt_CurrentAmmo;
+    UPROPERTY(meta = (BindWidget)) class UTextBlock* Txt_MaxAmmo;
+    UPROPERTY(meta = (BindWidget)) class UTextBlock* Txt_Divider;
+
     UPROPERTY() TArray<class UTextBlock*> SlotNumArray;
 
     UPROPERTY() class UItemDataSubsystem* ItemDataSubsystem;
@@ -96,18 +100,12 @@ public:
     UFUNCTION(BlueprintCallable, Category = "HUD") void RefreshQuestIcon();
     UFUNCTION(BlueprintCallable, Category = "HUD") void HideWaveMessage();
 
-    UFUNCTION(BlueprintCallable, Category = "HUD")
-    void UpdateQuickSlotImage(int32 SlotIndex, UTexture2D* IconTexture);
-    UFUNCTION(BlueprintCallable, Category = "HUD")
-    void UpdateQuickSlotUI();
-    UFUNCTION()
-    void OnQuickSlotItemChanged(int32 SlotIndex, FName ItemID);
-    UFUNCTION()
-    void OnEquipmentChanged();
-    UFUNCTION()
-    void OnQuickSlotRefreshAll();
-    UFUNCTION(BlueprintCallable)
-    void HighlightQuickSlot(int32 SlotIndex);
-    UFUNCTION()
-    void OnWeaponEquipChanged(bool bIsEquipping, FName ItemID);
+    UFUNCTION(BlueprintCallable, Category = "HUD") void UpdateQuickSlotImage(int32 SlotIndex, UTexture2D* IconTexture);
+    UFUNCTION(BlueprintCallable, Category = "HUD") void UpdateQuickSlotUI();
+    UFUNCTION() void OnQuickSlotItemChanged(int32 SlotIndex, FName ItemID);
+    UFUNCTION() void OnEquipmentChanged();
+    UFUNCTION() void OnQuickSlotRefreshAll();
+    UFUNCTION(BlueprintCallable) void HighlightQuickSlot(int32 SlotIndex);
+    UFUNCTION() void OnWeaponEquipChanged(bool bIsEquipping, FName ItemID);
+    UFUNCTION(BlueprintCallable, Category = "HUD") void OnAmmoChanged(int32 CurrentAmmo, int32 MaxAmmo);
 };

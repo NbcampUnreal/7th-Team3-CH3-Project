@@ -56,6 +56,10 @@ void UMainHUD::NativeConstruct()
 
     if (Timer) Timer->SetVisibility(ESlateVisibility::Collapsed);
     RefreshQuestIcon();
+
+    if (Txt_CurrentAmmo) Txt_CurrentAmmo->SetVisibility(ESlateVisibility::Collapsed);
+    if (Txt_MaxAmmo) Txt_MaxAmmo->SetVisibility(ESlateVisibility::Collapsed);
+    if (Txt_Divider) Txt_Divider->SetVisibility(ESlateVisibility::Collapsed);
 }
 
 void UMainHUD::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -293,13 +297,13 @@ void UMainHUD::UpdateQuickSlotImage(int32 SlotIndex, UTexture2D* IconTexture)
     {
         if (IconTexture)
         {
-            // 아이템 O -> 반투명
+            // 아이템 O -> 불투명
             SlotArray[SlotIndex]->SetBrushFromTexture(IconTexture);
             SlotArray[SlotIndex]->SetOpacity(1.0f);
         }
         else
         {
-            // 아이템 X -> 투명
+            // 아이템 X -> 반투명
             SlotArray[SlotIndex]->SetOpacity(0.5f);
         }
     }
@@ -388,7 +392,7 @@ void UMainHUD::OnWeaponEquipChanged(bool bIsEquipping, FName ItemID)
 
         if (!Data.ItemID.IsNone())
         {
-            UTexture2D* IconTexture = Data.Icon.LoadSynchronous();
+            UTexture2D* IconTexture = Data.WeaponImage.LoadSynchronous();
 
             if (IconTexture)
             {
@@ -400,5 +404,40 @@ void UMainHUD::OnWeaponEquipChanged(bool bIsEquipping, FName ItemID)
     else
     {
         Img_GunInformation->SetVisibility(ESlateVisibility::Hidden);
+
+        /*if (Txt_CurrentAmmo && Txt_Divider && Txt_MaxAmmo)
+        {
+            Txt_CurrentAmmo->SetVisibility(ESlateVisibility::Hidden);
+            Txt_Divider->SetVisibility(ESlateVisibility::Hidden);
+            Txt_MaxAmmo->SetVisibility(ESlateVisibility::Hidden);
+        }*/
+    }
+}
+
+void UMainHUD::OnAmmoChanged(int32 CurrentAmmo, int32 MaxAmmo)
+{
+    if (Txt_CurrentAmmo && Txt_MaxAmmo)
+    {
+        if (Txt_CurrentAmmo->GetVisibility() == ESlateVisibility::Collapsed)
+        {
+            Txt_CurrentAmmo->SetVisibility(ESlateVisibility::Visible);
+            Txt_MaxAmmo->SetVisibility(ESlateVisibility::Visible);
+            Txt_Divider->SetVisibility(ESlateVisibility::Visible);
+        }
+
+        Txt_CurrentAmmo->SetText(FText::AsNumber(CurrentAmmo));
+        Txt_MaxAmmo->SetText(FText::AsNumber(MaxAmmo));
+
+        FString AmmoStr = FString::Printf(TEXT("%d / %d"), CurrentAmmo, MaxAmmo);
+        
+
+        if (CurrentAmmo <= 10)
+        {
+            Txt_CurrentAmmo->SetColorAndOpacity(FSlateColor(FLinearColor::Red));
+        }
+        else
+        {
+            Txt_CurrentAmmo->SetColorAndOpacity(FSlateColor(FLinearColor::White));
+        }
     }
 }
