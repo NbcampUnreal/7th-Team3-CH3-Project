@@ -51,13 +51,14 @@ void UMainHUD::NativeConstruct()
     APawn* PlayerPawn = GetOwningPlayerPawn();
     if (PlayerPawn)
     {
-        UInventoryComponent* InvComp = PlayerPawn->FindComponentByClass<UInventoryComponent>();
-        if (InvComp)
-        {
-            InvComp->OnQuickSlotUpdated.AddDynamic(this, &UMainHUD::OnQuickSlotRefreshAll);
-            InvComp->OnQuickSlotItemChanged.AddDynamic(this, &UMainHUD::OnQuickSlotItemChanged);
+        MyInventory = PlayerPawn->FindComponentByClass<UInventoryComponent>();
 
-            InvComp->OnWeaponChanged.AddDynamic(this, &UMainHUD::OnWeaponEquipChanged);
+        if (MyInventory)
+        {
+            MyInventory->OnQuickSlotUpdated.AddDynamic(this, &UMainHUD::OnQuickSlotRefreshAll);
+            MyInventory->OnQuickSlotItemChanged.AddDynamic(this, &UMainHUD::OnQuickSlotItemChanged);
+            //MyInventory->OnQuickSlotHighlight.AddDynamic(this, &UMainHUD::HighlightQuickSlot);
+            MyInventory->OnWeaponChanged.AddDynamic(this, &UMainHUD::OnWeaponEquipChanged);
 
             UpdateQuickSlotUI();
         }
@@ -80,6 +81,16 @@ void UMainHUD::NativeConstruct()
     if (Txt_Divider) Txt_Divider->SetVisibility(ESlateVisibility::Collapsed);
 
     if (Img_HitMarker) Img_HitMarker->SetRenderOpacity(0.0f);
+
+    QtyTextArray.Empty();
+    if (Txt_Qty_0) QtyTextArray.Add(Txt_Qty_0);
+    if (Txt_Qty_1) QtyTextArray.Add(Txt_Qty_1);
+    if (Txt_Qty_2) QtyTextArray.Add(Txt_Qty_2);
+    if (Txt_Qty_3) QtyTextArray.Add(Txt_Qty_3);
+    if (Txt_Qty_4) QtyTextArray.Add(Txt_Qty_4);
+    if (Txt_Qty_5) QtyTextArray.Add(Txt_Qty_5);
+    if (Txt_Qty_6) QtyTextArray.Add(Txt_Qty_6);
+    if (Txt_Qty_7) QtyTextArray.Add(Txt_Qty_7);
 }
 
 void UMainHUD::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -539,5 +550,26 @@ void UMainHUD::HideHitMarker()
     if (Img_HitMarker)
     {
         Img_HitMarker->SetRenderOpacity(0.0f);
+    }
+}
+
+void UMainHUD::RefreshQuickSlotQuantity(int32 SlotIndex, FName ItemID)
+{
+    if (!MyInventory || !QtyTextArray.IsValidIndex(SlotIndex)) return;
+
+    int32 CurrentQuantity = MyInventory->GetItemQuantity(ItemID);
+
+    if (CurrentQuantity > 1) 
+    {
+        QtyTextArray[SlotIndex]->SetText(FText::AsNumber(CurrentQuantity));
+        QtyTextArray[SlotIndex]->SetVisibility(ESlateVisibility::HitTestInvisible);
+    }
+    else if (CurrentQuantity == 1)
+    {
+        QtyTextArray[SlotIndex]->SetVisibility(ESlateVisibility::Collapsed);
+    }
+    else
+    {
+        QtyTextArray[SlotIndex]->SetVisibility(ESlateVisibility::Collapsed);
     }
 }

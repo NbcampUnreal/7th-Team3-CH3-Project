@@ -8,7 +8,6 @@
 #include "MainHUD.generated.h"
 
 
-
 UCLASS()
 class TEAM3_PROJECT_API UMainHUD : public UUserWidget
 {
@@ -46,9 +45,19 @@ protected:
     UPROPERTY(meta = (BindWidget)) class UTextBlock* Txt_MaxAmmo;
     UPROPERTY(meta = (BindWidget)) class UTextBlock* Txt_Divider;
 
-    UPROPERTY() TArray<class UTextBlock*> SlotNumArray;
+    UPROPERTY(meta = (BindWidget)) class UTextBlock* Txt_Qty_0;
+    UPROPERTY(meta = (BindWidget)) class UTextBlock* Txt_Qty_1;
+    UPROPERTY(meta = (BindWidget)) class UTextBlock* Txt_Qty_2;
+    UPROPERTY(meta = (BindWidget)) class UTextBlock* Txt_Qty_3;
+    UPROPERTY(meta = (BindWidget)) class UTextBlock* Txt_Qty_4;
+    UPROPERTY(meta = (BindWidget)) class UTextBlock* Txt_Qty_5;
+    UPROPERTY(meta = (BindWidget)) class UTextBlock* Txt_Qty_6;
+    UPROPERTY(meta = (BindWidget)) class UTextBlock* Txt_Qty_7;
 
+    UPROPERTY() TArray<class UTextBlock*> SlotNumArray;
+    UPROPERTY() TArray<class UTextBlock*> QtyTextArray;
     UPROPERTY() class UItemDataSubsystem* ItemDataSubsystem;
+
 public:
     UPROPERTY(meta = (BindWidget), BlueprintReadOnly) class UImage* Slot_0;
     UPROPERTY(meta = (BindWidget), BlueprintReadOnly) class UImage* Slot_1;
@@ -67,7 +76,7 @@ protected:
     UPROPERTY(EditAnywhere, Category = "UI") TSubclassOf<class UResultWidget> ResultWidgetClass;
     UPROPERTY(meta = (BindWidget)) class UCompassWidget* CompassWidget;
     UPROPERTY(meta = (BindWidget)) class UImage* Img_HitMarker;
-
+    UPROPERTY(BlueprintReadOnly, Category = "Inventory") class UInventoryComponent* MyInventory;
     // 내부 상태 및 보간 변수 
     float InterpSpeed = 5.0f;
     float CurrWhiteKarma, TargetWhiteKarma;
@@ -116,4 +125,5 @@ public:
     UFUNCTION(BlueprintCallable) void UpdateQuestCount(int32 ID, FString Title, FString Desc, int32 Current, int32 Max);
     UFUNCTION(BlueprintCallable, Category = "HUD") void UpdateHitMarker(bool bIsDead);
     UFUNCTION(BlueprintCallable, Category = "HUD") void HideHitMarker();
+    UFUNCTION(BlueprintCallable, Category = "HUD") void RefreshQuickSlotQuantity(int32 SlotIndex, FName ItemID);
 };
