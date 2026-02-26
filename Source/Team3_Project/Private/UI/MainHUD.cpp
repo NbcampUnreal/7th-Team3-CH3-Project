@@ -78,6 +78,8 @@ void UMainHUD::NativeConstruct()
     if (Txt_CurrentAmmo) Txt_CurrentAmmo->SetVisibility(ESlateVisibility::Collapsed);
     if (Txt_MaxAmmo) Txt_MaxAmmo->SetVisibility(ESlateVisibility::Collapsed);
     if (Txt_Divider) Txt_Divider->SetVisibility(ESlateVisibility::Collapsed);
+
+
 }
 
 void UMainHUD::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)

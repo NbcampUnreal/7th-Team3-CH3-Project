@@ -3,6 +3,8 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Components/Image.h"
+#include "Components/ProgressBar.h"
+#include "CompassWidget.h"
 #include "MainHUD.generated.h"
 
 
@@ -62,7 +64,7 @@ public:
 protected:
     UPROPERTY(EditAnywhere, Category = "Quest") TSubclassOf<class UQuestItemWidget> QuestItemClass;
     UPROPERTY(EditAnywhere, Category = "UI") TSubclassOf<class UResultWidget> ResultWidgetClass;
-
+    UPROPERTY(meta = (BindWidget)) class UCompassWidget* CompassWidget;
    
 
     // 내부 상태 및 보간 변수 
