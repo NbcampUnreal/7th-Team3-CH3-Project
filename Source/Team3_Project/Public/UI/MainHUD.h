@@ -114,6 +114,6 @@ public:
     UFUNCTION() void OnWeaponEquipChanged(bool bIsEquipping, FName ItemID);
     UFUNCTION(BlueprintCallable, Category = "HUD") void OnAmmoChanged(int32 CurrentAmmo, int32 MaxAmmo);
     UFUNCTION(BlueprintCallable) void UpdateQuestCount(int32 ID, FString Title, FString Desc, int32 Current, int32 Max);
-    UFUNCTION(BlueprintCallable, Category = "HUD") void UpdateHitMarker(bool bIsHit, bool bIsDead);
+    UFUNCTION(BlueprintCallable, Category = "HUD") void UpdateHitMarker(bool bIsDead);
     UFUNCTION(BlueprintCallable, Category = "HUD") void HideHitMarker();
 };

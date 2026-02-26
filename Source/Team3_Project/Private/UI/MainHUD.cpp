@@ -521,9 +521,9 @@ void UMainHUD::UpdateQuestCount(int32 ID, FString Title, FString Desc, int32 Cur
     }
 }
 
-void UMainHUD::UpdateHitMarker(bool bIsHit, bool bIsDead)
+void UMainHUD::UpdateHitMarker(bool bIsDead)
 {
-    if (!bIsHit || !Img_HitMarker) return;
+    if (!Img_HitMarker) return;
 
     FLinearColor MarkerColor = bIsDead ? FLinearColor::Red : FLinearColor::White;
     Img_HitMarker->SetColorAndOpacity(MarkerColor);
@@ -531,7 +531,7 @@ void UMainHUD::UpdateHitMarker(bool bIsHit, bool bIsDead)
     Img_HitMarker->SetRenderOpacity(1.0f);
 
     GetWorld()->GetTimerManager().ClearTimer(HitMarkerTimerHandle);
-    GetWorld()->GetTimerManager().SetTimer(HitMarkerTimerHandle, this, &UMainHUD::HideHitMarker, 0.5f, false);
+    GetWorld()->GetTimerManager().SetTimer(HitMarkerTimerHandle, this, &UMainHUD::HideHitMarker, 0.1f, false);
 }
 
 void UMainHUD::HideHitMarker()
