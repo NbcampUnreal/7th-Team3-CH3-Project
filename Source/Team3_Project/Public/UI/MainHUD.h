@@ -61,11 +61,12 @@ public:
 
     UPROPERTY(meta = (BindWidget), BlueprintReadOnly) class UImage* Img_GunInformation;
 
+
 protected:
     UPROPERTY(EditAnywhere, Category = "Quest") TSubclassOf<class UQuestItemWidget> QuestItemClass;
     UPROPERTY(EditAnywhere, Category = "UI") TSubclassOf<class UResultWidget> ResultWidgetClass;
     UPROPERTY(meta = (BindWidget)) class UCompassWidget* CompassWidget;
-   
+    UPROPERTY(meta = (BindWidget)) class UImage* Img_HitMarker;
 
     // 내부 상태 및 보간 변수 
     float InterpSpeed = 5.0f;
@@ -85,6 +86,8 @@ protected:
 
     UPROPERTY() TMap<int32, class UQuestItemWidget*> QuestMap;
     TArray<UImage*> SlotArray;
+    FTimerHandle HitMarkerTimerHandle;
+
 public:
     // --- 외부 호출 가능 함수 --- 
     UFUNCTION(BlueprintCallable, Category = "HUD") void UpdateScore(int32 Score);
@@ -111,4 +114,6 @@ public:
     UFUNCTION() void OnWeaponEquipChanged(bool bIsEquipping, FName ItemID);
     UFUNCTION(BlueprintCallable, Category = "HUD") void OnAmmoChanged(int32 CurrentAmmo, int32 MaxAmmo);
     UFUNCTION(BlueprintCallable) void UpdateQuestCount(int32 ID, FString Title, FString Desc, int32 Current, int32 Max);
+    UFUNCTION(BlueprintCallable, Category = "HUD") void UpdateHitMarker(bool bIsHit, bool bIsDead);
+    UFUNCTION(BlueprintCallable, Category = "HUD") void HideHitMarker();
 };

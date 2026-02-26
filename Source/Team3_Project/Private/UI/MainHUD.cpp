@@ -79,7 +79,7 @@ void UMainHUD::NativeConstruct()
     if (Txt_MaxAmmo) Txt_MaxAmmo->SetVisibility(ESlateVisibility::Collapsed);
     if (Txt_Divider) Txt_Divider->SetVisibility(ESlateVisibility::Collapsed);
 
-
+    if (Img_HitMarker) Img_HitMarker->SetRenderOpacity(0.0f);
 }
 
 void UMainHUD::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -518,5 +518,26 @@ void UMainHUD::UpdateQuestCount(int32 ID, FString Title, FString Desc, int32 Cur
         {
             FinishQuest(ID);
         }
+    }
+}
+
+void UMainHUD::UpdateHitMarker(bool bIsHit, bool bIsDead)
+{
+    if (!bIsHit || !Img_HitMarker) return;
+
+    FLinearColor MarkerColor = bIsDead ? FLinearColor::Red : FLinearColor::White;
+    Img_HitMarker->SetColorAndOpacity(MarkerColor);
+
+    Img_HitMarker->SetRenderOpacity(1.0f);
+
+    GetWorld()->GetTimerManager().ClearTimer(HitMarkerTimerHandle);
+    GetWorld()->GetTimerManager().SetTimer(HitMarkerTimerHandle, this, &UMainHUD::HideHitMarker, 0.5f, false);
+}
+
+void UMainHUD::HideHitMarker()
+{
+    if (Img_HitMarker)
+    {
+        Img_HitMarker->SetRenderOpacity(0.0f);
     }
 }
