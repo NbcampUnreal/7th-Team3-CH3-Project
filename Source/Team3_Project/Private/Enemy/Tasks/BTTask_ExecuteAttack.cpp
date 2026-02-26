@@ -28,12 +28,6 @@ EBTNodeResult::Type UBTTask_ExecuteAttack::ExecuteTask(
     UBlackboardComponent* BB = OwnerComp.GetBlackboardComponent();
     if (!BB) return EBTNodeResult::Failed;
 
-    // 타겟 바라보기
-    if (AActor* Target = Cast<AActor>(BB->GetValueAsObject(TargetActorKey.SelectedKeyName)))
-    {
-        AIController->SetFocus(Target);
-    }
-
     // 공격 실행
     if (Enemy->Attack())
     {

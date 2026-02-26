@@ -7,42 +7,42 @@
 
 class AAIController;
 
+/**
+ * Target Actor를 추적하는 Task
+ * FAIMoveRequest로 자동 경로 갱신
+ */
 UCLASS()
 class TEAM3_PROJECT_API UBTTask_ChaseTarget : public UBTTaskNode
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
 public:
     UBTTask_ChaseTarget();
 
     virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
-    // virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
-    virtual void OnTaskFinished(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTNodeResult::Type TaskResult) override;
-
-private:
-    UFUNCTION()
-    void HandleMoveCompleted(FAIRequestID RequestID, EPathFollowingResult::Type Result);
+    virtual EBTNodeResult::Type AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 
 protected:
-    UPROPERTY(EditAnywhere, Category = "Chase")
+    // 도착 판정 반지름 
+    UPROPERTY(EditAnywhere, Category = "Chase", meta = (ClampMin = "0.0"))
     float AcceptanceRadius = 100.f;
 
-    UPROPERTY(EditAnywhere, Category = "Chase")
-    bool bStopOnOverlap = true;
-
+    // 부분 경로 허용
     UPROPERTY(EditAnywhere, Category = "Chase")
     bool bAllowPartialPath = true;
-
-    UPROPERTY(EditAnywhere, Category = "Chase")
-    float PathUpdateInterval = 0.2f;  // 경로 갱신 주기
 
     UPROPERTY(EditAnywhere, Category = "Blackboard")
     FBlackboardKeySelector TargetActorKey;
 
 private:
-    float LastMoveTime = 0.f;
+    // 이동 완료 델리게이트 핸들러 
+    UFUNCTION()
+    void HandleMoveCompleted(FAIRequestID RequestID, EPathFollowingResult::Type Result);
 
+    // 캐시된 참조들
     UPROPERTY()
     UBehaviorTreeComponent* CachedOwnerComp = nullptr;
-    TWeakObjectPtr<AAIController> CachedAICon;
+
+    TWeakObjectPtr<AAIController> CachedAIController;
+    FAIRequestID CachedRequestID;
 };
