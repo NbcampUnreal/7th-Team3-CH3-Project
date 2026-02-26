@@ -8,6 +8,11 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Core/MainGameInstance.h"
+#include "Core/ItemDataSubsystem.h"
+#include "Item/BaseItem.h"
+#include "GameFramework/DamageType.h"
+#include "Engine/DamageEvents.h"
 
 AEnemyCharacter::AEnemyCharacter()
 {
@@ -103,6 +108,96 @@ void AEnemyCharacter::Tick(float DeltaTime)
 #endif
 }
 
+bool AEnemyCharacter::DropItem()
+{
+	// 데이터 세팅 안 된 경우
+	if (!TypeData) return false;
+
+	// DropTable이 비어있는 경우
+	const TArray<FEnemyDropItem> DropTable = GetDropItemTable();
+	if (DropTable.Num() == 0)
+	{
+		UE_LOG(LogTemp, Error, TEXT("DropTable is empty!"));
+		return false;
+	}
+	// Drop 확률 체크
+	float Rand = FMath::RandRange(0, 100);
+	if (Rand > GetItemDropRatio())
+	{
+		UE_LOG(LogTemp, Error, TEXT("Under DropRatio!"));
+		return false;
+	}
+	UGameInstance* GameInstance = GetWorld()->GetGameInstance();
+	if (!GameInstance)
+	{
+		UE_LOG(LogTemp, Error, TEXT("GameInstance is missing!"));
+		return false;
+	}
+
+	UItemDataSubsystem* ItemDataSubsystem = GameInstance->GetSubsystem<UItemDataSubsystem>();
+	if (!ItemDataSubsystem)
+	{
+		UE_LOG(LogTemp, Error, TEXT("ItemDataSubsystem is missing!"));
+ 		return false;
+	}
+
+
+	FName ItemID;
+	int32 CurrentRatio = 0;
+	int32 Quantity = 1;
+	int32 TargetRatio = FMath::Rand32() % 100;
+	for (FEnemyDropItem Row : DropTable)
+	{
+		CurrentRatio += Row.DropRatio;
+		if (CurrentRatio >= TargetRatio)
+		{
+			ItemID = Row.ItemID;
+			Quantity = FMath::RandRange(Row.MinQunatity, Row.MaxQuantity);
+		}
+	}
+
+	FItemData ItemData = ItemDataSubsystem->GetItemDataByID(ItemID);
+	if (ItemData.ItemID != NAME_None)
+	{
+		UClass* SpawnClass = ItemData.ItemClass.LoadSynchronous();
+
+		if (SpawnClass)
+		{
+			for (int i = 0; i < Quantity; i++)
+			{
+				float Degree = (360.f / Quantity) * i;
+				float Radian = FMath::DegreesToRadians(Degree);
+
+				FVector SpawnLocation = GetActorLocation()
+					+ FVector(FMath::Cos(Radian), FMath::Sin(Radian), 0.f);
+				FTransform SpawnTransform(GetActorRotation(), SpawnLocation);
+
+				ABaseItem* DroppedItem = GetWorld()->SpawnActorDeferred<ABaseItem>(
+					SpawnClass,
+					SpawnTransform,
+					nullptr,
+					nullptr,
+					ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn
+				);
+
+				if (DroppedItem)
+				{
+					DroppedItem->SetItemID(ItemID);
+					DroppedItem->SetQuantity(Quantity);
+					DroppedItem->FinishSpawning(SpawnTransform);
+				}
+			}
+			return true;
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Failed to drop ItemID %s with quantity %d enemy name = %s"), *ItemID.ToString(), Quantity, *(GetName().ToString()));
+	}
+
+	return false;
+}
+
 bool AEnemyCharacter::Attack()
 {
 	if (IsAttackable())
@@ -110,6 +205,12 @@ bool AEnemyCharacter::Attack()
 		LeftAttackCoolTime = GetAttackCoolTime();
 		PlayAnimMontage(GetAttackMontage());
 		
+		if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+		{
+			// 이동 속도 감소
+			MoveComp->MaxWalkSpeed = GetChaseSpeed() * GetAttackMoveSpeedRatio();
+		}
+
 		OnAttackSignature.Broadcast();
 		return true;
 	}
@@ -126,8 +227,6 @@ bool AEnemyCharacter::SpecialAttack()
 		DeactiveMove();
 
 		OnSepcialAttackSignature.Broadcast();
-		// 임시 공격처리
-		//TryMeleeHit();
 		return true;
 	}
 	return false;
@@ -136,6 +235,12 @@ bool AEnemyCharacter::SpecialAttack()
 void AEnemyCharacter::OnFinishAttack()
 {
 	bIsAttacking = false;
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		// 이동 속도 감소
+		MoveComp->MaxWalkSpeed = GetChaseSpeed();
+	}
+
 	OnFinishAttackSignature.Broadcast();
 }
 
@@ -177,97 +282,72 @@ void AEnemyCharacter::ResetHitActors()
 	UE_LOG(LogTemp, Log, TEXT("[Combat] Hit actors reset"));
 }
 
-
-void AEnemyCharacter::TryMeleeHit()
+bool AEnemyCharacter::ExecuteSpecialAttackByID(FName AttackID, AActor* TargetActor)
 {
-	// 임시 공격 처리
-	const float Radius = 100.f;
-	const FCollisionShape Shape = FCollisionShape::MakeSphere(Radius);
-	TArray<FHitResult> HitResults;
-	FCollisionQueryParams Params(SCENE_QUERY_STAT(MeleeSWeep), false);
-	Params.AddIgnoredActor(this);
-	FVector Start = GetActorLocation();
-	FVector End = GetActorLocation() + GetActorForwardVector() * 300.f;
-	const bool bHitAny = GetWorld()->SweepMultiByChannel(
-		HitResults,
-		Start,
-		End,
-		FQuat::Identity,
-		ECollisionChannel::ECC_Pawn,
-		Shape,
-		Params
-	);
-
-	// Debug
+	if (!SpecialAttackData)
 	{
-		const float LifeTime = 1.0f;
-		const bool bPersistent = false;
-
-		const FColor Color = bHitAny ? FColor::Red : FColor::Green;
-
-		// (1) 시작/끝 스피어
-		DrawDebugSphere(GetWorld(), Start, Radius, 16, Color, bPersistent, LifeTime, 0, 2.0f);
-		DrawDebugSphere(GetWorld(), End, Radius, 16, Color, bPersistent, LifeTime, 0, 2.0f);
-
-		// (2) 스윕 경로: 캡슐(시작~끝을 잇는 형태)
-		const FVector Center = (Start + End) * 0.5f;
-		const FVector Dir = (End - Start);
-		const float HalfHeight = Dir.Size() * 0.5f;
-
-		// Dir가 0에 가까우면 회전 만들기 어려우니 가드
-		const FQuat CapsuleRot = !Dir.IsNearlyZero()
-			? FRotationMatrix::MakeFromZ(Dir.GetSafeNormal()).ToQuat()
-			: FQuat::Identity;
-
-		DrawDebugCapsule(
-			GetWorld(),
-			Center,
-			HalfHeight,
-			Radius,
-			CapsuleRot,
-			Color,
-			bPersistent,
-			LifeTime,
-			0,
-			2.0f
-		);
-
-		// (3) 실제 히트 지점들 표시(선택)
-		for (const FHitResult& Hit : HitResults)
-		{
-			if (!Hit.bBlockingHit && !Hit.bStartPenetrating && !Hit.GetActor()) continue;
-
-			DrawDebugPoint(GetWorld(), Hit.ImpactPoint, 12.f, FColor::Yellow, bPersistent, LifeTime);
-			DrawDebugLine(GetWorld(), Hit.ImpactPoint, Hit.ImpactPoint + Hit.ImpactNormal * 60.f,
-				FColor::Cyan, bPersistent, LifeTime, 0, 1.0f);
-		}
+		UE_LOG(LogTemp, Error, TEXT("[SpecialAttack] No SpecialAttackData"));
+		return false;
 	}
 
-	// 중복 타격 방지
-	TSet<AActor*> DamagedActor;
-	for (FHitResult& Hit : HitResults)
+	// ========================================
+	// ⭐ ID로 공격 찾기
+	// ========================================
+	USpecialAttackBase* Attack = SpecialAttackData->GetAttackByID(AttackID);
+
+	if (!Attack)
 	{
-		AActor* HitActor = Hit.GetActor();
-		if (!IsValid(HitActor)) continue;
-		if (HitActor == this) continue;
-		
-		APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(HitActor);
-		if (!IsValid(PlayerCharacter)) continue;
-		// if (!HitActor->ActorHasTag(FName("Player"))) continue;
-		if (DamagedActor.Contains(HitActor)) continue;
-
-		DamagedActor.Add(HitActor);
-
-		UGameplayStatics::ApplyDamage(
-			HitActor,
-			StatComp->GetCurrentStatValue(FName("Attack")),
-			GetController(),	//EventInstigator
-			this,		// DamageCauser
-			UDamageType::StaticClass()
-		);
-
-		UE_LOG(LogTemp, Warning, TEXT("ApplyDamage To %s"), *(HitActor->GetActorLabel()));
+		UE_LOG(LogTemp, Warning, TEXT("[SpecialAttack] Attack ID '%s' not found"), *AttackID.ToString());
+		return false;
 	}
+
+	if (!Attack->CanExecute(this, TargetActor))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[SpecialAttack] Cannot execute '%s'"), *AttackID.ToString());
+		return false;
+	}
+
+	// ========================================
+	// 몽타주 재생
+	// ========================================
+	if (UAnimMontage* Montage = Attack->GetMontage())
+	{
+		PlayAnimMontage(Montage);
+	}
+
+	// 이동 제어
+	if (!Attack->CanMoveWhileAttacking())
+	{
+		DeactiveMove();
+	}
+
+	// ========================================
+	// ⭐ 공격 실행
+	// ========================================
+	Attack->Execute(this, TargetActor);
+
+	OnSepcialAttackSignature.Broadcast();
+
+	UE_LOG(LogTemp, Log, TEXT("[SpecialAttack] Executed: %s"), *AttackID.ToString());
+
+	return true;
+}
+
+void AEnemyCharacter::TriggerSpecialAttackEffect()
+{
+	if (!CurrentSpecialAttack)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[SpecialAttack] No CurrentSpecialAttack!"));
+		return;
+	}
+
+	// ========================================
+	// ⭐ 실제 공격 실행
+	// ========================================
+	CurrentSpecialAttack->Execute(this, CurrentTargetActor);
+
+	UE_LOG(LogTemp, Log, TEXT("[SpecialAttack] Effect triggered: %s"),
+		*CurrentSpecialAttack->GetAttackID().ToString());
 }
 
 void AEnemyCharacter::OnHitted()
@@ -275,10 +355,14 @@ void AEnemyCharacter::OnHitted()
 	StopAnimMontage();
 	OnHittedSignature.Broadcast();
 
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->MaxWalkSpeed = GetPatrolSpeed() * GetHittedMoveSpeedRatio();
+	}
 	if (UAnimMontage* Montage = GetHittedMontage())
 	{
 		PlayAnimMontage(Montage);
-		DeactiveMove();
+		// DeactiveMove();
 		UE_LOG(LogTemp, Warning, TEXT("%s Hitted!"), *(GetActorLabel()));
 	}
 	else
@@ -293,16 +377,31 @@ void AEnemyCharacter::OnFinishHitted()
 	OnFinishHittedSignature.Broadcast();
 }
 
-void AEnemyCharacter::OnDead()
+void AEnemyCharacter::OnDead(bool bShouldPlayMontage)
 {
 	bIsDead = true;
 	StopAnimMontage();
 	DeactiveMove();
 	OnDeadSignature.Broadcast();
 
+	// KillCountUp
+	UMainGameInstance* MainGameInstance = UMainGameInstance::Get(GetWorld());
+	if (MainGameInstance)
+	{
+		// Kill Count 중가 - 아직 구현 안 됨.
+	}
+
 	UCapsuleComponent* Capsule = GetCapsuleComponent();
 	Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GetMesh()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+
+	if (!bShouldPlayMontage)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[OnDead] %s - Skipping montage, instant ragdoll"), *GetActorLabel())
+		OnFinishDead();
+		return;
+	}
+
 	if (UAnimMontage* Montage = GetDeadMontage())
 	{
 		PlayAnimMontage(Montage);
@@ -315,13 +414,16 @@ void AEnemyCharacter::OnDead()
 
 void AEnemyCharacter::OnFinishDead()
 {
-	OnFinishDeadSignature.Broadcast();
 	EnableRagdoll();
 	DisableWeaponCollision();
 	SetLifeSpan(5.f);
 	UE_LOG(LogTemp, Warning, TEXT("Pause=%d Sim=%d"),
     GetMesh()->bPauseAnims,
     GetMesh()->IsSimulatingPhysics());
+
+	// 사망 처리 완료 후 Item Drop
+	DropItem();
+	OnFinishDeadSignature.Broadcast();
 }
 
 float AEnemyCharacter::TakeDamage(
@@ -333,6 +435,7 @@ float AEnemyCharacter::TakeDamage(
 {
 	if (bIsDead)
 	{
+		UE_LOG(LogTemp, Log, TEXT("[TakeDamage] %s is already dead"), *GetActorLabel());
 		// if (!bRagdollEnabled) EnableRagdoll();
 		return DamageAmount;
 	}
@@ -346,7 +449,13 @@ float AEnemyCharacter::TakeDamage(
 
 	if (StatComp->GetBaseStatValue(FName("Health")) <= 0.f)
 	{
-		OnDead();
+		TSubclassOf<UDamageType> DamageTypeClass = DamageEvent.DamageTypeClass;
+		bool bShouldPlayMontage = !(TypeData->MontageSkipDamageTypes.Contains(DamageTypeClass));
+
+		UE_LOG(LogTemp, Error, TEXT("[TakeDamage] %s DEAD! DamageType: %s"),
+			*GetActorLabel(), *GetNameSafe(DamageTypeClass));
+		
+		OnDead(bShouldPlayMontage);
 	}
 	else
 	{
@@ -454,7 +563,7 @@ UAnimMontage* AEnemyCharacter::GetAttackMontage() const
 
 UAnimMontage* AEnemyCharacter::GetSpecialAttackMontage() const
 {
-	return TypeData ? TypeData->SpecialAttackMontage : nullptr;
+	return nullptr;
 }
 
 UAnimMontage* AEnemyCharacter::GetHittedMontage() const
@@ -487,6 +596,26 @@ float AEnemyCharacter::GetChaseSpeed() const
 	return TypeData ? TypeData->ChaseMaxSpeed : 600.f;
 }
 
+float AEnemyCharacter::GetAttackMoveSpeedRatio() const
+{
+	return TypeData ? TypeData->AttackMoveSpeedRatio : 0.7f;
+}
+
+float AEnemyCharacter::GetHittedMoveSpeedRatio() const
+{
+	return TypeData ? TypeData->HittedMoveSpeedRatio : 0.1f;
+}
+
+float AEnemyCharacter::GetItemDropRatio() const
+{
+	return TypeData ? TypeData->ItemDropRatio : -1.f;
+}
+
+TArray<FEnemyDropItem> AEnemyCharacter::GetDropItemTable() const
+{
+	return TypeData ? TypeData->DropTable : TArray<FEnemyDropItem>();
+}
+
 void AEnemyCharacter::ApplyDamageToStat(float DamageAmount)
 {
 	float CurrentHealth = StatComp->GetBaseStatValue(FName("Health"));
@@ -506,11 +635,29 @@ void AEnemyCharacter::EnableRagdoll()
 	if (!GetMesh()) return;
 
 	bRagdollEnabled = true;
+	
+	// 캐릭터 무브먼트 즉시 중지
+	if (GetCharacterMovement())
+	{
+		GetCharacterMovement()->StopMovementImmediately();
+		GetCharacterMovement()->DisableMovement();
+		GetCharacterMovement()->SetComponentTickEnabled(false); // 무브먼트 틱 종료
+	}
+
+	// 캡슐 콜리전 제거
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetCapsuleComponent()->SetCollisionResponseToAllChannels(ECR_Ignore);
+	
+	// 메쉬 설정
 	GetMesh()->bPauseAnims = true;
 	GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
+	
+	// 메쉬를 캡슐로부터 분리 (메쉬가 자유롭게 날아가게 함)
+	GetMesh()->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+	
 	GetMesh()->SetSimulatePhysics(true);
 	GetMesh()->WakeAllRigidBodies();
+	GetMesh()->SetAllBodiesPhysicsBlendWeight(1.0f);
 }
 
 void AEnemyCharacter::SetForAIMove()
