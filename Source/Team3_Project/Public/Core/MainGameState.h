@@ -6,6 +6,10 @@
 #include "GameFramework/GameState.h"
 #include "MainGameState.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWaveStart, FString, WaveMessage, float, MaxWaveTime);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWaveEnd, int32, BonusPoint, bool, bIsWaveClear);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnWaveFire);
+
 class AEnemySpawner;
 class AEventZone;
 class AEnemyCharacter;
@@ -31,14 +35,6 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "WaveSystem")
 	float CurrentWaveTime;
 
-	//최대 생성되는 몬스터 수
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WaveSystem")
-	int32 MaxSpawnCount;
-
-	//현재 생성되어있는 몬스터의 수
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "WaveSystem")
-	int32 CurrentSpawnCount;
-
 	//현재웨이브에서 획득한 점수
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "WaveSystem")
 	int32 CurrentScore;
@@ -50,12 +46,20 @@ public:
 	TMap<int32, TWeakObjectPtr<AEnemySpawner>> EnemySpawners;
 	UPROPERTY(VisibleAnywhere, Category = "SpanwedActors")
 	TMap<int32, TWeakObjectPtr<AEventZone>> EventZones;
-	/*UPROPERTY(VisibleAnywhere, Category = "SpanwedActors")
-	TArray<AEnemyCharacter> SpawnedMonster;*/
 	
 	FTimerDelegate EnemySpawnDelegate;
 	FTimerHandle WaveStartTimer;
 	FTimerHandle WaveEndTimer;
+
+public:
+	UPROPERTY(BlueprintAssignable)
+	FOnWaveStart OnWaveStart;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnWaveEnd OnWaveEnd;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnWaveFire OnWaveFire;
 
 public:
 
@@ -77,5 +81,4 @@ public:
 private:
 	bool bIsRunningSpawner = false;
 	bool bPlayerOnBox;
-	//bool bPlayerUseBomb;
 };

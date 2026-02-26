@@ -7,6 +7,8 @@
 #include "GameFramework/Actor.h"
 #include "DoorNPC.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInteractDoor);
+
 UCLASS()
 class TEAM3_PROJECT_API ADoorNPC : public AActor , public IInteractionInterface
 {
@@ -23,9 +25,27 @@ public:
 
 	virtual void SetInteractFocus_Implementation(bool bIsFocus) override;
 
+	UFUNCTION(BlueprintCallable)
+	void DestroyActor();
+
+	UPROPERTY(BlueprintCallable)
+	FOnInteractDoor OnInteractDoor;
+
 protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Door | Components")
 	TObjectPtr<class USceneComponent> RootComp;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	TObjectPtr<class USphereComponent> SphereComp;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Door | Components")
+	TObjectPtr<class UStaticMeshComponent> StaticMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Door | UI", meta = (AllowPrivateAccess))
+	TSubclassOf<UUserWidget> InteractDoorWidgetClass;
+
+	UFUNCTION(BlueprintCallable)
+	void OpenDoorInteractUI(APlayerController* PC);
+	
+	void BindDestroy();
+
+private:
+	bool bHasInteracted = false;
 };
