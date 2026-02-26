@@ -24,15 +24,6 @@ enum class ECharacterState : uint8
 	Idle, Walking, Sprinting, Parkour, Dead
 };
 
-UENUM(BlueprintType)
-enum class EOverlayState : uint8
-{
-	Default, // 맨손
-	Melee,   // 근접 무기
-	Pistol,  // 권총
-	Rifle    // 소총
-};
-
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStaminaChanged, float, Stamina);
 
 UCLASS(Blueprintable, BlueprintType)

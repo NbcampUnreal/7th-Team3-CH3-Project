@@ -27,6 +27,7 @@ APlayerCharacter::APlayerCharacter()
 	StatComp = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
 	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComponent"));
 	CurrentState = ECharacterState::Idle;
+	CurrentOverlayState = EWeaponType::WT_None;
 }
 
 void APlayerCharacter::SetCharacterState(ECharacterState NewState)
