@@ -1,4 +1,4 @@
-#include "UI/MainHUD.h"
+﻿#include "UI/MainHUD.h"
 #include "Components/TextBlock.h"
 #include "Components/ProgressBar.h"
 #include "Components/Image.h"
@@ -63,6 +63,14 @@ void UMainHUD::NativeConstruct()
             UpdateQuickSlotUI();
         }
     }
+	APlayerCharacter* PlayerChar = Cast<APlayerCharacter>(PlayerPawn);
+    if (PlayerChar)
+    {
+        /*PlayerChar->OnHealthChanged.AddDynamic(this, &UMainHUD::UpdateHealth);*/
+        PlayerChar->OnStaminaChanged.AddDynamic(this, &UMainHUD::UpdateStamina);
+        //PlayerChar->OnWhiteKarmaChanged.AddDynamic(this, &UMainHUD::UpdateWhiteKarma);
+        //PlayerChar->OnBlackKarmaChanged.AddDynamic(this, &UMainHUD::UpdateBlackKarma);
+	}
    
     /*APlayerCharacter* PlayerChar = Cast<APlayerCharacter>(PlayerPawn);
     if (PlayerChar)
@@ -572,4 +580,34 @@ void UMainHUD::RefreshQuickSlotQuantity(int32 SlotIndex, FName ItemID)
     {
         QtyTextArray[SlotIndex]->SetVisibility(ESlateVisibility::Collapsed);
     }
+
+	APawn* PlayerPawn = GetOwningPlayerPawn();
+    if (PlayerPawn)
+    {
+        UInventoryComponent* InvComp = PlayerPawn->FindComponentByClass<UInventoryComponent>();
+        if (InvComp)
+        {
+			AWeaponItem* EquippedWeapon = InvComp->GetEquippedWeapon();
+            if (EquippedWeapon)
+            {
+                if (bIsEquipping)
+                {
+                    EquippedWeapon->OnAmmoChanged.AddDynamic(this, &UMainHUD::OnAmmoChanged);
+                }
+                else
+                {
+                    EquippedWeapon->OnAmmoChanged.RemoveDynamic(this, &UMainHUD::OnAmmoChanged);
+				}
+            }
+        }
+	}
+}
+
+void UMainHUD::OnAmmoChanged(int32 CurrentAmmo, int32 MaxAmmo)
+{
+    if (Txt_AmmoInfo)
+    {
+        FString AmmoText = FString::Printf(TEXT("%d / %d"), CurrentAmmo, MaxAmmo);
+        Txt_AmmoInfo->SetText(FText::FromString(AmmoText));
+	}
 }

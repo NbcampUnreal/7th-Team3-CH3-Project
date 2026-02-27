@@ -14,6 +14,9 @@ class AEnemySpawner;
 class AEventZone;
 class AEnemyCharacter;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWaveStart, FString, Message, float, WaveTime);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWaveEnd, bool, bSuccess, int32, Bonus);
+
 /**
  *
  */
@@ -50,6 +53,13 @@ public:
 	FTimerDelegate EnemySpawnDelegate;
 	FTimerHandle WaveStartTimer;
 	FTimerHandle WaveEndTimer;
+
+	//웨이브 시작 이벤트
+	UPROPERTY(BlueprintAssignable, Category = "WaveSystem")
+	FOnWaveStart OnWaveStart;
+	//웨이브 종료 이벤트
+	UPROPERTY(BlueprintAssignable, Category = "WaveSystem")
+	FOnWaveEnd OnWaveEnd;
 
 public:
 	UPROPERTY(BlueprintAssignable)
