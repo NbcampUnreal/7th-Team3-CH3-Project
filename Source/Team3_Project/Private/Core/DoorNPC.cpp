@@ -53,6 +53,7 @@ void ADoorNPC::Interact_Implementation(AActor* Interactor)
 	bHasInteracted = true;
 	OnInteractDoor.Broadcast();
 
+
 }
 
 void ADoorNPC::SetInteractFocus_Implementation(bool bIsFocus)
