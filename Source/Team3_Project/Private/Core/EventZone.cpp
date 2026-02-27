@@ -18,14 +18,15 @@ AEventZone::AEventZone()
 	BoxComp = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxComponent"));
 	BoxComp->SetupAttachment(RootComponent);
 
+	BoxComp->OnComponentBeginOverlap.AddDynamic(this, &AEventZone::OnComponentBeginOverlap);
+	BoxComp->OnComponentEndOverlap.AddDynamic(this, &AEventZone::OnComponentEndOverlap);
+
 }
 
 void AEventZone::BeginPlay()
 {
 	Super::BeginPlay();
-	Debug::Print(FString::FromInt(Id) + TEXT("EventZone생성"), FColor::Blue);
-	BoxComp->OnComponentBeginOverlap.AddDynamic(this, &AEventZone::OnComponentBeginOverlap);
-	BoxComp->OnComponentEndOverlap.AddDynamic(this, &AEventZone::OnComponentEndOverlap);
+	
 }
 
 void AEventZone::OnComponentBeginOverlap(
@@ -40,7 +41,6 @@ void AEventZone::OnComponentBeginOverlap(
 
 	if (CurrentGameState == nullptr)
 	{
-		Debug::Print(TEXT("Can not Found GameState"));
 		return;
 	}
 
@@ -48,7 +48,6 @@ void AEventZone::OnComponentBeginOverlap(
 	{
 		//@TODO_Core : 플레이어 들어왔습니다 이벤트 시작 고고
 		
-		Debug::Print(TEXT("Player EventZone 통과 이벤트 발생합니다!"));
 		CurrentGameState->OnTriggerEvent(GetId(), true);
 	}
 
@@ -71,7 +70,6 @@ void AEventZone::OnComponentEndOverlap(
 
 	if (OtherActor->ActorHasTag("Player"))
 	{
-		Debug::Print(TEXT("Player EventZone 벗어남!"));
 		CurrentGameState->OnTriggerEvent(GetId(), false);
 	}
 }
