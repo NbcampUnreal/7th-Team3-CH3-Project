@@ -7,6 +7,7 @@
 #include "GameFramework/Character.h"
 #include "Shared/Component/StatComponent.h"
 #include "Shared/EquipableInterface.h"
+#include "Player/PlayerCharacter.h"
 
 UInventoryComponent::UInventoryComponent()
 {
@@ -116,6 +117,10 @@ int32 UInventoryComponent::AddItem(FName ItemID, int32 Quantity, const TMap<EAtt
 	if (RemainingQuantity < Quantity)
 	{
 		OnInventoryUpdated.Broadcast();
+	}
+	if (ItemData.ItemType == EItemType::IT_QuestItem)
+	{
+		OnQuestItemObtained.Broadcast();
 	}
 
 	return RemainingQuantity;
@@ -278,9 +283,34 @@ void UInventoryComponent::UseItemFromQuickSlot(int32 SlotIndex)
 	FName TargetItemID = QuickSlots[SlotIndex];
 	if (TargetItemID.IsNone())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Quick Slot %d is empty"), SlotIndex);
+		if (EquippedWeapon != nullptr)
+		{
+			APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(GetOwner());
+			if (PlayerCharacter)
+			{
+				UnequipItemToInventory(ESlotType::ST_Weapon, -1);
+			}
+
+			OnQuickSlotItemChanged.Broadcast(SlotIndex, NAME_None);
+			OnQuickSlotHighlight.Broadcast(SlotIndex);
+			UE_LOG(LogTemp, Warning, TEXT("Unequipped weapon from Quick Slot %d"), SlotIndex);
+		}
 		return;
 	}
+
+	UGameInstance* GameInstance = UGameplayStatics::GetGameInstance(this);
+	if (!GameInstance)
+	{
+		return;
+	}
+	UItemDataSubsystem* ItemDataSubsystem = GameInstance->GetSubsystem<UItemDataSubsystem>();
+	if (!ItemDataSubsystem)
+	{
+		return;
+	}
+
+	// 아이템 데이터 가져오기
+	FItemData ItemData = ItemDataSubsystem->GetItemDataByID(TargetItemID);
 
 	if (HasItem(TargetItemID, 1))
 	{
@@ -288,7 +318,17 @@ void UInventoryComponent::UseItemFromQuickSlot(int32 SlotIndex)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Used ItemID %s from Quick Slot %d"), *TargetItemID.ToString(), SlotIndex);
 			OnQuickSlotUpdated.Broadcast();
-			OnQuickSlotItemChanged.Broadcast(SlotIndex, TargetItemID);
+			if (ItemData.ItemType == EItemType::IT_Consumable)
+			{
+				//사용 로그만
+				UE_LOG(LogTemp, Warning, TEXT("Consumed ItemID %s from Quick Slot %d"), *TargetItemID.ToString(), SlotIndex);
+			}
+			else
+			{
+				OnQuickSlotItemChanged.Broadcast(SlotIndex, TargetItemID);
+				OnQuickSlotHighlight.Broadcast(SlotIndex);
+				UE_LOG(LogTemp, Warning, TEXT("Equipped ItemID %s from Quick Slot %d"), *TargetItemID.ToString(), SlotIndex);
+			}
 		}
 		else
 		{
@@ -653,13 +693,21 @@ void UInventoryComponent::DropItem(FName ItemID, int32 Quantity, int32 Inventory
 		return;
 	}
 
+	FItemData ItemData = ItemDataSubsystem->GetItemDataByID(ItemID);
+	if (ItemData.ItemType == EItemType::IT_QuestItem)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Cannot drop quest item with ItemID %s"), *ItemID.ToString());
+		return;
+	}
+
 
 	FInventoryItem ItemToDrop = InventoryContents[InventoryIndex];
 	ItemToDrop.Quantity = Quantity;
 
+
+
 	if (RemoveItem(ItemID, Quantity))
 	{
-		FItemData ItemData = ItemDataSubsystem->GetItemDataByID(ItemID);
 		UClass* SpawnClass = ItemData.ItemClass.LoadSynchronous();
 
 		if (SpawnClass)
@@ -818,7 +866,7 @@ bool UInventoryComponent::HandleAttachmentEquip(const FItemData& Data, FName Ite
 
 bool UInventoryComponent::HandleConsumableUse(const FItemData& Data, FName ItemID)
 {
-	ACharacter* Character = Cast<ACharacter>(GetOwner());
+	APlayerCharacter* Character = Cast<APlayerCharacter>(GetOwner());
 	if (!Character)
 	{
 		return false;
@@ -836,17 +884,40 @@ bool UInventoryComponent::HandleConsumableUse(const FItemData& Data, FName ItemI
 	switch (Data.ConsumableType)
 	{
 	case EConsumableType::CT_Health:
-		// 체력 회복 로직 구현 필요		
+		if (StatComp->GetCurrentStatValue("Health") >= StatComp->GetMaxStatValue("Health"))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Health is already full, cannot use Health Consumable ItemID %s"), *ItemID.ToString());
+			return false;
+		}
+		StatComp->SetCurrentStatValue("Health", StatComp->GetCurrentStatValue("Health") + Data.PowerAmount);
 		UE_LOG(LogTemp, Warning, TEXT("Used Health Consumable ItemID %s"), *ItemID.ToString());
 		bUseSuccessful = true;
 		break;
 	case EConsumableType::CT_Stamina:
-		// 스태미나 회복 로직 구현 필요
+		if (StatComp->GetCurrentStatValue("Stamina") >= StatComp->GetMaxStatValue("Stamina"))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Stamina is already full, cannot use Stamina Consumable ItemID %s"), *ItemID.ToString());
+			return false;
+		}
+		StatComp->SetCurrentStatValue("Stamina", StatComp->GetCurrentStatValue("Stamina") + Data.PowerAmount);
 		UE_LOG(LogTemp, Warning, TEXT("Used Stamina Consumable ItemID %s"), *ItemID.ToString());
 		bUseSuccessful = true;
 		break;
 	case EConsumableType::CT_Adrenaline:
-		// 아드레날린 회복 로직 구현 필요
+		if (bIsAdrenalineOnCooldown)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Adrenaline is on cooldown, cannot use Adrenaline Consumable ItemID %s"), *ItemID.ToString());
+			return false;
+		}
+		bIsAdrenalineOnCooldown = true;
+		//Character->ActiveAdrenaline(Data.Cooldown);
+		GetWorld()->GetTimerManager().SetTimer(
+			AdrenalineCooldownTimerHandle, 
+			this,
+			&UInventoryComponent::ResetAdrenalineCooldown,
+			Data.Cooldown,
+			false
+		);
 		UE_LOG(LogTemp, Warning, TEXT("Used Adrenaline Consumable ItemID %s"), *ItemID.ToString());
 		bUseSuccessful = true;
 		break;
@@ -873,4 +944,10 @@ bool UInventoryComponent::HandleConsumableUse(const FItemData& Data, FName ItemI
 
 	UE_LOG(LogTemp, Warning, TEXT("Failed to remove consumable ItemID %s from inventory"), *ItemID.ToString());
 	return false;
+}
+
+void UInventoryComponent::ResetAdrenalineCooldown()
+{
+	bIsAdrenalineOnCooldown = false;
+	UE_LOG(LogTemp, Warning, TEXT("Adrenaline cooldown reset"));
 }

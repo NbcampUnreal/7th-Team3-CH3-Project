@@ -592,6 +592,7 @@ void AWeaponItem::SetEquippedState()
 		ItemMesh->SetSimulatePhysics(false);
 		ItemMesh->SetVisibility(false);
 		ItemMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		ItemMesh->SetRelativeScale3D(FVector(1.0f));
 		
 	}
 

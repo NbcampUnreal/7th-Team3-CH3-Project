@@ -131,6 +131,9 @@ public:
 	float MaxStamina = 100.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat Config")
+	float MaxHealth = 100.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat Config")
 	float SprintCostPerSecond = 10.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat Config")
@@ -153,7 +156,7 @@ protected:
 	void HandleStaminaRecovery();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction|Config")
-	float InteractionRange = 300.f;
+	float InteractionRange = 500.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction|Config")
 	float InteractionRadius = 150.0f;
