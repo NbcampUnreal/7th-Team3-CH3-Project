@@ -41,6 +41,7 @@ void APlayerCharacter::BeginPlay()
 	if (StatComp)
 	{
 		StatComp->InitializeStat("Stamina", MaxStamina, 0.f, MaxStamina);
+		StatComp->InitializeStat("Health", MaxHealth, 0.f, MaxHealth);
 	}
 }
 

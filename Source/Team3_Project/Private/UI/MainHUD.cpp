@@ -166,7 +166,7 @@ void UMainHUD::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
             int32 Min = TotalSeconds / 60;
             int32 Sec = TotalSeconds % 60;
             FString TimeStr = FString::Printf(TEXT("%02d:%02d"), Min, Sec);
-            Timer->SetText(FText::FromString(TimeStr));
+            Timer->SetText(FText::FromString(TimeStr)); 
 
             if (CurrentRemainingTime <= 10.0f)
             {

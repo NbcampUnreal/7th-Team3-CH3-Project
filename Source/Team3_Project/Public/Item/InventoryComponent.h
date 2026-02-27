@@ -15,8 +15,13 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnQuickSlotItemChanged, int32, Slo
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnEquipmentChanged, bool, bIsEquipping, FName, ItemID);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnQuestItemObtained);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnQuickSlotHighlight, int32, SlotIndex);
+
 //테스트용 딜리게이트
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnItemEquipRequested, FInventoryItem, EquipItem);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnItemUnequipRequested, ESlotType, SlotType);
 
 class AWeaponItem;
@@ -113,6 +118,12 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Inventory Event")
 	FOnItemUnequipRequested OnItemUnequipRequested;
 
+	UPROPERTY(BlueprintAssignable, Category = "Inventory Event")
+	FOnQuickSlotHighlight OnQuickSlotHighlight;
+
+	UPROPERTY(BlueprintAssignable, Category = "Inventory Event")
+	FOnQuestItemObtained OnQuestItemObtained;
+
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void DropItem(FName ItemID, int32 Quantity, int32 InventoryIndex);
@@ -140,4 +151,10 @@ private:
 
 	bool HandleAttachmentEquip(const FItemData& Data, FName ItemID);
 	bool HandleConsumableUse(const FItemData& Data, FName ItemID);
+
+	bool bIsAdrenalineOnCooldown = false;
+
+	FTimerHandle AdrenalineCooldownTimerHandle;
+
+	void ResetAdrenalineCooldown();
 };

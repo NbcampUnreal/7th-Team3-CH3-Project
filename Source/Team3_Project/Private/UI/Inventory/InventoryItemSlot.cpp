@@ -13,6 +13,7 @@
 #include "Blueprint/UserWidget.h"
 #include "UI/Inventory/InventoryMainWidget.h"
 #include "Item/InventoryComponent.h"
+#include "Item/WeaponItem.h"
 
 void UInventoryItemSlot::InitSlot(const FInventoryItem& Item)
 {
@@ -326,6 +327,22 @@ bool UInventoryItemSlot::NativeOnDrop(const FGeometry& InGeometry, const FDragDr
 	{
 		UE_LOG(LogTemp, Warning, TEXT("NativeOnDrop: Handling equipment -> inventory slot interaction (SourceType=%d SourceIndex=%d TargetIndex=%d)"), static_cast<int32>(DragDropOp->SourceType), DragDropOp->SourceIndex, SlotIndex);
 		InventoryComponent->UnequipItemToInventory(static_cast<ESlotType>(DragDropOp->SourceType), SlotIndex);
+		return true;
+	}
+	
+	// 무기/방어구 슬롯 -> 퀵슬롯	: 해당 퀵슬롯에 장착 아이템 배정
+	if ((DragDropOp->SourceType == static_cast<uint8>(ESlotType::ST_Weapon) || DragDropOp->SourceType == static_cast<uint8>(ESlotType::ST_Armor)) && SlotType == ESlotType::ST_QuickSlot)
+	{
+
+		FName EquippedItemID = DragDropOp->SourceType == static_cast<uint8>(ESlotType::ST_Weapon) ? InventoryComponent->GetEquippedWeapon() ? InventoryComponent->GetEquippedWeapon()->GetItemID() : NAME_None
+			: InventoryComponent->GetEquippedArmorID();
+		if (EquippedItemID.IsNone())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("NativeOnDrop: No equipped item to assign to quickslot"));
+			return false;
+		}
+		UE_LOG(LogTemp, Warning, TEXT("NativeOnDrop: Assigning equipped item %s to quickslot=%d"), *EquippedItemID.ToString(), SlotIndex);
+		InventoryComponent->AssignToQuickSlot(SlotIndex, EquippedItemID);
 		return true;
 	}
 
