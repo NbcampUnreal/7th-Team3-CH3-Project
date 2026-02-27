@@ -3,10 +3,14 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Enemy/EnemyTypeData.h"
+#include "Enemy/SpecialAttackData.h"
 #include "EnemyCharacter.generated.h"
 
 class UStatComponent;
 class USphereComponent;
+class UDamageType;
+struct FDamageEvent;
+class USpecialAttackData;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChanged, float, NewValue, float, MaxValue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMovableChanged, bool, NewValue);
@@ -31,8 +35,9 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
-public:
 
+	bool DropItem();
+public:
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	bool Attack();
 	UFUNCTION(BlueprintCallable, Category = "Combat")
@@ -52,15 +57,20 @@ public:
 	// 공격 시 호출
 	void ResetHitActors();
 	
-	// 몽타주가 없어서 임시로 사용하는 데미지 처리
-	void TryMeleeHit();
+	// ID로 특수 공격 실행
+	UFUNCTION(BlueprintCallable, Category = "Combat|Special")
+	bool ExecuteSpecialAttackByID(FName AttackID, AActor* TargetActor);
+
+	// 특수 공격 효과 발동
+	UFUNCTION(BlueprintCallable, Category = "Combat|Special")
+	void TriggerSpecialAttackEffect();
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void OnHitted();
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void OnFinishHitted();
 	UFUNCTION(BlueprintCallable, Category = "Combat")
-	void OnDead();
+	void OnDead(bool bShouldPlayMontage);
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void OnFinishDead();
 
@@ -112,9 +122,16 @@ public:
 	float GetPatrolSpeed() const;
 	float GetPatrolRadius() const;
 	float GetChaseSpeed() const;
+	float GetAttackMoveSpeedRatio() const;
+	float GetHittedMoveSpeedRatio() const;
+
+	float GetItemDropRatio() const;
+	TArray<FEnemyDropItem> GetDropItemTable() const;
 
 	void ApplyDamageToStat(float DamageAmount);
 	void EnableRagdoll();
+
+	void SetForAIMove();
 
 private:
 	// 근접 공격 히트 처리
@@ -163,6 +180,18 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Data")
 	TObjectPtr<UEnemyTypeData> TypeData;
 
+	// Special Attack Data
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Data")
+	TObjectPtr<USpecialAttackData> SpecialAttackData;
+
+	/** 현재 실행 중인 SpecialAttack */
+	UPROPERTY()
+	USpecialAttackBase* CurrentSpecialAttack = nullptr;
+
+	/** 현재 공격 대상 */
+	UPROPERTY()
+	AActor* CurrentTargetActor = nullptr;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	USphereComponent* WeaponCollision;
 	
@@ -181,4 +210,6 @@ protected:
 	bool bIsDead;
 	bool bRagdollEnabled;
 
+private:
+	bool bFinishDead;
 };
