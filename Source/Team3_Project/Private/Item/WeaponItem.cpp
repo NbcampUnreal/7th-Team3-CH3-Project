@@ -11,6 +11,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "UI/Item/LootTagWidget.h"
 #include "Components/WidgetComponent.h"
+#include "Components/SphereComponent.h"
 
 #define ECC_Weapon ECC_GameTraceChannel1
 
@@ -48,12 +49,6 @@ AWeaponItem::AWeaponItem()
 	LastFireTime = 0.0f;
 	CurrentRecoilPitch = 0.0f;
 
-	// 원래 값 저장
-	OriginalDamage = BaseDamage;
-	OriginalSpread = SpreadAngle;
-	OriginalRecoil = CurrentRecoil;
-	OriginalMaxAmmo = MaxAmmo;
-	OriginalRange = WeaponRange;
 }
 
 void AWeaponItem::BeginPlay()
@@ -74,6 +69,7 @@ void AWeaponItem::BeginPlay()
 			TagWidget->UpdateAttachmentIcons(EquippedAttachments);
 		}
 	}
+
 }
 
 void AWeaponItem::Tick(float DeltaTime)
@@ -320,6 +316,8 @@ void AWeaponItem::StopReload()
 	}
 
 	//추후 추가 로직 사용 가능(애니메이션 캔슬 등)
+
+	
 }
 
 void AWeaponItem::FinishReloading()
@@ -378,6 +376,8 @@ void AWeaponItem::FinishReloading()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Failed to reload ammo"));
 	}
+
+	OnAmmoChanged.Broadcast(CurrentAmmo, MaxAmmo);
 }
 
 
@@ -457,6 +457,8 @@ FName AWeaponItem::EquipAttachment(FName AttachmentID)
 		UE_LOG(LogTemp, Warning, TEXT("No valid attachment component for type %d"), (int32)AttachmentData.AttachmentType);
 	}
 
+	OnAmmoChanged.Broadcast(CurrentAmmo, MaxAmmo);
+
 	return ReturnedItem;
 }
 
@@ -497,6 +499,7 @@ void AWeaponItem::UnequipAttachment(FName AttachmentID)
 		EquippedAttachments.Remove(AttachmentData.AttachmentType);
 	}
 	RecalculateStats();
+	OnAmmoChanged.Broadcast(CurrentAmmo, MaxAmmo);
 }
 
 
@@ -580,6 +583,27 @@ void AWeaponItem::Interact_Implementation(AActor* Interactor)
 void AWeaponItem::InitializeDroppedWeapon(const TMap<EAttachmentType, FName>& SavedAttachments)
 {
 	ApplyAttachmentState(SavedAttachments);
+}
+
+void AWeaponItem::SetEquippedState()
+{
+	if (ItemMesh)
+	{
+		ItemMesh->SetSimulatePhysics(false);
+		ItemMesh->SetVisibility(false);
+		ItemMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		
+	}
+
+	if (SphereComp)
+	{
+		SphereComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
+	if (WeaponMesh)
+	{
+		WeaponMesh->SetVisibility(true);
+	}
 }
 
 
@@ -725,8 +749,9 @@ void AWeaponItem::FireHitScan()
 					FinalHitResult,
 					GetInstigatorController(),
 					this,
-					nullptr
+					UDamageType::StaticClass()
 				);
+				UE_LOG(LogTemp, Log, TEXT("Applied %f damage to %s"), BaseDamage, *HitActor->GetName());
 			}
 			//디버그용 점 그리기
 			DrawDebugPoint(
@@ -884,6 +909,17 @@ UStaticMeshComponent* AWeaponItem::GetAttachmentComponentByType(EAttachmentType 
 
 void AWeaponItem::RecalculateStats()
 {
+
+	if (!bIsOriginalDataSaved)
+	{
+		// 원래 값 저장
+		OriginalDamage = BaseDamage;
+		OriginalSpread = SpreadAngle;
+		OriginalRecoil = CurrentRecoil;
+		OriginalMaxAmmo = MaxAmmo;
+		OriginalRange = WeaponRange;
+		bIsOriginalDataSaved = true;
+	}
 	// 원래 값 복원
 	BaseDamage = OriginalDamage;
 	SpreadAngle = OriginalSpread;
@@ -940,4 +976,5 @@ void AWeaponItem::RecalculateStats()
 			break;
 		}
 	}
+	OnAmmoChanged.Broadcast(CurrentAmmo, MaxAmmo);
 }

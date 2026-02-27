@@ -24,5 +24,5 @@ class TEAM3_PROJECT_API IEquipableInterface
 public:
 	virtual void EquipItemByData(const FInventoryItem& ItemData, ESlotType SlotType) = 0;
 
-	virtual FInventoryItem UnequipItemBySlot(ESlotType SlotType) const = 0;
+	virtual FInventoryItem UnequipItemBySlot(ESlotType SlotType) = 0;
 };

@@ -30,6 +30,7 @@ enum class EWeaponType : uint8
 	WT_Rifle UMETA(DisplayName = "Rifle"),
 	WT_Shotgun UMETA(DisplayName = "Shotgun"),
 	WT_Sniper UMETA(DisplayName = "Sniper"),
+	WT_RocketLauncher UMETA(DisplayName = "RocketLauncher"),
 	WT_Melee UMETA(DisplayName = "Melee")
 };
 
@@ -140,6 +141,11 @@ struct FInventoryItem
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TMap<EAttachmentType, FName> AttachmentState;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 CurrentAmmo;
+
+	FInventoryItem() : Quantity(1), CurrentAmmo(0) {}
 
 };
 

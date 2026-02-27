@@ -62,6 +62,21 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Weapon|Ammo")
 	FOnAmmoChanged OnAmmoChanged;
 
+	UFUNCTION(BlueprintCallable, Category = "Weapon|State")
+	void SetEquippedState();
+
+	UFUNCTION(BlueprintCallable, Category = "Weapon|Get")
+	int32 GetCurrentAmmo() const { return CurrentAmmo; }
+
+	UFUNCTION(BlueprintCallable, Category = "Weapon|Get")
+	int32 GetMaxAmmo() const { return MaxAmmo; }
+
+	UFUNCTION(BlueprintCallable, Category = "Weapon|Set")
+	void SetCurrentAmmo(int32 NewAmmo) { 
+		CurrentAmmo = FMath::Clamp(NewAmmo, 0, MaxAmmo); 
+		OnAmmoChanged.Broadcast(CurrentAmmo, MaxAmmo);
+	}
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon|Components")
 	USkeletalMeshComponent* WeaponMesh;
@@ -156,6 +171,8 @@ protected:
 
 	FTimerHandle ReloadTimerHandle;
 	void FinishReloading();
+
+	bool bIsOriginalDataSaved = false;
 
 private:
 	UStaticMeshComponent* GetAttachmentComponentByType(EAttachmentType Type) const;
