@@ -3,11 +3,13 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Enemy/EnemyCharacter.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Navigation/PathFollowingComponent.h"
 
 UBTTask_ChaseTarget::UBTTask_ChaseTarget()
 {
     NodeName = "Chase Target";
-    bNotifyTick = false;
+    bNotifyTick = true;
+
 
     TargetActorKey.SelectedKeyName = FName("TargetActor");
 }
@@ -16,18 +18,12 @@ EBTNodeResult::Type UBTTask_ChaseTarget::ExecuteTask(
     UBehaviorTreeComponent& OwnerComp,
     uint8* NodeMemory)
 {
-    // ========================================
-    // 캐시 저장
-    // ========================================
-    CachedOwnerComp = &OwnerComp;
-
     AAIController* AIController = OwnerComp.GetAIOwner();
     if (!AIController)
     {
         UE_LOG(LogTemp, Error, TEXT("[Chase] No AIController"));
         return EBTNodeResult::Failed;
     }
-    CachedAIController = AIController;
 
     AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(AIController->GetPawn());
     if (!Enemy)
@@ -50,22 +46,12 @@ EBTNodeResult::Type UBTTask_ChaseTarget::ExecuteTask(
         return EBTNodeResult::Failed;
     }
 
-    // ========================================
     // 추적 속도 설정
-    // ========================================
     if (UCharacterMovementComponent* MoveComp = Enemy->GetCharacterMovement())
     {
         MoveComp->MaxWalkSpeed = Enemy->GetChaseSpeed();
     }
-
-    // ========================================
-    // 델리게이트 바인딩
-    // ========================================
-    AIController->ReceiveMoveCompleted.AddDynamic(this, &UBTTask_ChaseTarget::HandleMoveCompleted);
-
-    // ========================================
     // FAIMoveRequest로 이동 시작
-    // ========================================
     FAIMoveRequest MoveRequest;
     MoveRequest.SetGoalActor(TargetActor);
     MoveRequest.SetAcceptanceRadius(AcceptanceRadius);
@@ -73,84 +59,42 @@ EBTNodeResult::Type UBTTask_ChaseTarget::ExecuteTask(
     MoveRequest.SetAllowPartialPath(bAllowPartialPath);
 
     FPathFollowingRequestResult MoveResult = AIController->MoveTo(MoveRequest);
-    CachedRequestID = MoveResult.MoveId;
-
-    // ========================================
-    // ⭐ 수정: RequestID 로그 (uint32를 직접 출력)
-    // ========================================
-    UE_LOG(LogTemp, Log, TEXT("[Chase] Started chasing %s (RequestID: %u)"),
-        *TargetActor->GetName(),
-        static_cast<uint32>(CachedRequestID));  // ⭐ 명시적 캐스팅
-
-    switch (MoveResult.Code)
+    if (MoveResult.Code == EPathFollowingRequestResult::AlreadyAtGoal)
     {
-    case EPathFollowingRequestResult::RequestSuccessful:
-        return EBTNodeResult::InProgress;
-
-    case EPathFollowingRequestResult::AlreadyAtGoal:
-        AIController->ReceiveMoveCompleted.RemoveDynamic(this, &UBTTask_ChaseTarget::HandleMoveCompleted);
-        UE_LOG(LogTemp, Log, TEXT("[Chase] Already at goal"));
         return EBTNodeResult::Succeeded;
-
-    case EPathFollowingRequestResult::Failed:
-    default:
-        AIController->ReceiveMoveCompleted.RemoveDynamic(this, &UBTTask_ChaseTarget::HandleMoveCompleted);
-        UE_LOG(LogTemp, Error, TEXT("[Chase] MoveTo failed"));
-        return EBTNodeResult::Failed;
     }
+    else if (MoveResult.Code == EPathFollowingRequestResult::RequestSuccessful)
+    {
+        // PathFollowingComponent를 가져와 델리게이트 바인딩
+        UPathFollowingComponent* PathComp = AIController->GetPathFollowingComponent();
+        if (PathComp)
+        {
+            // 중복 바인딩 방지 (이전 이동 요청 리스너 제거)
+            PathComp->OnRequestFinished.RemoveAll(this);
+
+            // 람다 캡처를 사용하여 OwnerComp를 전달
+            // AddWeakLambda는 객체(this)가 유효할 때만 실행되므로 안전합니다.
+            PathComp->OnRequestFinished.AddWeakLambda(this, [this, &OwnerComp](FAIRequestID RequestID, const FPathFollowingResult& Result)
+                {
+                    // 여기서 OwnerComp는 캡처된 레퍼런스로, 해당 AI의 BT 컴포넌트를 정확히 가리킵니다.
+                    FinishLatentTask(OwnerComp, Result.IsSuccess() ? EBTNodeResult::Succeeded : EBTNodeResult::Failed);
+                });
+        }
+        return EBTNodeResult::InProgress;
+    }
+
+    return EBTNodeResult::Failed;
 }
 
 EBTNodeResult::Type UBTTask_ChaseTarget::AbortTask(
     UBehaviorTreeComponent& OwnerComp,
     uint8* NodeMemory)
 {
-    if (AAIController* AIController = CachedAIController.Get())
+    AAIController* AIController = OwnerComp.GetAIOwner();
+    if (AIController)
     {
-        AIController->ReceiveMoveCompleted.RemoveDynamic(this, &UBTTask_ChaseTarget::HandleMoveCompleted);
         AIController->StopMovement();
-
-        UE_LOG(LogTemp, Warning, TEXT("[Chase] Task aborted"));
     }
 
     return EBTNodeResult::Aborted;
-}
-
-void UBTTask_ChaseTarget::HandleMoveCompleted(
-    FAIRequestID RequestID,
-    EPathFollowingResult::Type Result)
-{
-    // ========================================
-    // ⭐ 수정: Result 로그 (int32로 캐스팅)
-    // ========================================
-    UE_LOG(LogTemp, Log, TEXT("[Chase] MoveCompleted - RequestID: %u, Result: %d"),
-        static_cast<uint32>(RequestID),  // ⭐ 명시적 캐스팅
-        static_cast<int32>(Result));     // ⭐ 명시적 캐스팅
-
-    // 델리게이트 해제
-    if (AAIController* AIController = CachedAIController.Get())
-    {
-        AIController->ReceiveMoveCompleted.RemoveDynamic(this, &UBTTask_ChaseTarget::HandleMoveCompleted);
-    }
-
-    if (!CachedOwnerComp)
-    {
-        UE_LOG(LogTemp, Error, TEXT("[Chase] CachedOwnerComp is null!"));
-        return;
-    }
-
-    // ========================================
-    // Task 완료 처리
-    // ========================================
-    const bool bSuccess = (Result == EPathFollowingResult::Success);
-
-    if (bSuccess)
-    {
-        UE_LOG(LogTemp, Log, TEXT("[Chase] Reached target successfully"));
-        FinishLatentTask(*CachedOwnerComp, EBTNodeResult::Succeeded);
-    }
-    else
-    {
-        UE_LOG(LogTemp, Warning, TEXT("[Chase] Failed to reach target"));
-        FinishLatentTask(*CachedOwnerComp, EBTNodeResult::Failed);
-    }
 }
