@@ -66,12 +66,8 @@ void UBTTask_ExecuteAttack::TickTask(
         return;
     }
     
-    // 공격 완료 체크 (IsAttackable == true면 공격 끝남)
-    if (Enemy->IsAttackable())  // 쿨타임 돌아옴 = 공격 완료
-    {
-        // Focus 해제
-        AIController->ClearFocus(EAIFocusPriority::Gameplay);
-        UE_LOG(LogTemp, Log, TEXT("[BT] Attack Finished"));
-        FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
-    }
+    // Focus 해제
+    AIController->ClearFocus(EAIFocusPriority::Gameplay);
+    UE_LOG(LogTemp, Log, TEXT("[BT] Attack Finished"));
+    FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
 }
