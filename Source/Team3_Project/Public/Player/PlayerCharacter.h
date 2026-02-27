@@ -28,7 +28,6 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStaminaChanged, float, Stamina);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHealthChanged, float, Health);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWhiteKarmaChanged, float, WhiteKarma);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBlackKarmaChanged, float, BlackKarma);
-
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPlayerDead);
 
 UCLASS(Blueprintable, BlueprintType)
@@ -117,9 +116,13 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Status")
 	bool bIsExhausted = false;
 
-	// 탈진 해제 기준치 (스테미나가 몇 퍼 이상 차야 다시 뛸 수 있는지)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat Config")
-	float ExhaustionRecoveryThreshold = 20.f;
+	// 탈진 해제 기준 (스테미나가 몇 퍼 이상 차야 다시 뛸 수 있는지)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
+	float ExhaustionThresholdRate = 0.2f;
+
+	// GASP 입력 판단용, 탈진 상태가 아니어야 뛸 수 있음!
+	UFUNCTION(BlueprintPure, Category = "Status")
+	bool IsStaminaHealthy() const { return !bIsExhausted; }
 
 	// --- 상호작용 ---
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
@@ -128,6 +131,7 @@ public:
 	// --- 데미지 & 죽음 ---
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
+	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void Die();
 
 	// --- Input Actions ---
@@ -163,13 +167,17 @@ public:
 	float SprintCostPerSecond = 10.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat Config")
-	float StaminaRecoveryRate = 20.f;
+	float StaminaRecoveryRate = 10.f;
 
 	void PrintDebugInfo(); // 임시 디버그용 -> 곧 삭제
 
 	virtual void EquipItemByData(const FInventoryItem& ItemData, ESlotType SlotType) override;
 
 	virtual FInventoryItem UnequipItemBySlot(ESlotType SlotType) override;
+
+public:
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnPlayerDead OnPlayerDead;
 
 protected:
 	// 조준 중인지 확인 (상태와 별개로 체크 - 추후 상하체 동작 분리 위해..아마..?)
@@ -180,6 +188,8 @@ protected:
 	FTimerHandle StaminaRecoveryTimerHandle; // 회복용
 	void HandleSprintCost();
 	void HandleStaminaRecovery();
+	FTimerHandle AdrenalineTimerHandle;
+	void OnAdrenalineExpired();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction|Config")
 	float InteractionRange = 500.f;
@@ -207,5 +217,4 @@ private:
 	void OnWeaponClassLoaded(FName ItemID); // 무기 로드 완료됐을때 콜백함수
 
 	bool bIsDead = false;
-
 };
