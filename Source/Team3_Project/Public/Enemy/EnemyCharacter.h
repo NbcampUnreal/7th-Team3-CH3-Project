@@ -209,4 +209,7 @@ protected:
 	bool bIsForWave;
 	bool bIsDead;
 	bool bRagdollEnabled;
+
+private:
+	bool bFinishDead;
 };

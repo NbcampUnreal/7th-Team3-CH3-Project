@@ -34,6 +34,7 @@ AEnemyCharacter::AEnemyCharacter()
 	bIsForWave = false;
 	bIsDead = false;
 	bRagdollEnabled = false;
+	bFinishDead = false;
 }
 
 void AEnemyCharacter::BeginPlay()
@@ -414,6 +415,10 @@ void AEnemyCharacter::OnDead(bool bShouldPlayMontage)
 
 void AEnemyCharacter::OnFinishDead()
 {
+	// 중복 호출 방지
+	if (bFinishDead) return;
+	bFinishDead = true;
+
 	EnableRagdoll();
 	DisableWeaponCollision();
 	SetLifeSpan(5.f);
