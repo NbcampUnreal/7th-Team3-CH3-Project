@@ -69,6 +69,7 @@ public:
     UPROPERTY(meta = (BindWidget), BlueprintReadOnly) class UImage* Slot_7;
 
     UPROPERTY(meta = (BindWidget), BlueprintReadOnly) class UImage* Img_GunInformation;
+	UPROPERTY(meta = (BindWidget), BlueprintReadOnly) class UTextBlock* Txt_AmmoInfo;
 
 
 protected:
@@ -92,6 +93,7 @@ protected:
     float CurrentRemainingTime;
     bool bIsTimerActive;
     bool bPendingSuccess;
+    bool bIsEquipped;
 
     UPROPERTY() TMap<int32, class UQuestItemWidget*> QuestMap;
     TArray<UImage*> SlotArray;

@@ -308,6 +308,10 @@ void APlayerCharacter::StopSprint()
 	}
 }
 
+void APlayerCharacter::ApplyAdrenaline(int32 Duration)
+{
+}
+
 void APlayerCharacter::TryInteract()
 {
 

@@ -590,7 +590,7 @@ void UMainHUD::RefreshQuickSlotQuantity(int32 SlotIndex, FName ItemID)
 			AWeaponItem* EquippedWeapon = InvComp->GetEquippedWeapon();
             if (EquippedWeapon)
             {
-                if (bIsEquipping)
+                if (bIsEquipped)
                 {
                     EquippedWeapon->OnAmmoChanged.AddDynamic(this, &UMainHUD::OnAmmoChanged);
                 }
@@ -600,14 +600,5 @@ void UMainHUD::RefreshQuickSlotQuantity(int32 SlotIndex, FName ItemID)
 				}
             }
         }
-	}
-}
-
-void UMainHUD::OnAmmoChanged(int32 CurrentAmmo, int32 MaxAmmo)
-{
-    if (Txt_AmmoInfo)
-    {
-        FString AmmoText = FString::Printf(TEXT("%d / %d"), CurrentAmmo, MaxAmmo);
-        Txt_AmmoInfo->SetText(FText::FromString(AmmoText));
 	}
 }

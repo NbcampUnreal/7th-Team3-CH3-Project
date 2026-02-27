@@ -137,7 +137,7 @@ void AMainGameState::WaveEnd()
 {
 	//웨이브 종료 시 이번웨이브에서 획득한 점수 GameInstance로 전달 몬스터 스폰 종료, 점수모드 비활성화,
 	//웨이브 종료 전달
-	OnWaveEnd.Broadcast(100, true);
+	OnWaveEnd.Broadcast(true, 100);
 
 	//PlayerState = NormalMode
 	Debug::Print(TEXT("웨이브 종료!"));
@@ -147,8 +147,6 @@ void AMainGameState::WaveEnd()
 	bIsRunningSpawner = false;
 	//UMainGameInstance::Get(GetWorld())->TotalScore += CurrentScore; // GI에 현재 웨이브에서 얻은 점수 전달
 
-	//웨이브 종료 전달. 
-	OnWaveEnd.Broadcast(true, CurrentScore);
 }
 
 void AMainGameState::OnGameStart()

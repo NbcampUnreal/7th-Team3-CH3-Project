@@ -7,15 +7,13 @@
 #include "MainGameState.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWaveStart, FString, WaveMessage, float, MaxWaveTime);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWaveEnd, int32, BonusPoint, bool, bIsWaveClear);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWaveEnd, bool, bIsWaveClear, int32, BonusPoint);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnWaveFire);
 
 class AEnemySpawner;
 class AEventZone;
 class AEnemyCharacter;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWaveStart, FString, Message, float, WaveTime);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWaveEnd, bool, bSuccess, int32, Bonus);
 
 /**
  *
@@ -62,11 +60,6 @@ public:
 	FOnWaveEnd OnWaveEnd;
 
 public:
-	UPROPERTY(BlueprintAssignable)
-	FOnWaveStart OnWaveStart;
-
-	UPROPERTY(BlueprintAssignable)
-	FOnWaveEnd OnWaveEnd;
 
 	UPROPERTY(BlueprintAssignable)
 	FOnWaveFire OnWaveFire;
