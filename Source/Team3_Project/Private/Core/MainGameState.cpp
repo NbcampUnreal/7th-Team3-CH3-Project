@@ -12,8 +12,6 @@ AMainGameState::AMainGameState()
 {
 	MaxWaveTime = 10.f;
 	CurrentWaveTime = 0.f;
-	MaxSpawnCount = 10;
-	CurrentSpawnCount = 0;
 	CurrentScore = 0;
 	bPlayerOnBox = false;
 }
@@ -59,15 +57,6 @@ void AMainGameState::FindEventZone(const int32 Id, class AEventZone* EventZone)
 
 void AMainGameState::OnTriggerEvent(const int32 Id, bool bIsPlayerIn)
 {
-	bPlayerOnBox = bIsPlayerIn;
-
-	if (bIsRunningSpawner)
-	{
-		Debug::Print(TEXT("스폰 이벤트가 이미 실행중입니다."));
-		return;
-	}
-
-	bIsRunningSpawner = true;
 
 	if (Id <= 0)
 	{
@@ -75,8 +64,23 @@ void AMainGameState::OnTriggerEvent(const int32 Id, bool bIsPlayerIn)
 		return;
 	}
 
-	EnemySpawnDelegate.BindUObject(this, &AMainGameState::SpawnMonster, Id);
-	WaveStart();
+	if (bIsRunningSpawner)
+	{
+		Debug::Print(TEXT("스폰 이벤트가 이미 실행중입니다."));
+		return;
+	}
+
+	bPlayerOnBox = bIsPlayerIn;
+
+	if (bPlayerOnBox)
+	{
+		EnemySpawnDelegate.BindUObject(this, &AMainGameState::SpawnMonster, Id);
+	}
+	else
+	{
+		EnemySpawnDelegate.Unbind();
+	}
+
 }
 
 void AMainGameState::SpawnMonster(const int32 Id)
@@ -107,9 +111,11 @@ void AMainGameState::SpawnMonster(const int32 Id)
 }
 void AMainGameState::WaveStart()
 {
+	OnWaveStart.Broadcast(TEXT("WaveStart!!"), MaxWaveTime);
+	OnWaveFire.Broadcast();
 	//PlayerState = PointMode
 	Debug::Print(TEXT("Wave Start!"));
-
+	bIsRunningSpawner = true;
 	//웨이브 시작시 타이머 시작
 	GetWorldTimerManager().SetTimer(
 		WaveStartTimer,
@@ -130,6 +136,8 @@ void AMainGameState::WaveStart()
 void AMainGameState::WaveEnd()
 {
 	//웨이브 종료 시 이번웨이브에서 획득한 점수 GameInstance로 전달 몬스터 스폰 종료, 점수모드 비활성화,
+	//웨이브 종료 전달
+	OnWaveEnd.Broadcast(100, true);
 
 	//PlayerState = NormalMode
 	Debug::Print(TEXT("웨이브 종료!"));

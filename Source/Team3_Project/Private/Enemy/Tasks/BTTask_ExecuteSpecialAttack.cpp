@@ -11,6 +11,7 @@ UBTTask_ExecuteSpecialAttack::UBTTask_ExecuteSpecialAttack()
     LastSpecialAttackTimeKey.SelectedKeyName = FName("LastSpecialAttackTime");
     ConsecutiveAttacksKey.SelectedKeyName = FName("ConsecutiveAttacks");
     TargetActorKey.SelectedKeyName = FName("TargetActor");
+    AttackID = FName("None");
 }
 
 EBTNodeResult::Type UBTTask_ExecuteSpecialAttack::ExecuteTask(
@@ -26,12 +27,11 @@ EBTNodeResult::Type UBTTask_ExecuteSpecialAttack::ExecuteTask(
     UBlackboardComponent* BB = OwnerComp.GetBlackboardComponent();
     if (!BB) return EBTNodeResult::Failed;
 
-    // ========================================
     // 타겟 바라보기
-    // ========================================
-    if (AActor* Target = Cast<AActor>(BB->GetValueAsObject(TargetActorKey.SelectedKeyName)))
+    AActor* TargetActor = Cast<AActor>(BB->GetValueAsObject(TargetActorKey.SelectedKeyName));
+    if (TargetActor)
     {
-        FVector Direction = Target->GetActorLocation() - Enemy->GetActorLocation();
+        FVector Direction = TargetActor->GetActorLocation() - Enemy->GetActorLocation();
         Direction.Z = 0.f;
 
         if (!Direction.IsNearlyZero())
@@ -41,24 +41,31 @@ EBTNodeResult::Type UBTTask_ExecuteSpecialAttack::ExecuteTask(
         }
     }
 
-    // ========================================
     // 특수 공격 실행
-    // ========================================
-    if (Enemy->SpecialAttack())
+    if (AttackID == FName("None"))
     {
-        UE_LOG(LogTemp, Warning, TEXT("[BT] Execute Special Attack"));
-
-        // 쿨타임 기록
-        float CurrentTime = AIController->GetWorld()->GetTimeSeconds();
-        BB->SetValueAsFloat(LastSpecialAttackTimeKey.SelectedKeyName, CurrentTime);
-
-        // 공격 횟수 리셋 (특수 공격 사용 시 확률 초기화)
-        BB->SetValueAsInt(ConsecutiveAttacksKey.SelectedKeyName, 0);
-
-        return EBTNodeResult::InProgress;
+        UE_LOG(LogTemp, Error, TEXT("[BT] SpecialAttack: AttackID not set!"));
+        return EBTNodeResult::Failed;
     }
 
-    return EBTNodeResult::Failed;
+    bool bSuccess = Enemy->ExecuteSpecialAttackByID(AttackID, TargetActor);
+
+    if (!bSuccess)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[BT] SpecialAttack '%s' failed"), *AttackID.ToString());
+        return EBTNodeResult::Failed;
+    }
+
+    // 쿨타임 기록
+    float CurrentTime = AIController->GetWorld()->GetTimeSeconds();
+    BB->SetValueAsFloat(LastSpecialAttackTimeKey.SelectedKeyName, CurrentTime);
+
+    // 공격 횟수 리셋
+    BB->SetValueAsInt(ConsecutiveAttacksKey.SelectedKeyName, 0);
+
+    UE_LOG(LogTemp, Log, TEXT("[BT] SpecialAttack '%s' started"), *AttackID.ToString());
+
+    return EBTNodeResult::InProgress;
 }
 
 void UBTTask_ExecuteSpecialAttack::TickTask(

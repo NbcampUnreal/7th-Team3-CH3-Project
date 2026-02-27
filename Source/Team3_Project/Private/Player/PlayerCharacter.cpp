@@ -27,6 +27,7 @@ APlayerCharacter::APlayerCharacter()
 	StatComp = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
 	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComponent"));
 	CurrentState = ECharacterState::Idle;
+	CurrentOverlayState = EWeaponType::WT_None;
 }
 
 void APlayerCharacter::SetCharacterState(ECharacterState NewState)
@@ -401,6 +402,7 @@ FInventoryItem APlayerCharacter::UnequipItemBySlot(ESlotType SlotType)
 		CurrentWeapon->Destroy();
 		CurrentWeapon = nullptr;
 		CurrentWeaponItemID = NAME_None;
+		CurrentOverlayState = EWeaponType::WT_None;
 		InventoryComponent->SetEquippedWeapon(nullptr);
 		InventoryComponent->OnWeaponChanged.Broadcast(false, ItemData.ItemID);
 		return ItemData;

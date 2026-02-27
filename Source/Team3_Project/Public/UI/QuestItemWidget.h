@@ -23,6 +23,7 @@ public:
     // 퀘스트 완료 처리 (색상 변경 및 삭제 예약) 
     void CompleteQuest();
 
+    void UpdateQuestProgress(FString Title, FString Desc, int32 Current, int32 Max);
     // 현재 퀘스트 ID 반환 
     int32 GetQuestID() const { return QuestID; }
 

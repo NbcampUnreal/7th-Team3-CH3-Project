@@ -28,20 +28,7 @@ EBTNodeResult::Type UBTTask_ExecuteAttack::ExecuteTask(
     UBlackboardComponent* BB = OwnerComp.GetBlackboardComponent();
     if (!BB) return EBTNodeResult::Failed;
 
-    // ========================================
-    // 타겟 바라보기
-    // ========================================
-    if (AActor* Target = Cast<AActor>(BB->GetValueAsObject(TargetActorKey.SelectedKeyName)))
-    {
-        FVector Direction = Target->GetActorLocation() - Enemy->GetActorLocation();
-        Direction.Z = 0.f;
-        FRotator NewRotation = Direction.Rotation();
-        Enemy->SetActorRotation(NewRotation);
-    }
-
-    // ========================================
     // 공격 실행
-    // ========================================
     if (Enemy->Attack())
     {
         UE_LOG(LogTemp, Log, TEXT("[BT] Execute Attack"));
@@ -78,13 +65,9 @@ void UBTTask_ExecuteAttack::TickTask(
         FinishLatentTask(OwnerComp, EBTNodeResult::Failed);
         return;
     }
-
-    // ========================================
-    // 공격 완료 체크 (IsAttackable == true면 공격 끝남)
-    // ========================================
-    if (Enemy->IsAttackable())  // 쿨타임 돌아옴 = 공격 완료
-    {
-        UE_LOG(LogTemp, Log, TEXT("[BT] Attack Finished"));
-        FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
-    }
+    
+    // Focus 해제
+    AIController->ClearFocus(EAIFocusPriority::Gameplay);
+    UE_LOG(LogTemp, Log, TEXT("[BT] Attack Finished"));
+    FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
 }

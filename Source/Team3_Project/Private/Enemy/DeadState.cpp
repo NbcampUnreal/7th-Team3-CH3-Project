@@ -22,7 +22,7 @@ void UDeadState::EnterState()
 
 	if (AEnemyCharacter* EnemyCharacter = Cast<AEnemyCharacter>(OwnerController->GetPawn()))
 	{
-		EnemyCharacter->OnDead();
+		EnemyCharacter->OnDead(true);
 	}
 }
 

@@ -15,6 +15,9 @@ public:
     virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 
 protected:
+    UPROPERTY(EditAnywhere, Category = "Special Attack")
+    FName AttackID = FName("None");
+
     UPROPERTY(EditAnywhere, Category = "Blackboard")
     FBlackboardKeySelector LastSpecialAttackTimeKey;
 

@@ -61,6 +61,7 @@ protected:
 
 	UFUNCTION()
 	void OnTargetPerceptionForgotten(AActor* Actor);
+
 	using AController::ChangeState;
 
 	void DrowFollowingPath(float LifeTime);
