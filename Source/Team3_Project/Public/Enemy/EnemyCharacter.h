@@ -12,7 +12,7 @@ class UDamageType;
 struct FDamageEvent;
 class USpecialAttackData;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChanged, float, NewValue, float, MaxValue);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnEnemyHealthChanged, float, NewValue, float, MaxValue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMovableChanged, bool, NewValue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWaveMode, bool, NewValue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAttack);
@@ -148,7 +148,7 @@ private:
 public:
 	// Delegates
 	UPROPERTY(BlueprintAssignable)
-	FOnHealthChanged OnHealthChangedSignature;
+	FOnEnemyHealthChanged OnHealthChangedSignature;
 	UPROPERTY(BlueprintAssignable)
 	FOnMovableChanged OnMovableChangedSignature;
 	UPROPERTY(BlueprintAssignable)

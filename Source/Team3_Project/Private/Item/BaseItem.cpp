@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Item/BaseItem.h"
@@ -18,6 +18,9 @@ ABaseItem::ABaseItem()
 
 	ItemMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ItemMesh"));
 	RootComponent = ItemMesh;
+	ItemMesh->SetRelativeScale3D(FVector(0.5f)); // 아이템 메쉬의 크기를 50%로 축소
+	ItemMesh->SetMaxDepenetrationVelocity(NAME_None, 100.f); // 최대 탈출 속도 설정
+	ItemMesh->SetLinearDamping(0.5f); // 선형 감쇠 설정
 
 	SphereComp = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComp"));
 	SphereComp->SetupAttachment(RootComponent);
@@ -99,7 +102,7 @@ void ABaseItem::BeginPlay()
 		{
 			FItemData Data = ItemDataSubsystem->GetItemDataByID(ItemID);
 
-			if (Data.PickupMesh.IsValid())
+			if (!Data.PickupMesh.IsNull())
 			{
 				UStaticMesh* Mesh = Data.PickupMesh.LoadSynchronous();
 				if (Mesh)
@@ -189,7 +192,7 @@ void ABaseItem::UpdateLootWidgetTransform()
 		return;
 	}
 	
-	float MeshTopZ = ItemMesh->Bounds.BoxExtent.Z;
+	float MeshTopZ = ItemMesh->Bounds.BoxExtent.Z + 100.f;
 
 	FVector TargetLocation = ItemMesh->Bounds.Origin + FVector(0.f, 0.f, MeshTopZ);
 	LootWidget->SetWorldLocation(TargetLocation);

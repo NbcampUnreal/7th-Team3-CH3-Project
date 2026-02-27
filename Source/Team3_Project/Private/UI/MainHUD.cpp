@@ -57,7 +57,7 @@ void UMainHUD::NativeConstruct()
         {
             MyInventory->OnQuickSlotUpdated.AddDynamic(this, &UMainHUD::OnQuickSlotRefreshAll);
             MyInventory->OnQuickSlotItemChanged.AddDynamic(this, &UMainHUD::OnQuickSlotItemChanged);
-            //MyInventory->OnQuickSlotHighlight.AddDynamic(this, &UMainHUD::HighlightQuickSlot);
+            MyInventory->OnQuickSlotHighlight.AddDynamic(this, &UMainHUD::HighlightQuickSlot);
             MyInventory->OnWeaponChanged.AddDynamic(this, &UMainHUD::OnWeaponEquipChanged);
 
             UpdateQuickSlotUI();
@@ -66,10 +66,10 @@ void UMainHUD::NativeConstruct()
 	APlayerCharacter* PlayerChar = Cast<APlayerCharacter>(PlayerPawn);
     if (PlayerChar)
     {
-        /*PlayerChar->OnHealthChanged.AddDynamic(this, &UMainHUD::UpdateHealth);*/
+        PlayerChar->OnHealthChanged.AddDynamic(this, &UMainHUD::UpdateHealth);
         PlayerChar->OnStaminaChanged.AddDynamic(this, &UMainHUD::UpdateStamina);
-        //PlayerChar->OnWhiteKarmaChanged.AddDynamic(this, &UMainHUD::UpdateWhiteKarma);
-        //PlayerChar->OnBlackKarmaChanged.AddDynamic(this, &UMainHUD::UpdateBlackKarma);
+        PlayerChar->OnWhiteKarmaChanged.AddDynamic(this, &UMainHUD::UpdateWhiteKarma);
+        PlayerChar->OnBlackKarmaChanged.AddDynamic(this, &UMainHUD::UpdateBlackKarma);
 	}
    
     /*APlayerCharacter* PlayerChar = Cast<APlayerCharacter>(PlayerPawn);

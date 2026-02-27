@@ -42,6 +42,8 @@ void APlayerCharacter::BeginPlay()
 	{
 		StatComp->InitializeStat("Stamina", MaxStamina, 0.f, MaxStamina);
 		StatComp->InitializeStat("Health", MaxHealth, 0.f, MaxHealth);
+		StatComp->InitializeStat("WhiteKarma", WhiteKarma, 0.f, 100.f);
+		StatComp->InitializeStat("BlackKarma", BlackKarma, 0.f, 100.f);
 	}
 }
 
@@ -323,7 +325,41 @@ void APlayerCharacter::TryInteract()
 
 float APlayerCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-	return 0.0f;
+	// 데미지 계산
+	float Damage = Super::TakeDamage(FMath::Clamp(DamageAmount - Armor, 0.f, DamageAmount), DamageEvent, EventInstigator, DamageCauser);
+	if (Damage <= 0.f) return 0.f;
+
+	float NewHealth = StatComp->GetCurrentStatValue("Health") - Damage;
+	StatComp->SetCurrentStatValue("Health", NewHealth);
+	OnHealthChanged.Broadcast(NewHealth);
+
+	if (NewHealth <= 0.f)
+	{
+		Die();
+	}
+
+	return Damage;
+}
+
+void APlayerCharacter::Die()
+{
+	if (bIsDead) return;
+	bIsDead = true;
+
+	OnPlayerDead.Broadcast();
+
+	DisableInput(GetLocalViewingPlayerController());
+
+	if (GetCharacterMovement())
+	{
+		GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
+	}
+
+	GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
+	GetMesh()->SetSimulatePhysics(true);
+
+
+
 }
 
 void APlayerCharacter::PrintDebugInfo()
@@ -359,6 +395,7 @@ void APlayerCharacter::EquipItemByData(const FInventoryItem& ItemData, ESlotType
 		UClass* WeaponClass = Data.ItemClass.LoadSynchronous();
 		if (!WeaponClass) return;
 		FTransform SpawnTransform = GetActorTransform();
+		SpawnTransform.SetScale3D(FVector(1.f)); // 스케일 초기화
 		AWeaponItem* SpawnedWeapon = GetWorld()->SpawnActorDeferred<AWeaponItem>(
 			WeaponClass,
 			SpawnTransform,
@@ -392,26 +429,51 @@ void APlayerCharacter::EquipItemByData(const FInventoryItem& ItemData, ESlotType
 			SpawnedWeapon->OnAmmoChanged.Broadcast(SpawnedWeapon->GetCurrentAmmo(), SpawnedWeapon->GetMaxAmmo());
 		}
 	}
+	else if (Data.ItemType == EItemType::IT_Armor)
+	{
+		Armor = Data.PowerAmount;
+		InventoryComponent->OnArmorChanged.Broadcast(true, ItemID);
+		InventoryComponent->SetEquippedArmor(ItemID);
+		bIsEquippedArmor = true;
+	}
 }
 
 FInventoryItem APlayerCharacter::UnequipItemBySlot(ESlotType SlotType)
 {
-	if (CurrentWeapon)
+	if (SlotType == ESlotType::ST_Weapon)
 	{
-		FInventoryItem ItemData;
-		ItemData.ItemID = CurrentWeaponItemID;
-		ItemData.Quantity = 1; // 무기는 수량 1로 간주
-		ItemData.AttachmentState = CurrentWeapon->GetAttachmentState();
-		ItemData.CurrentAmmo = CurrentWeapon->GetCurrentAmmo();
-		CurrentWeapon->Destroy();
-		CurrentWeapon = nullptr;
-		CurrentWeaponItemID = NAME_None;
-		CurrentOverlayState = EWeaponType::WT_None;
-		InventoryComponent->SetEquippedWeapon(nullptr);
-		InventoryComponent->OnWeaponChanged.Broadcast(false, ItemData.ItemID);
-		return ItemData;
+		if (CurrentWeapon)
+		{
+			FInventoryItem ItemData;
+			ItemData.ItemID = CurrentWeaponItemID;
+			ItemData.Quantity = 1; // 무기는 수량 1로 간주
+			ItemData.AttachmentState = CurrentWeapon->GetAttachmentState();
+			ItemData.CurrentAmmo = CurrentWeapon->GetCurrentAmmo();
+			CurrentWeapon->Destroy();
+			CurrentWeapon = nullptr;
+			CurrentWeaponItemID = NAME_None;
+			CurrentOverlayState = EWeaponType::WT_None;
+			InventoryComponent->SetEquippedWeapon(nullptr);
+			InventoryComponent->OnWeaponChanged.Broadcast(false, ItemData.ItemID);
+			return ItemData;
+		}
 	}
-	else return FInventoryItem();	
+	else if (SlotType == ESlotType::ST_Armor)
+	{
+		if (bIsEquippedArmor)
+		{
+			FInventoryItem ItemData;
+			ItemData.ItemID = InventoryComponent->GetEquippedArmorID();
+			ItemData.Quantity = 1; // 방어구도 수량 1로 간주
+			ItemData.AttachmentState = {}; // 방어구는 AttachmentState 없음
+			Armor = 0;
+			InventoryComponent->SetEquippedArmor(NAME_None);
+			InventoryComponent->OnArmorChanged.Broadcast(false, ItemData.ItemID);
+			return ItemData;
+		}
+	}
+
+	return FInventoryItem();	
 }
 
 void APlayerCharacter::HandleSprintCost()
