@@ -68,7 +68,6 @@ void ABaseItem::Interact_Implementation(AActor* Interactor)
 	}
 }
 
-
 void ABaseItem::BeginPlay()
 {
 	Super::BeginPlay();

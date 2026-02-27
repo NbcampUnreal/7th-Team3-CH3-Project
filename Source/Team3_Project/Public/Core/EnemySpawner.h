@@ -18,6 +18,7 @@ public:
 
 public:
 	void SpawnEnemy(TSubclassOf<AEnemyCharacter> EnemyClass);
+	void SetCurrentSpawnEnemy();
 	
 	void InitId(int32 OwnId) { Id = OwnId; }
 	int32 GetId() const { return Id; }

@@ -5,15 +5,17 @@
 #include "Core/EventZone.h"
 #include "Core/MainGameState.h"
 #include "Core/EnemySpawner.h"
+#include "Core/InteractDoorWidget.h"
+#include "Core/DoorNPC.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 AMainSpawnManager::AMainSpawnManager() :
 	EnemySpawnerClass(nullptr),
 	EventZoneClass(nullptr)
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = false;
 
+	PrimaryActorTick.bCanEverTick = false;
 }
 
 void AMainSpawnManager::SpawnEventZone()
@@ -62,9 +64,50 @@ void AMainSpawnManager::SpawnEnemySpawner()
 	}
 }
 
+void AMainSpawnManager::SpawnQuestItem()
+{
+	if (FirstQuestItemLocation.IsValidIndex(-1) || SecondQuestItemLocation.IsValidIndex(-1)) return;
+
+	//if (SpawnQuestItemClass == nullptr) return;
+
+	//TODO_@Core : NPC가 대화창열렸다는 신호 수신시 델리게이트 받아서 아이템 스폰하기 1번만,
+
+	/*GetWorld()->SpawnActor<AQuestItem>(
+		QuestItemClass1,
+		FirstQuestItemLocation,
+		FRotator::ZeroRotator
+	);
+
+	GetWorld()->SpawnActor<AQuestItem>(
+		QuestItemClass2,
+		SecondQuestItemLocation,
+		FRotator::ZeroRotator
+	);*/
+
+}
+
+void AMainSpawnManager::BindSpawnQuestItem()
+{
+	TArray<AActor*> Found;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ADoorNPC::StaticClass(), Found);
+
+	if (Found.IsEmpty())
+	{
+		return;
+	}
+
+	for (AActor* Actor : Found)
+	{
+		ADoorNPC* DoorNpcActor = Cast<ADoorNPC>(Actor);
+		DoorNpcActor->OnInteractDoor.AddDynamic(this, &AMainSpawnManager::SpawnQuestItem);
+	}
+}
+
 void AMainSpawnManager::BeginPlay()
 {
 	Super::BeginPlay();
+	BindSpawnQuestItem();
 	SpawnEventZone();
 	SpawnEnemySpawner();
+	SpawnQuestItem();
 }
