@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -18,20 +18,19 @@ public:
 	AMainSpawnManager();
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ObjectClass")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SpawnObjectClass | EventZone")
 	TSubclassOf<AEventZone> EventZoneClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ObjectClass")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SpawnObjectClass | EnemySpawner")
 	TSubclassOf<AEnemySpawner> EnemySpawnerClass;
 
-	/*UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SpawnedObjects")
-	TArray<AEventZone*> SpawnedZones;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SpawnedObjects")
-	TArray<AEnemySpawner*> SpawnedEnemySpawners;*/
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SpawnObjectClass | QuestItem")
+	//TODO_@Core : 스폰할 아이템 클래스 등록
 
 	void SpawnEventZone();
 	void SpawnEnemySpawner();
+	void SpawnQuestItem();
+	void BindSpawnQuestItem();
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SpawnLocation")
@@ -39,6 +38,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SpawnLocation")
 	TArray<FVector> SpawnerLocation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SpawnLocation | QuestItem_1")
+	TArray<FVector> FirstQuestItemLocation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SpawnLocation | QuestItem_2")
+	TArray<FVector> SecondQuestItemLocation;
 
 	virtual void BeginPlay() override;
 
