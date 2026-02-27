@@ -401,6 +401,7 @@ FInventoryItem APlayerCharacter::UnequipItemBySlot(ESlotType SlotType)
 		CurrentWeapon->Destroy();
 		CurrentWeapon = nullptr;
 		CurrentWeaponItemID = NAME_None;
+		CurrentOverlayState = EWeaponType::WT_None;
 		InventoryComponent->SetEquippedWeapon(nullptr);
 		InventoryComponent->OnWeaponChanged.Broadcast(false, ItemData.ItemID);
 		return ItemData;

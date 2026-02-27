@@ -95,6 +95,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Movement")
 	void StopSprint();
 
+	UFUNCTION(BlueprintCallable, Category = "Status")
+	void ApplyAdrenaline(int32 Duration);
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Status")
+	bool bIsAdrenalineActive = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Status")
+	bool bIsExhausted = false;
+
+	// 탈진 해제 기준치 (스테미나가 몇 퍼 이상 차야 다시 뛸 수 있는지)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat Config")
+	float ExhaustionRecoveryThreshold = 20.f;
+
 	// --- 상호작용 ---
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void TryInteract();
