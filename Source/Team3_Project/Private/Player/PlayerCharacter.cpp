@@ -77,9 +77,9 @@ void APlayerCharacter::UpdateInteractableFocus()
 
 	if (GetWorld()->LineTraceSingleByChannel(
 		HitResult,
-		TraceStart, 
-		TraceEnd, 
-		ECC_Visibility, 
+		TraceStart,
+		TraceEnd,
+		ECC_Visibility,
 		QueryParams
 	))
 	{
@@ -273,6 +273,7 @@ void APlayerCharacter::StartSprint()
 {
 	// 달리기 시작하니까 회복 타이머 중지
 	GetWorld()->GetTimerManager().ClearTimer(StaminaRecoveryTimerHandle);
+
 	// 이미 타이머가 돌고 있으면 무시
 	if (GetWorld()->GetTimerManager().IsTimerActive(SprintTimerHandle)) return;
 
@@ -308,10 +309,6 @@ void APlayerCharacter::StopSprint()
 	}
 }
 
-void APlayerCharacter::ApplyAdrenaline(int32 Duration)
-{
-}
-
 void APlayerCharacter::TryInteract()
 {
 
@@ -324,6 +321,24 @@ void APlayerCharacter::TryInteract()
 float APlayerCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
 	return 0.0f;
+}
+
+void APlayerCharacter::Die()
+{
+	if (bIsDead) return;
+	bIsDead = true;
+
+	OnPlayerDead.Broadcast();
+
+	DisableInput(GetLocalViewingPlayerController());
+
+	if (GetCharacterMovement())
+	{
+		GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
+	}
+
+	GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
+	GetMesh()->SetSimulatePhysics(true);
 }
 
 void APlayerCharacter::PrintDebugInfo()
@@ -411,7 +426,7 @@ FInventoryItem APlayerCharacter::UnequipItemBySlot(ESlotType SlotType)
 		InventoryComponent->OnWeaponChanged.Broadcast(false, ItemData.ItemID);
 		return ItemData;
 	}
-	else return FInventoryItem();	
+	else return FInventoryItem();
 }
 
 void APlayerCharacter::HandleSprintCost()
@@ -420,13 +435,14 @@ void APlayerCharacter::HandleSprintCost()
 
 	float CurrentStamina = StatComp->GetCurrentStatValue("Stamina");
 
-	// 0.1초만큼의 비용 계산
-	float Cost = SprintCostPerSecond * 0.1f;
+	// 0.1초만큼의 비용 계산, 아드레날린 상태면 소모량 0
+	float Cost = bIsAdrenalineActive ? 0.f : (SprintCostPerSecond * 0.1f);
 	float NewStamina = CurrentStamina - Cost;
 
 	if (NewStamina <= 0.f)
 	{
 		NewStamina = 0.f;
+		bIsExhausted = true;
 		StopSprint();
 		if (GEngine) GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Red, TEXT("탈진! (Stamina Depleted)"));
 	}
@@ -440,18 +456,27 @@ void APlayerCharacter::HandleStaminaRecovery()
 	if (!StatComp) return;
 
 	float Current = StatComp->GetCurrentStatValue("Stamina");
+	float NewValue = FMath::Min(Current + (StaminaRecoveryRate * 0.1f), MaxStamina);
 
-	if (Current >= MaxStamina)
+	// 탈진 상태인데 기준치 이상 회복되면 해제
+	if (bIsExhausted && NewValue >= (MaxStamina * ExhaustionThresholdRate))
 	{
-		GetWorld()->GetTimerManager().ClearTimer(StaminaRecoveryTimerHandle);
-		return;
+		bIsExhausted = false;
 	}
 
-	// 회복 계산 (초당 회복량 * 0.1초)
-	float Recovery = StaminaRecoveryRate * 0.1f;
-	float NewValue = Current + Recovery;
-
-	if (NewValue > MaxStamina) NewValue = MaxStamina;
-	OnStaminaChanged.Broadcast(NewValue);
 	StatComp->SetCurrentStatValue("Stamina", NewValue);
+	OnStaminaChanged.Broadcast(NewValue);
+
+	if (NewValue >= MaxStamina)
+	{
+		GetWorld()->GetTimerManager().ClearTimer(StaminaRecoveryTimerHandle);
+	}
 }
+
+void APlayerCharacter::ApplyAdrenaline(int32 Duration)
+{
+	bIsAdrenalineActive = true;
+	GetWorldTimerManager().SetTimer(AdrenalineTimerHandle, this, &APlayerCharacter::OnAdrenalineExpired, (float)Duration, false);
+}
+
+void APlayerCharacter::OnAdrenalineExpired() { bIsAdrenalineActive = false; }
