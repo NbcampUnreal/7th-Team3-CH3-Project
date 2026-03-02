@@ -2,6 +2,8 @@
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Enemy/EnemyCharacter.h"
+#include "Enemy/SpecialAttackData.h"
+#include "Enemy/SpecialAttack/SpecialAttackBase.h"
 
 UBTDecorator_CanUseSpecialAttack::UBTDecorator_CanUseSpecialAttack()
 {
@@ -9,6 +11,10 @@ UBTDecorator_CanUseSpecialAttack::UBTDecorator_CanUseSpecialAttack()
 
     LastSpecialAttackTimeKey.SelectedKeyName = FName("LastSpecialAttackTime");
     ConsecutiveAttacksKey.SelectedKeyName = FName("ConsecutiveAttacks");
+    TargetActorKey.SelectedKeyName = FName("TargetActor");
+
+    AttackID = FName("None");
+    bUseChanceSystem = true;
 
     bNotifyBecomeRelevant = true;
 }
@@ -24,33 +30,73 @@ bool UBTDecorator_CanUseSpecialAttack::CalculateRawConditionValue(UBehaviorTreeC
     UBlackboardComponent* BB = OwnerComp.GetBlackboardComponent();
     if (!BB) return false;
 
-    // 1. 기본 공격 가능 체크
+    // 1. AttackID 유효성 체크
+    if (AttackID == FName("None"))
+    {
+        UE_LOG(LogTemp, Error, TEXT("[Decorator] CanUseSpecialAttack: AttackID not set!"));
+        return false;
+    }
+
+    // 2. SpecialAttackData 가져오기
+    const USpecialAttackData* const SpecialAttackData = Enemy->GetSpecialAttackData();
+    if (!SpecialAttackData)
+    {
+        UE_LOG(LogTemp, Error, TEXT("[Decorator] No SpecialAttackData"));
+        return false;
+    }
+
+    // 3. AttackID로 공격 찾기
+    USpecialAttackBase* Attack = SpecialAttackData->GetAttackByID(AttackID);
+    if (!Attack)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[Decorator] Attack '%s' not found"), *AttackID.ToString());
+        return false;
+    }
+
+    // 4. 기본 공격 가능 체크
     if (!Enemy->IsAttackable())
     {
         return false;
     }
 
-    // 2. 쿨타임 체크
+    // 5. Target 가져오기
+    AActor* TargetActor = Cast<AActor>(BB->GetValueAsObject(TargetActorKey.SelectedKeyName));
+
+    // 6. CanExecute 체크 (거리, 조건 등)
+    if (!Attack->CanExecute(Enemy, TargetActor))
+    {
+        return false;
+    }
+
+    // 7. 쿨타임 체크 (DataAsset에서 가져옴)
+    float Cooldown = Attack->GetCooldown();
     float LastTime = BB->GetValueAsFloat(LastSpecialAttackTimeKey.SelectedKeyName);
     float CurrentTime = AIController->GetWorld()->GetTimeSeconds();
 
-    if (CurrentTime - LastTime < SpecialAttackCooldown)
+    if (CurrentTime - LastTime < Cooldown)
     {
         return false;  // 쿨타임 중
     }
 
-    // 3. 확률 체크
-    int32 AttackCount = BB->GetValueAsInt(ConsecutiveAttacksKey.SelectedKeyName);
+    // 8. 확률 체크 (옵션)
+    if (bUseChanceSystem)
+    {
+        int32 AttackCount = BB->GetValueAsInt(ConsecutiveAttacksKey.SelectedKeyName);
 
-    float Chance = BaseChance + (AttackCount * ChancePerAttack);
-    Chance = FMath::Clamp(Chance, 0.f, MaxChance);
+        float Chance = BaseChance + (AttackCount * ChancePerAttack);
+        Chance = FMath::Clamp(Chance, 0.f, MaxChance);
 
-    float Random = FMath::FRand();  // 0.0 ~ 1.0
+        float Random = FMath::FRand();  // 0.0 ~ 1.0
 
-    bool bSuccess = Random <= Chance;
+        bool bSuccess = Random <= Chance;
 
-    UE_LOG(LogTemp, Log, TEXT("[SpecialAttack] Count: %d, Chance: %.2f%%, Random: %.2f, Result: %s"),
-        AttackCount, Chance * 100.f, Random, bSuccess ? TEXT("SUCCESS") : TEXT("FAIL"));
+        UE_LOG(LogTemp, Log, TEXT("[Decorator] '%s' - Count: %d, Chance: %.2f%%, Random: %.2f, Result: %s"),
+            *AttackID.ToString(), AttackCount, Chance * 100.f, Random, bSuccess ? TEXT("SUCCESS") : TEXT("FAIL"));
 
-    return bSuccess;
+        return bSuccess;
+    }
+
+    // 확률 시스템 사용 안 함 → 항상 성공
+    UE_LOG(LogTemp, Log, TEXT("[Decorator] '%s' - Always pass (no chance system)"), *AttackID.ToString());
+    return true;
 }
