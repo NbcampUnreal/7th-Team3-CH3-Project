@@ -184,7 +184,7 @@ bool AEnemyCharacter::DropItem()
 				if (DroppedItem)
 				{
 					DroppedItem->SetItemID(ItemID);
-					DroppedItem->SetQuantity(Quantity);
+					DroppedItem->SetQuantity(1);
 					DroppedItem->FinishSpawning(SpawnTransform);
 				}
 			}
@@ -216,20 +216,6 @@ bool AEnemyCharacter::Attack()
 		return true;
 	}
 
-	return false;
-}
-
-bool AEnemyCharacter::SpecialAttack()
-{
-	if (IsAttackable())
-	{
-		LeftAttackCoolTime = GetAttackCoolTime();
-		PlayAnimMontage(GetSpecialAttackMontage());
-		DeactiveMove();
-
-		OnSepcialAttackSignature.Broadcast();
-		return true;
-	}
 	return false;
 }
 
@@ -291,9 +277,7 @@ bool AEnemyCharacter::ExecuteSpecialAttackByID(FName AttackID, AActor* TargetAct
 		return false;
 	}
 
-	// ========================================
-	// ⭐ ID로 공격 찾기
-	// ========================================
+	// ID로 공격 찾기
 	USpecialAttackBase* Attack = SpecialAttackData->GetAttackByID(AttackID);
 
 	if (!Attack)
@@ -308,9 +292,7 @@ bool AEnemyCharacter::ExecuteSpecialAttackByID(FName AttackID, AActor* TargetAct
 		return false;
 	}
 
-	// ========================================
 	// 몽타주 재생
-	// ========================================
 	if (UAnimMontage* Montage = Attack->GetMontage())
 	{
 		PlayAnimMontage(Montage);
@@ -322,9 +304,7 @@ bool AEnemyCharacter::ExecuteSpecialAttackByID(FName AttackID, AActor* TargetAct
 		DeactiveMove();
 	}
 
-	// ========================================
-	// ⭐ 공격 실행
-	// ========================================
+	// 공격 실행
 	Attack->Execute(this, TargetActor);
 
 	OnSepcialAttackSignature.Broadcast();
@@ -342,9 +322,7 @@ void AEnemyCharacter::TriggerSpecialAttackEffect()
 		return;
 	}
 
-	// ========================================
-	// ⭐ 실제 공격 실행
-	// ========================================
+	// 실제 공격 실행
 	CurrentSpecialAttack->Execute(this, CurrentTargetActor);
 
 	UE_LOG(LogTemp, Log, TEXT("[SpecialAttack] Effect triggered: %s"),
@@ -566,11 +544,6 @@ UAnimMontage* AEnemyCharacter::GetAttackMontage() const
 	return TypeData ? TypeData->AttackMontage : nullptr;
 }
 
-UAnimMontage* AEnemyCharacter::GetSpecialAttackMontage() const
-{
-	return nullptr;
-}
-
 UAnimMontage* AEnemyCharacter::GetHittedMontage() const
 {
 	return TypeData ? TypeData->HittedMontage : nullptr;
@@ -579,6 +552,11 @@ UAnimMontage* AEnemyCharacter::GetHittedMontage() const
 UAnimMontage* AEnemyCharacter::GetDeadMontage() const
 {
 	return TypeData ? TypeData->DeadMontage : nullptr;
+}
+
+USpecialAttackData* AEnemyCharacter::GetSpecialAttackData() const
+{
+	return SpecialAttackData;
 }
 
 float AEnemyCharacter::GetAttackCoolTime() const
