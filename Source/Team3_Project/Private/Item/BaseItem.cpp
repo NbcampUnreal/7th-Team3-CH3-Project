@@ -19,12 +19,11 @@ ABaseItem::ABaseItem()
 	ItemMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ItemMesh"));
 	RootComponent = ItemMesh;
 	ItemMesh->SetRelativeScale3D(FVector(0.5f)); // 아이템 메쉬의 크기를 50%로 축소
-	ItemMesh->SetMaxDepenetrationVelocity(NAME_None, 100.f); // 최대 탈출 속도 설정
-	ItemMesh->SetLinearDamping(0.5f); // 선형 감쇠 설정
 
 	SphereComp = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComp"));
 	SphereComp->SetupAttachment(RootComponent);
 	SphereComp->SetSphereRadius(100.f); // 반지름 설정
+	SphereComp->SetCollisionEnabled(ECollisionEnabled::NoCollision); // 충돌 비활성화
 
 	LootWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("LootWidget"));
 	LootWidget->SetupAttachment(RootComponent);
@@ -111,6 +110,12 @@ void ABaseItem::BeginPlay()
 					ItemMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 					ItemMesh->SetCollisionProfileName(TEXT("PhysicsActor"));
 					ItemMesh->SetSimulatePhysics(true);
+					ItemMesh->SetMaxDepenetrationVelocity(NAME_None, 10.f); // 최대 탈출 속도 설정
+					ItemMesh->SetLinearDamping(1.5f); // 선형 감쇠 설정
+					ItemMesh->SetAngularDamping(1.5f); // 각도 감쇠 설정
+					ItemMesh->SetMassOverrideInKg(NAME_None, 30.f); // 질량을 30kg으로 설정
+					ItemMesh->SetCenterOfMass(FVector(0.f, 0.f, 0.f)); // 무게 중심을 메쉬의 중심으로 설정
+					ItemMesh->CanCharacterStepUpOn = ECB_No; // 캐릭터가 아이템 위로 올라가지 못하도록 설정
 					UE_LOG(LogTemp, Warning, TEXT("Item Mesh set for ItemID: %s"), *ItemID.ToString());
 				}
 				else

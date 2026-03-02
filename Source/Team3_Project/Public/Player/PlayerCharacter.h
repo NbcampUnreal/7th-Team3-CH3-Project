@@ -80,8 +80,6 @@ public:
 	FOnWhiteKarmaChanged OnWhiteKarmaChanged;
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnBlackKarmaChanged OnBlackKarmaChanged;
-	UPROPERTY(BlueprintAssignable, Category = "Events")
-	FOnPlayerDead OnPlayerDead;
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void StartAiming();

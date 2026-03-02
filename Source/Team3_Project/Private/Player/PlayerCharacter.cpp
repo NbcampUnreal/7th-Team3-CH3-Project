@@ -354,27 +354,6 @@ void APlayerCharacter::Die()
 
 	GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
 	GetMesh()->SetSimulatePhysics(true);
-
-
-
-}
-
-void APlayerCharacter::Die()
-{
-	if (bIsDead) return;
-	bIsDead = true;
-
-	OnPlayerDead.Broadcast();
-
-	DisableInput(GetLocalViewingPlayerController());
-
-	if (GetCharacterMovement())
-	{
-		GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
-	}
-
-	GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
-	GetMesh()->SetSimulatePhysics(true);
 }
 
 void APlayerCharacter::PrintDebugInfo()
