@@ -22,10 +22,10 @@ void UAttackState::TickState()
 		{
 			UE_LOG(LogTemp, Warning, TEXT("[AI] Attacking!"));
 		}
-		if (EnemyCharacter->SpecialAttack())
+		/*if (EnemyCharacter->SpecialAttack())
 		{
 			UE_LOG(LogTemp, Warning, TEXT("[AI] Special Attacking!"));
-		}
+		}*/
 	}
 }
 
