@@ -195,4 +195,6 @@ private:
 	void OnWeaponClassLoaded(FName ItemID); // 무기 로드 완료됐을때 콜백함수
 
 	bool bIsDead;
+
+	FName GetTargetSocketName(EWeaponType WeaponType) const;
 };
