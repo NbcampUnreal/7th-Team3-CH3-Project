@@ -43,6 +43,8 @@ protected:
 	UImage* LTImg_Underbarrel;
 	UPROPERTY(meta = (BindWidgetOptional))
 	UImage* LTImg_Stock;
+	UPROPERTY(meta = (BindWidgetOptional))
+	UImage* Img_Icon;
 
 	UPROPERTY(meta = (BindWidget))
 	USizeBox* SB_Scope;
