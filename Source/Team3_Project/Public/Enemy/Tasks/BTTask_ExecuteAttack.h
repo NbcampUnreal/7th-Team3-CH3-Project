@@ -16,9 +16,6 @@ public:
 
 protected:
     UPROPERTY(EditAnywhere, Category = "Blackboard")
-    FBlackboardKeySelector LastAttackTimeKey;
-
-    UPROPERTY(EditAnywhere, Category = "Blackboard")
     FBlackboardKeySelector AttackCountKey;
 
     UPROPERTY(EditAnywhere, Category = "Blackboard")

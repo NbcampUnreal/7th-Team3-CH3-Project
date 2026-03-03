@@ -13,7 +13,8 @@ public:
     UBTTask_PatrolRandom();
 
     virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
-    virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
+    // virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
+    virtual EBTNodeResult::Type AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 
 protected:
     UPROPERTY(EditAnywhere, Category = "Patrol")
@@ -30,15 +31,4 @@ protected:
 
     UPROPERTY(EditAnywhere, Category = "Blackboard")
     FBlackboardKeySelector HomeLocationKey;
-
-private:
-    enum class EPatrolState : uint8
-    {
-        MovingToLocation,
-        Waiting
-    };
-
-    EPatrolState CurrentState;
-    float WaitStartTime = 0.f;
-    float WaitDuration = 0.f;
 };

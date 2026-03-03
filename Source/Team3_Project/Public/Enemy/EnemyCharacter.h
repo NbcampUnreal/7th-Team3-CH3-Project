@@ -11,6 +11,7 @@ class USphereComponent;
 class UDamageType;
 struct FDamageEvent;
 class USpecialAttackData;
+class USplineComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnEnemyHealthChanged, float, NewValue, float, MaxValue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMovableChanged, bool, NewValue);
@@ -38,8 +39,11 @@ protected:
 
 	bool DropItem();
 public:
+	UFUNCTION(BlueprintCallable, Category = "Patrol")
+	USplineComponent* GetSplineComponent() const;
+
 	UFUNCTION(BlueprintCallable, Category = "Combat")
-	bool Attack();
+	void Attack();
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void OnFinishAttack();
 	UFUNCTION(BlueprintCallable, Category = "Combat")
@@ -62,6 +66,8 @@ public:
 	// 특수 공격 효과 발동
 	UFUNCTION(BlueprintCallable, Category = "Combat|Special")
 	void TriggerSpecialAttackEffect();
+
+	bool IsSpecialAttackEnd(FName AttackID);
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void OnHitted();
@@ -87,6 +93,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Stat")
 	float GetMaxHealth() const;
 	UFUNCTION(BlueprintPure, Category = "Stat")
+	float GetAttackRange() const;
+	UFUNCTION(BlueprintPure, Category = "Stat")
 	float GetAttack() const;
 	UFUNCTION(BlueprintPure, Category = "Stat")
 	float GetDefence() const;
@@ -96,7 +104,7 @@ public:
 	float GetBlackKarma() const;
 
 	UFUNCTION(BlueprintPure, Category = "Combat")
-	bool IsAttackable();
+	bool IsAttackable(AActor* TargetActor);
 	UFUNCTION(BlueprintPure, Category = "Move")
 	bool IsMovable() const;
 	UFUNCTION(BlueprintPure, Category = "Wave")
@@ -126,14 +134,12 @@ public:
 	float GetAttackMoveSpeedRatio() const;
 	float GetHittedMoveSpeedRatio() const;
 
-	float GetItemDropRatio() const;
 	TArray<FEnemyDropItem> GetDropItemTable() const;
 
 	void ApplyDamageToStat(float DamageAmount);
 	void EnableRagdoll();
 
 	void SetForAIMove();
-
 private:
 	// 근접 공격 히트 처리
 	UFUNCTION()
@@ -174,6 +180,9 @@ public:
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
 	UStatComponent* StatComp;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Patrol")
+	USplineComponent* PatrolSpline;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy")
 	FName EnemyName;
@@ -182,8 +191,10 @@ protected:
 	TObjectPtr<UEnemyTypeData> TypeData;
 
 	// Special Attack Data
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Data")
-	TObjectPtr<USpecialAttackData> SpecialAttackData;
+	// TObjectPtr로 하면 공유 인스턴싱이 된다고 합니다.
+	// 개별적으로 생성해야 하니 raw 포인터로 변경하고 Instanced를 추가했습니다. 
+	UPROPERTY(EditDefaultsOnly, Instanced, BlueprintReadOnly, Category = "Data")
+	USpecialAttackData* SpecialAttackData;
 
 	/** 현재 실행 중인 SpecialAttack */
 	UPROPERTY()

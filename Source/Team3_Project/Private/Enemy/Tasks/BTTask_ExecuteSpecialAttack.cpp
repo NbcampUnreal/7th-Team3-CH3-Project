@@ -87,10 +87,8 @@ void UBTTask_ExecuteSpecialAttack::TickTask(
         return;
     }
 
-    // ========================================
     // 공격 애니메이션 끝났는지 체크
-    // ========================================
-    if (Enemy->IsAttackable())
+    if (Enemy->IsSpecialAttackEnd(AttackID))
     {
         UE_LOG(LogTemp, Warning, TEXT("[BT] Special Attack Finished"));
         FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);

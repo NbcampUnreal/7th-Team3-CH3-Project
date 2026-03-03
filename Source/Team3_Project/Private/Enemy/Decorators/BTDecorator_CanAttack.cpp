@@ -7,9 +7,9 @@ UBTDecorator_CanAttack::UBTDecorator_CanAttack()
 {
     NodeName = "Can Attack";
 
-    LastAttackTimeKey.SelectedKeyName = FName("LastAttackTime");
-
     bNotifyBecomeRelevant = true;
+
+    TargetActorKey.SelectedKeyName = FName("TargetActor");
 }
 
 bool UBTDecorator_CanAttack::CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const
@@ -17,11 +17,14 @@ bool UBTDecorator_CanAttack::CalculateRawConditionValue(UBehaviorTreeComponent& 
     AAIController* AIController = OwnerComp.GetAIOwner();
     if (!AIController) return false;
 
+    UBlackboardComponent* BB = OwnerComp.GetBlackboardComponent();
+    if (!BB) return false;
+
     AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(AIController->GetPawn());
     if (!Enemy) return false;
 
-    // ========================================
+    AActor* TargetActor = Cast<AActor>(BB->GetValueAsObject(TargetActorKey.SelectedKeyName));
+
     // IsAttackable() 체크 (쿨타임 + 공격 중 아님)
-    // ========================================
-    return Enemy->IsAttackable();
+    return Enemy->IsAttackable(TargetActor);
 }

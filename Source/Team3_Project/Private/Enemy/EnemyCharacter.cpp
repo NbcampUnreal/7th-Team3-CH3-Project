@@ -1,7 +1,6 @@
 ﻿#include "Enemy/EnemyCharacter.h"
 #include "Shared/Component/StatComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
-#include "Enemy/Controllers/EnemyController.h"
 #include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
 #include "Player/PlayerCharacter.h"
@@ -13,6 +12,7 @@
 #include "Item/BaseItem.h"
 #include "GameFramework/DamageType.h"
 #include "Engine/DamageEvents.h"
+#include "Components/SplineComponent.h"
 
 AEnemyCharacter::AEnemyCharacter()
 {
@@ -21,6 +21,9 @@ AEnemyCharacter::AEnemyCharacter()
 	SetForAIMove();
 
 	StatComp = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
+	
+	PatrolSpline = CreateDefaultSubobject<USplineComponent>(TEXT("PatrolSpline"));
+	PatrolSpline->SetupAttachment(RootComponent);
 
 	WeaponCollision = CreateDefaultSubobject<USphereComponent>(TEXT("WeaponCollision"));
 	WeaponCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -91,6 +94,11 @@ void AEnemyCharacter::Tick(float DeltaTime)
 		if (LeftAttackCoolTime < 0.f) LeftAttackCoolTime = 0.f;
 	}
 
+	if (SpecialAttackData)
+	{
+		SpecialAttackData->TickCooldowns(DeltaTime);
+	}
+
 #if WITH_EDITOR
 	if (WeaponCollision && WeaponCollision->IsCollisionEnabled())
 	{
@@ -109,6 +117,11 @@ void AEnemyCharacter::Tick(float DeltaTime)
 #endif
 }
 
+USplineComponent* AEnemyCharacter::GetSplineComponent() const
+{
+	return PatrolSpline;
+}
+
 bool AEnemyCharacter::DropItem()
 {
 	// 데이터 세팅 안 된 경우
@@ -121,13 +134,7 @@ bool AEnemyCharacter::DropItem()
 		UE_LOG(LogTemp, Error, TEXT("DropTable is empty!"));
 		return false;
 	}
-	// Drop 확률 체크
-	float Rand = FMath::RandRange(0, 100);
-	if (Rand > GetItemDropRatio())
-	{
-		UE_LOG(LogTemp, Error, TEXT("Under DropRatio!"));
-		return false;
-	}
+
 	UGameInstance* GameInstance = GetWorld()->GetGameInstance();
 	if (!GameInstance)
 	{
@@ -142,81 +149,85 @@ bool AEnemyCharacter::DropItem()
  		return false;
 	}
 
+	int32 SpawnCnt = 0;
 
-	FName ItemID;
-	int32 CurrentRatio = 0;
-	int32 Quantity = 1;
-	int32 TargetRatio = FMath::Rand32() % 100;
-	for (FEnemyDropItem Row : DropTable)
+	// 각 항목마다 독립적으로 드롭 판정
+	for (const FEnemyDropItem& Row : DropTable)
 	{
-		CurrentRatio += Row.DropRatio;
-		if (CurrentRatio >= TargetRatio)
+		// 드롭 확률 체크
+		float DropChance = Row.DropRatio / 100.f;
+		float RandValue = FMath::FRand(); // 0 ~ 1.f
+
+		if (RandValue > DropChance)
 		{
-			ItemID = Row.ItemID;
-			Quantity = FMath::RandRange(Row.MinQunatity, Row.MaxQuantity);
+			continue;
 		}
-	}
 
-	FItemData ItemData = ItemDataSubsystem->GetItemDataByID(ItemID);
-	if (ItemData.ItemID != NAME_None)
-	{
+		// 드롭 개수
+		int32 Quantity = FMath::RandRange(Row.MinQuantity, Row.MaxQuantity);
+
+		// 아이템 스폰
+		FItemData ItemData = ItemDataSubsystem->GetItemDataByID(Row.ItemID);
+		if (ItemData.ItemID == NAME_None)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[Drop] Invalid ItemID: %s"), *Row.ItemID.ToString());
+			continue;
+		}
+
 		UClass* SpawnClass = ItemData.ItemClass.LoadSynchronous();
-
-		if (SpawnClass)
+		if (!SpawnClass)
 		{
-			for (int i = 0; i < Quantity; i++)
-			{
-				float Degree = (360.f / Quantity) * i;
-				float Radian = FMath::DegreesToRadians(Degree);
-
-				FVector SpawnLocation = GetActorLocation()
-					+ FVector(FMath::Cos(Radian), FMath::Sin(Radian), 0.f);
-				FTransform SpawnTransform(GetActorRotation(), SpawnLocation);
-
-				ABaseItem* DroppedItem = GetWorld()->SpawnActorDeferred<ABaseItem>(
-					SpawnClass,
-					SpawnTransform,
-					nullptr,
-					nullptr,
-					ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn
-				);
-
-				if (DroppedItem)
-				{
-					DroppedItem->SetItemID(ItemID);
-					DroppedItem->SetQuantity(1);
-					DroppedItem->FinishSpawning(SpawnTransform);
-				}
-			}
-			return true;
+			UE_LOG(LogTemp, Warning, TEXT("[Drop] %s's class missing."), *Row.ItemID.ToString());
+			continue;
 		}
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Failed to drop ItemID %s with quantity %d enemy name = %s"), *ItemID.ToString(), Quantity, *(GetName().ToString()));
-	}
 
-	return false;
+		float Radian = FMath::DegreesToRadians(SpawnCnt * 36.f);
+
+		// 랜덤 반지름 (50~150)
+		float Radius = FMath::RandRange(50.f, 150.f);
+
+		FVector SpawnLocation = GetActorLocation()
+			+ FVector(FMath::Cos(Radian), FMath::Sin(Radian), 0.f) * Radius
+			+ FVector(0, 0, 50.f);
+
+		FTransform SpawnTransform(GetActorRotation(), SpawnLocation);
+
+		ABaseItem* DroppedItem = GetWorld()->SpawnActorDeferred<ABaseItem>(
+			SpawnClass,
+			SpawnTransform,
+			nullptr,
+			nullptr,
+			ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn
+		);
+
+		if (DroppedItem)
+		{
+			DroppedItem->SetItemID(Row.ItemID);
+			DroppedItem->SetQuantity(1);  // ⭐ 각 아이템은 1개씩
+			DroppedItem->FinishSpawning(SpawnTransform);
+
+			SpawnCnt++;
+		}
+
+		UE_LOG(LogTemp, Log, TEXT("[Drop] Spawned %s x%d"), *Row.ItemID.ToString(), Quantity);
+	}
+	
+
+	return SpawnCnt > 0;
 }
 
-bool AEnemyCharacter::Attack()
+void AEnemyCharacter::Attack()
 {
-	if (IsAttackable())
+	LeftAttackCoolTime = GetAttackCoolTime();
+	PlayAnimMontage(GetAttackMontage());
+
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
 	{
-		LeftAttackCoolTime = GetAttackCoolTime();
-		PlayAnimMontage(GetAttackMontage());
-		
-		if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
-		{
-			// 이동 속도 감소
-			MoveComp->MaxWalkSpeed = GetChaseSpeed() * GetAttackMoveSpeedRatio();
-		}
-
-		OnAttackSignature.Broadcast();
-		return true;
+		// 이동 속도 감소
+		MoveComp->MaxWalkSpeed = GetChaseSpeed() * GetAttackMoveSpeedRatio();
 	}
-
-	return false;
+	bIsAttacking = true;
+	OnAttackSignature.Broadcast();
 }
 
 void AEnemyCharacter::OnFinishAttack()
@@ -271,6 +282,12 @@ void AEnemyCharacter::ResetHitActors()
 
 bool AEnemyCharacter::ExecuteSpecialAttackByID(FName AttackID, AActor* TargetActor)
 {
+	if (!CurrentSpecialAttack || !bIsAttacking)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[SpecialAttack] Already Attacking!"));
+		return false;
+	}
+
 	if (!SpecialAttackData)
 	{
 		UE_LOG(LogTemp, Error, TEXT("[SpecialAttack] No SpecialAttackData"));
@@ -278,35 +295,36 @@ bool AEnemyCharacter::ExecuteSpecialAttackByID(FName AttackID, AActor* TargetAct
 	}
 
 	// ID로 공격 찾기
-	USpecialAttackBase* Attack = SpecialAttackData->GetAttackByID(AttackID);
+	CurrentSpecialAttack = SpecialAttackData->GetAttackByID(AttackID);
 
-	if (!Attack)
+	if (!CurrentSpecialAttack)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[SpecialAttack] Attack ID '%s' not found"), *AttackID.ToString());
 		return false;
 	}
 
-	if (!Attack->CanExecute(this, TargetActor))
+	if (!CurrentSpecialAttack->CanExecute(this, TargetActor))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[SpecialAttack] Cannot execute '%s'"), *AttackID.ToString());
 		return false;
 	}
 
 	// 몽타주 재생
-	if (UAnimMontage* Montage = Attack->GetMontage())
+	if (UAnimMontage* Montage = CurrentSpecialAttack->GetMontage())
 	{
 		PlayAnimMontage(Montage);
 	}
 
 	// 이동 제어
-	if (!Attack->CanMoveWhileAttacking())
+	if (!CurrentSpecialAttack->CanMoveWhileAttacking())
 	{
 		DeactiveMove();
 	}
 
 	// 공격 실행
-	Attack->Execute(this, TargetActor);
-
+	CurrentSpecialAttack->Execute(this, TargetActor);
+	CurrentSpecialAttack->StartCooldown();
+	bIsAttacking = true;
 	OnSepcialAttackSignature.Broadcast();
 
 	UE_LOG(LogTemp, Log, TEXT("[SpecialAttack] Executed: %s"), *AttackID.ToString());
@@ -329,11 +347,21 @@ void AEnemyCharacter::TriggerSpecialAttackEffect()
 		*CurrentSpecialAttack->GetAttackID().ToString());
 }
 
+bool AEnemyCharacter::IsSpecialAttackEnd(FName AttackID)
+{
+	if (CurrentSpecialAttack && CurrentSpecialAttack->GetAttackID() == AttackID)
+	{
+		return false;
+	}
+	return true;
+}
+
 void AEnemyCharacter::OnHitted()
 {
 	StopAnimMontage();
 	OnHittedSignature.Broadcast();
 
+	bIsAttacking = false;
 	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
 	{
 		MoveComp->MaxWalkSpeed = GetPatrolSpeed() * GetHittedMoveSpeedRatio();
@@ -426,10 +454,7 @@ float AEnemyCharacter::TakeDamage(
 	// 데미지 처리
 	ApplyDamageToStat(DamageAmount);
 
-	// Hitted or Dead 상태 전환
-	AAIController* AIController = Cast<AAIController>(GetController());
-	if (!AIController) return DamageAmount;
-
+	// Hitted or Dead 처리
 	if (StatComp->GetBaseStatValue(FName("Health")) <= 0.f)
 	{
 		TSubclassOf<UDamageType> DamageTypeClass = DamageEvent.DamageTypeClass;
@@ -494,10 +519,11 @@ float AEnemyCharacter::GetBlackKarma() const
 	return StatComp->GetCurrentStatValue(TEXT("BlackKarma"));
 }
 
-bool AEnemyCharacter::IsAttackable()
+bool AEnemyCharacter::IsAttackable(AActor* TargetActor)
 {
 	if (!FMath::IsNearlyZero(LeftAttackCoolTime)) return false;
-	
+	if (GetDistanceTo(TargetActor) > GetAttackRange()) return false;
+
 	return !bIsAttacking;
 }
 bool AEnemyCharacter::IsMovable() const
@@ -537,6 +563,11 @@ void AEnemyCharacter::DeactiveMove()
 {
 	bIsMovable = false;
 	OnMovableChangedSignature.Broadcast(bIsMovable);
+}
+
+float AEnemyCharacter::GetAttackRange() const
+{
+	return TypeData ? TypeData->AttackRange : 200.f;
 }
 
 UAnimMontage* AEnemyCharacter::GetAttackMontage() const
@@ -587,11 +618,6 @@ float AEnemyCharacter::GetAttackMoveSpeedRatio() const
 float AEnemyCharacter::GetHittedMoveSpeedRatio() const
 {
 	return TypeData ? TypeData->HittedMoveSpeedRatio : 0.1f;
-}
-
-float AEnemyCharacter::GetItemDropRatio() const
-{
-	return TypeData ? TypeData->ItemDropRatio : -1.f;
 }
 
 TArray<FEnemyDropItem> AEnemyCharacter::GetDropItemTable() const

@@ -70,10 +70,4 @@ protected:
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI|Range")
     float ChaseRange = 1500.f;
-
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI|Range")
-    float AttackRange = 300.f;
-
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI|Range")
-    float SpecialAttackRange = 800.f;
 };
