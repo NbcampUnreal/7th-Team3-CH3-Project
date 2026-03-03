@@ -11,7 +11,7 @@ bool USpecialAttackBase::CanExecute_Implementation(AEnemyCharacter* Owner, AActo
 {
     if (!Owner) return false;
     if (Owner->IsDead()) return false;
-
+    if (!FMath::IsNearlyZero(LeftCooldown)) return false;
     // 거리 체크
     if (TargetActor)
     {
@@ -24,4 +24,20 @@ bool USpecialAttackBase::CanExecute_Implementation(AEnemyCharacter* Owner, AActo
     }
 
     return true;
+}
+
+void USpecialAttackBase::OnTick(float DeltaTime)
+{
+    if (!FMath::IsNearlyZero(LeftCooldown))
+    {
+        LeftCooldown -= DeltaTime;
+        if (LeftCooldown < 0.f) LeftCooldown = 0.f;
+    }
+}
+
+void USpecialAttackBase::StartCooldown()
+{
+    LeftCooldown = Cooldown;
+    UE_LOG(LogTemp, Log, TEXT("[SpecialAttack] '%s' cooldown started: %.1fs"),
+        *AttackID.ToString(), Cooldown);
 }

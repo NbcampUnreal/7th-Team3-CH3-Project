@@ -53,32 +53,16 @@ bool UBTDecorator_CanUseSpecialAttack::CalculateRawConditionValue(UBehaviorTreeC
         return false;
     }
 
-    // 4. 기본 공격 가능 체크
-    if (!Enemy->IsAttackable())
-    {
-        return false;
-    }
-
-    // 5. Target 가져오기
+    // 4. Target 가져오기
     AActor* TargetActor = Cast<AActor>(BB->GetValueAsObject(TargetActorKey.SelectedKeyName));
 
-    // 6. CanExecute 체크 (거리, 조건 등)
+    // 5. CanExecute 체크 (거리, 남은 시간 등)
     if (!Attack->CanExecute(Enemy, TargetActor))
     {
         return false;
     }
 
-    // 7. 쿨타임 체크 (DataAsset에서 가져옴)
-    float Cooldown = Attack->GetCooldown();
-    float LastTime = BB->GetValueAsFloat(LastSpecialAttackTimeKey.SelectedKeyName);
-    float CurrentTime = AIController->GetWorld()->GetTimeSeconds();
-
-    if (CurrentTime - LastTime < Cooldown)
-    {
-        return false;  // 쿨타임 중
-    }
-
-    // 8. 확률 체크 (옵션)
+    // 7. 확률 체크 (옵션)
     if (bUseChanceSystem)
     {
         int32 AttackCount = BB->GetValueAsInt(ConsecutiveAttacksKey.SelectedKeyName);

@@ -1,6 +1,6 @@
 ﻿#include "Enemy/SpecialAttack/SpecialAttack_Projectile.h"
 #include "Enemy/EnemyCharacter.h"
-#include "Item/BaseProjectile.h"
+#include "Enemy/EnemyProjectile.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 
 USpecialAttack_Projectile::USpecialAttack_Projectile()
@@ -25,9 +25,7 @@ void USpecialAttack_Projectile::Execute_Implementation(AEnemyCharacter* Owner, A
         return;
     }
 
-    // ========================================
     // Spawn Location 계산
-    // ========================================
     FVector SpawnLocation;
     FRotator BaseRotation;
 
@@ -43,9 +41,7 @@ void USpecialAttack_Projectile::Execute_Implementation(AEnemyCharacter* Owner, A
     FVector Direction = (TargetActor->GetActorLocation() - SpawnLocation).GetSafeNormal();
     BaseRotation = Direction.Rotation();
 
-    // ========================================
     // 다중 투사체 발사
-    // ========================================
     FActorSpawnParameters SpawnParams;
     SpawnParams.Owner = Owner;
     SpawnParams.Instigator = Owner;
@@ -65,10 +61,8 @@ void USpecialAttack_Projectile::Execute_Implementation(AEnemyCharacter* Owner, A
         FRotator SpawnRotation = BaseRotation;
         SpawnRotation.Yaw += AngleOffset;
 
-        // ========================================
-        // ⭐ BaseProjectile Spawn
-        // ========================================
-        ABaseProjectile* Projectile = Owner->GetWorld()->SpawnActor<ABaseProjectile>(
+        // BaseProjectile Spawn
+        AEnemyProjectile* Projectile = Owner->GetWorld()->SpawnActor<AEnemyProjectile>(
             ProjectileClass,
             SpawnLocation,
             SpawnRotation,
@@ -77,12 +71,25 @@ void USpecialAttack_Projectile::Execute_Implementation(AEnemyCharacter* Owner, A
 
         if (Projectile)
         {
-            // ========================================
-            // ⭐ BaseProjectile 초기화
-            // ========================================
+            // BaseProjectile 초기화
 
             // Damage 설정 (BaseProjectile에 있는 프로퍼티)
             Projectile->Damage = Owner->GetAttack();
+
+            // 유도 설정
+            if (bIsHoming)
+            {
+                Projectile->SetHoming(true, TargetActor, HomingAcceleration);
+            }
+
+            // 생존 시간
+            Projectile->SetLifeSpan(ProjectileLifeSpan);
+
+            if (UProjectileMovementComponent* ProjMovement = Projectile->FindComponentByClass<UProjectileMovementComponent>())
+            {
+                ProjMovement->InitialSpeed = ProjectileSpeed;
+                ProjMovement->MaxSpeed = ProjectileSpeed;
+            }
 
             // ProjectileMovement 속도 설정
             if (UProjectileMovementComponent* ProjMovement = Projectile->FindComponentByClass<UProjectileMovementComponent>())
