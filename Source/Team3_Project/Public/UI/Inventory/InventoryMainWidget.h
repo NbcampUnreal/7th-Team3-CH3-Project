@@ -74,7 +74,7 @@ protected:
 	TSubclassOf<UInventoryActionMenu> ContextMenuWidgetClass;
 
 	UPROPERTY(EditAnywhere, Category = "Inventory UI")
-	int32 Columns = 5;
+	int32 Columns = 8;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	UInventoryItemSlot* Slot_Scope;

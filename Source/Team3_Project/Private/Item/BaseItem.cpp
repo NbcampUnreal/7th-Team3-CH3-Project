@@ -61,6 +61,7 @@ void ABaseItem::Interact_Implementation(AActor* Interactor)
 		else
 		{
 			Quantity = Leftover;
+			LootWidget->InitWidget();
 			UE_LOG(LogTemp, Warning, TEXT("Not all items were added to inventory. Leftover quantity: %d"), Leftover);
 		}
 	}

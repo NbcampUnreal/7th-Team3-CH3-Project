@@ -238,6 +238,16 @@ void UInventoryItemSlot::NativeOnDragDetected(const FGeometry& InGeometry, const
 
 bool UInventoryItemSlot::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
+	UGameInstance* GameInstance = UGameplayStatics::GetGameInstance(GetWorld());
+	if (!GameInstance)
+	{
+		return false;
+	}
+	UItemDataSubsystem* ItemDataSubsystem = GameInstance->GetSubsystem<UItemDataSubsystem>();
+	if (!ItemDataSubsystem)
+	{
+		return false;
+	}
 	// 드롭 시 전달된 Operation을 확인하고, 슬롯 타입 조합에 따라 동작 분기
 	UInventoryDragDropOperation* DragDropOp = Cast<UInventoryDragDropOperation>(InOperation);
 	if (!DragDropOp)
@@ -296,6 +306,12 @@ bool UInventoryItemSlot::NativeOnDrop(const FGeometry& InGeometry, const FDragDr
 		if (InventoryComponent->GetInventoryContents().IsValidIndex(DragDropOp->SourceIndex))
 		{
 			FName TargetItemID = InventoryComponent->GetInventoryContents()[DragDropOp->SourceIndex].ItemID;
+			EItemType ItemType = ItemDataSubsystem->GetItemDataByID(TargetItemID).ItemType;
+			if (ItemType != EItemType::IT_Weapon && ItemType != EItemType::IT_Consumable)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("NativeOnDrop: Cannot assign non-weapon/consumable item %s to quickslot"), *TargetItemID.ToString());
+				return false;
+			}
 			UE_LOG(LogTemp, Warning, TEXT("NativeOnDrop: Assigning inventory item %s to quickslot=%d"), *TargetItemID.ToString(), SlotIndex);
 			InventoryComponent->AssignToQuickSlot(SlotIndex, TargetItemID);
 			return true;
