@@ -1,4 +1,4 @@
-﻿#include "UI/MainHUD.h"
+#include "UI/MainHUD.h"
 #include "Components/TextBlock.h"
 #include "Components/ProgressBar.h"
 #include "Components/Image.h"
@@ -20,6 +20,7 @@ UMainHUD::UMainHUD(const FObjectInitializer& ObjectInitializer) : Super(ObjectIn
     CurrBlackKarma = TargetBlackKarma = 0.5f;
     PendingBonus = 100;
     bPendingSuccess = true;
+    CurrentAdrenalineTime = 30;
 }
 
 void UMainHUD::NativeConstruct()
@@ -601,4 +602,43 @@ void UMainHUD::RefreshQuickSlotQuantity(int32 SlotIndex, FName ItemID)
             }
         }
 	}
+}
+
+void UMainHUD::StartAdrenalineTimer()
+{
+    UWorld* World = GetWorld();
+    if (!World) return;
+
+    CurrentAdrenalineTime = 30;
+
+    if (Img_Adrenaline) Img_Adrenaline->SetVisibility(ESlateVisibility::Visible);
+    if (AdrenalineTimer)
+    {
+        AdrenalineTimer->SetVisibility(ESlateVisibility::Visible);
+        AdrenalineTimer->SetText(FText::AsNumber(CurrentAdrenalineTime));
+    }
+
+    World->GetTimerManager().SetTimer(AdrenalineTimerHandle, this, &UMainHUD::UpdateTimer, 1.0f, true);
+}
+
+void UMainHUD::UpdateTimer()
+{
+    CurrentAdrenalineTime--;
+
+    if (AdrenalineTimer)
+    {
+        AdrenalineTimer->SetText(FText::AsNumber(CurrentAdrenalineTime));
+    }
+
+    if (CurrentAdrenalineTime <= 0)
+    {
+        UWorld* World = GetWorld();
+        if (World)
+        {
+            World->GetTimerManager().ClearTimer(AdrenalineTimerHandle);
+        }
+
+        if (Img_Adrenaline) Img_Adrenaline->SetVisibility(ESlateVisibility::Collapsed);
+        if (AdrenalineTimer) AdrenalineTimer->SetVisibility(ESlateVisibility::Collapsed);
+    }
 }
