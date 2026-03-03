@@ -14,6 +14,18 @@ void UStartMenu::NativeOnInitialized()
 {
     Super::NativeOnInitialized();
     
+    TArray<UUserWidget*> FoundWidgets;
+    UWidgetBlueprintLibrary::GetAllWidgetsOfClass(GetWorld(), FoundWidgets, UUserWidget::StaticClass(), false);
+
+    for (UUserWidget* Widget : FoundWidgets)
+    {
+        // 나(StartMenu)를 제외한 'MainHUD'라는 이름이 포함된 위젯을 찾아 숨김
+        if (Widget && Widget != this && Widget->GetName().Contains(TEXT("MainHUD")))
+        {
+            Widget->SetVisibility(ESlateVisibility::Collapsed); // 완전히 숨김 
+        }
+    }
+
     if (Btn_Start)
     {
         // 버튼과 함수를 연결 
@@ -50,27 +62,9 @@ void UStartMenu::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
         {
             bIsTransitioning = false;
 
-            TArray<UUserWidget*> FoundWidgets;
-            UWidgetBlueprintLibrary::GetAllWidgetsOfClass(GetWorld(), FoundWidgets, UUserWidget::StaticClass(), false);
+            UGameplayStatics::OpenLevel(GetWorld(), TEXT("ThirdPersonMap"));
 
-            for (UUserWidget* Widget : FoundWidgets)
-            {
-                if (Widget && Widget->GetName().Contains(TEXT("MainHUD")))
-                {
-                    // 위젯 자체도 보여주기 상태로 전환 
-                    Widget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
-
-                    // 블루프린트에서 'Is Variable'로 체크한 패널 이름을 찾기
-                    UWidget* TargetPanel = Widget->GetWidgetFromName(TEXT("MainPanel"));
-                    if (TargetPanel)
-                    {
-                        TargetPanel->SetVisibility(ESlateVisibility::Visible); // 패널 공개 
-                    }
-                }
-            }
-
-            RemoveFromParent();
-            
+            // 입력 모드 복구 (새 맵으로 넘어가기 전 안전하게 설정)
             APlayerController* PC = GetWorld()->GetFirstPlayerController();
             if (PC)
             {
