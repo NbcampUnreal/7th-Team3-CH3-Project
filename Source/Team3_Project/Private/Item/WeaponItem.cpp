@@ -12,6 +12,7 @@
 #include "UI/Item/LootTagWidget.h"
 #include "Components/WidgetComponent.h"
 #include "Components/SphereComponent.h"
+#include "Player/PlayerCharacter.h"
 
 #define ECC_Weapon ECC_GameTraceChannel1
 
@@ -274,12 +275,20 @@ void AWeaponItem::ReloadWeapon()
 		return;
 	}
 
+	ACharacter* Character = Cast<ACharacter>(OwnerActor);
+	if (Character && ReloadMontage)
+	{
+		Character->PlayAnimMontage(ReloadMontage);
+	}
+
 	UInventoryComponent* InventoryComp = OwnerActor->FindComponentByClass<UInventoryComponent>();
 	if (!InventoryComp)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("InventoryComponent not found on OwnerActor"));
 		return;
 	}
+	 
+
 
 	int32 AmmoNeeded = MaxAmmo - CurrentAmmo;
 

@@ -171,11 +171,14 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Weapon|Effects")
 	TMap<FName, UParticleSystem*> ImpactEffectMap;
 
-	UPROPERTY(EditAnywhere, Category = "Effects")
+	UPROPERTY(EditAnywhere, Category = "Weapon|Effects")
 	FVector MuzzleFXScale = FVector(0.03f);
 
-	UPROPERTY(EditAnywhere, Category = "Effects")
+	UPROPERTY(EditAnywhere, Category = "Weapon|Effects")
 	FVector ImpactFXScale = FVector(0.4f);
+
+	UPROPERTY(EditAnywhere, Category = "Weapon|Animation")
+	class UAnimMontage* ReloadMontage;
 
 	void RecalculateStats();
 
