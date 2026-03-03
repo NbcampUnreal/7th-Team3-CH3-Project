@@ -183,6 +183,25 @@ void AWeaponItem::FireWeapon()
 		StopFire();
 		return;
 	}
+
+	// 사운드 및 머즐 플래시 재생
+	if (FireSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
+	}
+
+	if (MuzzleFlashFX)
+	{
+		UGameplayStatics::SpawnEmitterAttached(
+			MuzzleFlashFX,
+			WeaponMesh,
+			MuzzleSocketName,
+			FVector::ZeroVector,
+			FRotator::ZeroRotator,
+			MuzzleFXScale
+		);
+	}
+
 	//탄	약 감소 및 발사 시간 기록
 	CurrentAmmo--;
 	LastFireTime = GetWorld()->TimeSeconds;
@@ -753,6 +772,30 @@ void AWeaponItem::FireHitScan()
 					UDamageType::StaticClass()
 				);
 				UE_LOG(LogTemp, Log, TEXT("Applied %f damage to %s"), BaseDamage, *HitActor->GetName());
+
+				// 피격 이펙트 결정
+				UParticleSystem* SelectedFX = DefaultImpactFX;
+
+				if (HitActor->Tags.Num() > 0)
+				{
+					FName TargetTag = HitActor->Tags[0];
+					if (ImpactEffectMap.Contains(TargetTag))
+					{
+						SelectedFX = ImpactEffectMap[TargetTag];
+					}
+				}
+
+				// 이펙트 스폰
+				if (SelectedFX)
+				{
+					UGameplayStatics::SpawnEmitterAtLocation(
+						GetWorld(),
+						SelectedFX,
+						FinalImpactPoint,
+						FinalHitResult.ImpactNormal.Rotation(), // 면의 방향에 맞춰 회전
+						ImpactFXScale
+					);
+				}
 			}
 			//디버그용 점 그리기
 			DrawDebugPoint(
