@@ -6,6 +6,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Navigation/PathFollowingComponent.h"
 #include "TimerManager.h"
+#include "NavFilters/NavigationQueryFilter.h"
 
 UBTTask_PatrolRandom::UBTTask_PatrolRandom()
 {
@@ -56,41 +57,67 @@ EBTNodeResult::Type UBTTask_PatrolRandom::ExecuteTask(
 
     // HomeLocation 가져오기
     FVector HomeLocation = BB->GetValueAsVector(HomeLocationKey.SelectedKeyName);
+    
+    UNavigationSystemV1* NavSystem = UNavigationSystemV1::GetCurrent(AIController->GetWorld());
+    if (!NavSystem)
+    {
+        UE_LOG(LogTemp, Error, TEXT("[Patrol] No NavSystem"));
+        return EBTNodeResult::Failed;
+    }
+
     if (HomeLocation.IsZero())
     {
         HomeLocation = Enemy->GetActorLocation();
         BB->SetValueAsVector(HomeLocationKey.SelectedKeyName, HomeLocation);
     }
+    UE_LOG(LogTemp, Warning, TEXT("[Patrol] HomeLocation: %s"), *HomeLocation.ToString());
 
+    FNavLocation ProjectedLoc;
+    bool bIsOnNavMesh = NavSystem->ProjectPointToNavigation(
+        HomeLocation,
+        ProjectedLoc,
+        FVector(500, 500, 500)  // 검색 범위
+    );
 
-    // 랜덤 위치 찾기
-    const UNavigationSystemV1* NavSystem = UNavigationSystemV1::GetCurrent(AIController->GetWorld());
-    if (!NavSystem)
+    if (!bIsOnNavMesh)
     {
-        UE_LOG(LogTemp, Error, TEXT("[BT] Patrol Random: No NavSystem"));
-        return EBTNodeResult::Failed;
+        UE_LOG(LogTemp, Error, TEXT("[Patrol] HomeLocation is not on NavMesh!"));
+        // HomeLocation을 NavMesh 위로 이동
+        HomeLocation = ProjectedLoc.Location;
     }
 
-    FNavLocation RandomLocation;
+    // 랜덤 위치 찾기
     float PatrolRadius = Enemy->GetPatrolRadius();
+
+    UE_LOG(LogTemp, Log, TEXT("[Patrol] Searching (Home: %s, Radius: %.1f)"),
+        *HomeLocation.ToString(), PatrolRadius);
+
+    FNavLocation RandomLocation;
+    ANavigationData* NavData = NavSystem->GetDefaultNavDataInstance();
+    if (!NavData)
+    {
+        UE_LOG(LogTemp, Error, TEXT("[Patrol] No NavMesh found in world!"));
+        return EBTNodeResult::Failed;
+    }
+    FSharedConstNavQueryFilter QueryFilter = UNavigationQueryFilter::GetQueryFilter(
+        *NavData,
+        AIController,
+        nullptr
+    );
 
     bool bFound = NavSystem->GetRandomReachablePointInRadius(
         HomeLocation,
         PatrolRadius,
         RandomLocation,
-        nullptr  // NavData (nullptr면 기본 NavMesh 사용)
+        nullptr,  // NavData
+        QueryFilter
     );
 
     if (!bFound)
     {
         UE_LOG(LogTemp, Warning, TEXT("[BT] Patrol Random: Could not find random location"));
         // 디버깅: NavMesh 존재 확인
-        ANavigationData* NavData = NavSystem->GetDefaultNavDataInstance();
-        if (!NavData)
-        {
-            UE_LOG(LogTemp, Error, TEXT("[Patrol] No NavMesh found in world!"));
-        }
-        else
+        if (NavData)
         {
             UE_LOG(LogTemp, Warning, TEXT("[Patrol] NavMesh exists but no valid point found. Try increasing PatrolRadius."));
         }
