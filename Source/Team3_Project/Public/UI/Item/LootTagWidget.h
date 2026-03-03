@@ -24,6 +24,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "LootTag")
 	void UpdateAttachmentIcons(const TMap<EAttachmentType, FName>& Attachments);
 
+
 protected:
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* Txt_ItemName;
