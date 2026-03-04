@@ -179,6 +179,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnPlayerDead OnPlayerDead;
 
+
+	bool bIsEquippedArmor = false;
+
 protected:
 	// 조준 중인지 확인 (상태와 별개로 체크 - 추후 상하체 동작 분리 위해..아마..?)
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State")
@@ -200,9 +203,13 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Transient, Category = "Interaction")
 	AActor* CurrentFocusItem;
 
-	bool bIsEquippedArmor = false;
 
 	void UpdateInteractableFocus();
+
+	FTimerHandle DeadTimerHandle;
+
+	UFUNCTION()
+	void BroadcastPlayerDead();
 
 protected:
 	virtual void NotifyControllerChanged() override;

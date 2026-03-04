@@ -1,4 +1,4 @@
-#include "UI/StartMenu.h"
+﻿#include "UI/StartMenu.h"
 #include "Kismet/GameplayStatics.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/Widget.h"
@@ -62,7 +62,7 @@ void UStartMenu::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
         {
             bIsTransitioning = false;
 
-            UGameplayStatics::OpenLevel(GetWorld(), TEXT("ThirdPersonMap"));
+            UGameplayStatics::OpenLevel(GetWorld(), TEXT("Metro1"));
 
             // 입력 모드 복구 (새 맵으로 넘어가기 전 안전하게 설정)
             APlayerController* PC = GetWorld()->GetFirstPlayerController();

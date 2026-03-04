@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
@@ -71,6 +71,14 @@ public:
     UPROPERTY(meta = (BindWidget), BlueprintReadOnly) class UImage* Img_GunInformation;
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly) class UTextBlock* Txt_AmmoInfo;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	TSubclassOf<class UOutCome> OutcomeWidgetClass;
+
+	UFUNCTION(BlueprintCallable, Category = "UI")
+    void ShowOutcomeUI(bool bIsVictory, int32 FinalScore, int32 FinalKill);
+
+	UFUNCTION(BlueprintCallable, Category = "UI")
+    void HandlePlayerDeath();
 
 protected:
     UPROPERTY(EditAnywhere, Category = "Quest") TSubclassOf<class UQuestItemWidget> QuestItemClass;

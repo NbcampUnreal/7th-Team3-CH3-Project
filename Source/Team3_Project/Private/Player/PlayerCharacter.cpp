@@ -19,6 +19,7 @@
 #include "InputActionValue.h"
 #include "Shared/InteractionInterface.h"
 #include "Item/InventoryComponent.h"
+#include "Core/MainGameInstance.h"	
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -45,13 +46,27 @@ void APlayerCharacter::BeginPlay()
 		StatComp->InitializeStat("WhiteKarma", WhiteKarma, 0.f, 100.f);
 		StatComp->InitializeStat("BlackKarma", BlackKarma, 0.f, 100.f);
 	}
+	UMainGameInstance* GI = Cast<UMainGameInstance>(UGameplayStatics::GetGameInstance(this));
+	if (GI && GI->bHasSavedData && InventoryComponent)
+	{
+		InventoryComponent->RestoreInventoryData(GI->SavedInventoryContents, GI->SavedQuickSlots);
+		if (!GI->SavedWeapon.ItemID.IsNone())
+		{
+			EquipItemByData(GI->SavedWeapon, ESlotType::ST_Weapon);
+		}
+		if (!GI->SavedArmor.ItemID.IsNone())
+		{
+			EquipItemByData(GI->SavedArmor, ESlotType::ST_Armor);
+		}
+
+		GI->bHasSavedData = false;
+	}
 }
 
 // Called every frame
 void APlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	PrintDebugInfo();
 	UpdateInteractableFocus();
 }
 
@@ -140,6 +155,12 @@ void APlayerCharacter::UpdateInteractableFocus()
 			IInteractionInterface::Execute_SetInteractFocus(CurrentFocusItem, true);
 		}
 	}
+}
+
+void APlayerCharacter::BroadcastPlayerDead()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Player is dead. Broadcasting OnPlayerDead event."));
+	OnPlayerDead.Broadcast();
 }
 
 void APlayerCharacter::NotifyControllerChanged()
@@ -364,7 +385,6 @@ void APlayerCharacter::Die()
 	if (bIsDead) return;
 	bIsDead = true;
 
-	OnPlayerDead.Broadcast();
 
 	DisableInput(GetLocalViewingPlayerController());
 
@@ -375,6 +395,9 @@ void APlayerCharacter::Die()
 
 	GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
 	GetMesh()->SetSimulatePhysics(true);
+
+	float DelayTime = 3.0f;
+	GetWorld()->GetTimerManager().SetTimer(DeadTimerHandle, this, &APlayerCharacter::BroadcastPlayerDead, DelayTime, false);
 }
 
 void APlayerCharacter::PrintDebugInfo()
@@ -389,11 +412,11 @@ void APlayerCharacter::PrintDebugInfo()
 	// Key값이 0이면 메시지가 쌓이지 않고 한 줄에서 숫자만 바뀜 (갱신)
 	FString Msg = FString::Printf(TEXT("[%s] Stamina: %.1f / %.0f"), *StateStr, Current, MaxStamina);
 
-	if (GEngine)
-	{
-		// Key: 0 (고정된 위치), Time: 0.0f (즉시 갱신)
-		GEngine->AddOnScreenDebugMessage(0, 0.0f, TextColor, Msg);
-	}
+	//if (GEngine)
+	//{
+	//	// Key: 0 (고정된 위치), Time: 0.0f (즉시 갱신)
+	//	GEngine->AddOnScreenDebugMessage(0, 0.0f, TextColor, Msg);
+	//}
 }
 
 void APlayerCharacter::EquipItemByData(const FInventoryItem& ItemData, ESlotType SlotType)

@@ -11,6 +11,11 @@
 #include "Item/WeaponItem.h"
 #include "Player/PlayerCharacter.h"
 #include "Core/MainGameState.h"
+#include "UI/OutCome.h"
+#include "Kismet/GameplayStatics.h"
+#include "Core/MainGameInstance.h"
+#include "Core/DoorNPC.h"
+#include "Enemy/EnemyCharacter.h"
 
 UMainHUD::UMainHUD(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -42,12 +47,12 @@ void UMainHUD::NativeConstruct()
     OnWaveStarted.AddDynamic(this, &UMainHUD::StartWaveUI);
     OnWaveEnded.AddDynamic(this, &UMainHUD::ReceiveTeamData);*/
    
-    /*AMainGameState* GameState = GetWorld()->GetGameState<AMainGameState>();
+    AMainGameState* GameState = GetWorld()->GetGameState<AMainGameState>();
     if (GameState)
     {
         GameState->OnWaveStart.AddDynamic(this, &UMainHUD::StartWaveUI);
         GameState->OnWaveEnd.AddDynamic(this, &UMainHUD::EndWaveUI);
-    }*/
+    }
 
     APawn* PlayerPawn = GetOwningPlayerPawn();
     if (PlayerPawn)
@@ -71,6 +76,7 @@ void UMainHUD::NativeConstruct()
         PlayerChar->OnStaminaChanged.AddDynamic(this, &UMainHUD::UpdateStamina);
         PlayerChar->OnWhiteKarmaChanged.AddDynamic(this, &UMainHUD::UpdateWhiteKarma);
         PlayerChar->OnBlackKarmaChanged.AddDynamic(this, &UMainHUD::UpdateBlackKarma);
+		PlayerChar->OnPlayerDead.AddDynamic(this, &UMainHUD::HandlePlayerDeath);
 	}
    
     /*APlayerCharacter* PlayerChar = Cast<APlayerCharacter>(PlayerPawn);
@@ -167,7 +173,7 @@ void UMainHUD::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
             int32 Min = TotalSeconds / 60;
             int32 Sec = TotalSeconds % 60;
             FString TimeStr = FString::Printf(TEXT("%02d:%02d"), Min, Sec);
-            Timer->SetText(FText::FromString(TimeStr)); 
+            Timer->SetText(FText::FromString(TimeStr));
 
             if (CurrentRemainingTime <= 10.0f)
             {
@@ -177,12 +183,6 @@ void UMainHUD::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
             {
                 Timer->SetColorAndOpacity(FSlateColor(FLinearColor::White));
             }
-        }
-
-        if (CurrentRemainingTime <= 0.0f)
-        {
-            bIsTimerActive = false;
-            EndWaveUI(bPendingSuccess, PendingBonus);
         }
     }
 }
@@ -211,6 +211,41 @@ void UMainHUD::FinishQuest(int32 ID)
 
         FTimerHandle IconHandle;
         GetWorld()->GetTimerManager().SetTimer(IconHandle, this, &UMainHUD::RefreshQuestIcon, 3.1f, false);
+    }
+}
+
+void UMainHUD::ShowOutcomeUI(bool bIsVictory, int32 FinalScore, int32 FinalKill)
+{
+	if (!OutcomeWidgetClass) return;
+
+    APlayerController* PC = GetWorld()->GetFirstPlayerController();
+    UOutCome* OutcomeUI = CreateWidget<UOutCome>(PC , OutcomeWidgetClass);
+    if (OutcomeUI)
+    {
+        
+        OutcomeUI->SetupOutcome(bIsVictory, FinalScore, FinalKill);
+        OutcomeUI->AddToViewport(9999);
+		PC->bShowMouseCursor = true;
+		FInputModeUIOnly InputMode;
+		InputMode.SetWidgetToFocus(OutcomeUI->TakeWidget());
+		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		PC->SetInputMode(InputMode);
+		UGameplayStatics::SetGamePaused(GetWorld(), true);
+	}
+}
+
+void UMainHUD::HandlePlayerDeath()
+{
+	UMainGameInstance* GameInstance = Cast<UMainGameInstance>(GetGameInstance());
+    if (GameInstance)
+    {
+		int32 FinalScore = GameInstance->TotalScore;
+        int32 FinalKill = GameInstance->TotalKills;
+		ShowOutcomeUI(false, FinalScore, FinalKill);
+	}
+    else
+    {
+		UE_LOG(LogTemp, Warning, TEXT("GameInstance is not of type UMainGameInstance."));
     }
 }
 
