@@ -9,6 +9,7 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWaveStart, FString, WaveMessage, float, MaxWaveTime);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWaveEnd, bool, bIsWaveClear, int32, BonusPoint);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnWaveFire);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnWaveStop);
 
 class AEnemySpawner;
 class AEventZone;
@@ -72,6 +73,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable)
 	FOnWaveFire OnWaveFire;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnWaveStop OnWaveStop;
 
 public:
 
