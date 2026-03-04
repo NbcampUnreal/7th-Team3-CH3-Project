@@ -9,7 +9,6 @@ UBTTask_ExecuteAttack::UBTTask_ExecuteAttack()
     NodeName = "Execute Attack";
     bNotifyTick = true;
 
-    LastAttackTimeKey.SelectedKeyName = FName("LastAttackTime");
     AttackCountKey.SelectedKeyName = FName("AttackCount");
     ConsecutiveAttacksKey.SelectedKeyName = FName("ConsecutiveAttacks");
     TargetActorKey.SelectedKeyName = FName("TargetActor");
@@ -29,22 +28,14 @@ EBTNodeResult::Type UBTTask_ExecuteAttack::ExecuteTask(
     if (!BB) return EBTNodeResult::Failed;
 
     // 공격 실행
-    if (Enemy->Attack())
-    {
-        UE_LOG(LogTemp, Log, TEXT("[BT] Execute Attack"));
+    UE_LOG(LogTemp, Log, TEXT("[BT] Execute Attack"));
 
-        // 쿨타임 기록
-        float CurrentTime = AIController->GetWorld()->GetTimeSeconds();
-        BB->SetValueAsFloat(LastAttackTimeKey.SelectedKeyName, CurrentTime);
+    Enemy->Attack();
+    // 공격 횟수 증가
+    int32 ConsecutiveCount = BB->GetValueAsInt(ConsecutiveAttacksKey.SelectedKeyName);
+    BB->SetValueAsInt(ConsecutiveAttacksKey.SelectedKeyName, ConsecutiveCount + 1);
 
-        // 공격 횟수 증가
-        int32 ConsecutiveCount = BB->GetValueAsInt(ConsecutiveAttacksKey.SelectedKeyName);
-        BB->SetValueAsInt(ConsecutiveAttacksKey.SelectedKeyName, ConsecutiveCount + 1);
-
-        return EBTNodeResult::InProgress;
-    }
-
-    return EBTNodeResult::Failed;
+    return EBTNodeResult::InProgress;
 }
 
 void UBTTask_ExecuteAttack::TickTask(

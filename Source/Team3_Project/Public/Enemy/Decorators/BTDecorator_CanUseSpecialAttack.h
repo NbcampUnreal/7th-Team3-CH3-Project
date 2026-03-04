@@ -7,7 +7,7 @@
 UCLASS()
 class TEAM3_PROJECT_API UBTDecorator_CanUseSpecialAttack : public UBTDecorator
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
 public:
     UBTDecorator_CanUseSpecialAttack();
@@ -15,8 +15,14 @@ public:
 protected:
     virtual bool CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const override;
 
+protected:
+    // 체크할 특수 공격 ID
     UPROPERTY(EditAnywhere, Category = "SpecialAttack")
-    float SpecialAttackCooldown = 5.f;
+    FName AttackID = FName("None");
+
+    // 확률 시스템 사용 여부 (false면 항상 성공)
+    UPROPERTY(EditAnywhere, Category = "SpecialAttack")
+    bool bUseChanceSystem = true;
 
     // 확률 설정
     UPROPERTY(EditAnywhere, Category = "SpecialAttack", meta = (EditCondition = "AttackType == ESpecialAttackType::Melee"))
@@ -33,4 +39,7 @@ protected:
 
     UPROPERTY(EditAnywhere, Category = "Blackboard")
     FBlackboardKeySelector ConsecutiveAttacksKey;
+
+    UPROPERTY(EditAnywhere, Category = "Blackboard")
+    FBlackboardKeySelector TargetActorKey;
 };

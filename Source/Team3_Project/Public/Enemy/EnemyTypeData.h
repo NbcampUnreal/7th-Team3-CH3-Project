@@ -17,7 +17,7 @@ struct FEnemyDropItem
 	int32 DropRatio = 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 MinQunatity = 1;
+	int32 MinQuantity = 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 MaxQuantity = 1;
@@ -54,6 +54,8 @@ public:
 	FName SocketName;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Collision")
 	float WeaponRadius = 32.f;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Range")
+	float AttackRange = 100.f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Move")
 	float PatrolMaxSpeed;

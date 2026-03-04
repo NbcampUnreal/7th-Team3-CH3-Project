@@ -69,7 +69,7 @@ public:
     UPROPERTY(meta = (BindWidget), BlueprintReadOnly) class UImage* Slot_7;
 
     UPROPERTY(meta = (BindWidget), BlueprintReadOnly) class UImage* Img_GunInformation;
-	UPROPERTY(meta = (BindWidget), BlueprintReadOnly) class UTextBlock* Txt_AmmoInfo;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly) class UTextBlock* Txt_AmmoInfo;
 
 
 protected:

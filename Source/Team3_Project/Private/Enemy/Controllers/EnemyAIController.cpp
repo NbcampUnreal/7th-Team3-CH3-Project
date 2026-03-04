@@ -120,12 +120,10 @@ void AEnemyAIController::InitializeBlackboard()
     // Combat
     BB->SetValueAsInt(FName("AttackCount"), 0);
     BB->SetValueAsInt(FName("ConsecutiveAttacks"), 0);
-    BB->SetValueAsFloat(FName("LastAttackTime"), -999.f);
-    BB->SetValueAsFloat(FName("LastSpecialAttackTime"), -999.f);
 
     // Patrol
     BB->SetValueAsInt(FName("SplineIndex"), 0);
-
+    BB->SetValueAsBool(FName("bHasSpline"), Enemy->GetSplineComponent() != nullptr);
     UE_LOG(LogTemp, Log, TEXT("[AI] Blackboard initialized (WaveMode: %d, HasSpline: %d)"),
         Enemy->IsForWave(), bHasSpline);
 }
