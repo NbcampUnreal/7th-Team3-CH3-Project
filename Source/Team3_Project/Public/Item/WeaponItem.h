@@ -155,6 +155,31 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon|Attachment")
 	TMap<EAttachmentType, FName> EquippedAttachments;
 
+	UPROPERTY(EditAnywhere, Category = "Weapon|Effects")
+	class USoundBase* FireSound;
+
+	UPROPERTY(EditAnywhere, Category = "Weapon|Effects")
+	class UParticleSystem* MuzzleFlashFX;
+
+	UPROPERTY(EditAnywhere, Category = "Weapon|Effects")
+	class UParticleSystem* DefaultImpactFX;
+
+	UPROPERTY(EditAnywhere, Category = "Weapon|Effects")
+	FName MuzzleSocketName = FName("Muzzle");
+
+	// 재질별 피격 이펙트 맵 (Key: 태그이름, Value: 파티클)
+	UPROPERTY(EditAnywhere, Category = "Weapon|Effects")
+	TMap<FName, UParticleSystem*> ImpactEffectMap;
+
+	UPROPERTY(EditAnywhere, Category = "Weapon|Effects")
+	FVector MuzzleFXScale = FVector(0.03f);
+
+	UPROPERTY(EditAnywhere, Category = "Weapon|Effects")
+	FVector ImpactFXScale = FVector(0.4f);
+
+	UPROPERTY(EditAnywhere, Category = "Weapon|Animation")
+	class UAnimMontage* ReloadMontage;
+
 	void RecalculateStats();
 
 	float OriginalRecoil;
