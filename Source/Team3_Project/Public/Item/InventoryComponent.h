@@ -19,6 +19,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnQuestItemObtained);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnQuickSlotHighlight, int32, SlotIndex);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAdrenalineUsed);
+
 //테스트용 딜리게이트
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnItemEquipRequested, FInventoryItem, EquipItem);
 
@@ -123,6 +125,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Inventory Event")
 	FOnQuestItemObtained OnQuestItemObtained;
+
+	UPROPERTY(BlueprintAssignable, Category = "Inventory Event")
+	FOnAdrenalineUsed OnAdrenalineUsed;
 
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")

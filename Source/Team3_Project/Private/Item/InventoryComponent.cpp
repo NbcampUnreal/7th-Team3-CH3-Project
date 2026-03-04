@@ -117,6 +117,7 @@ int32 UInventoryComponent::AddItem(FName ItemID, int32 Quantity, const TMap<EAtt
 	if (RemainingQuantity < Quantity)
 	{
 		OnInventoryUpdated.Broadcast();
+		OnQuickSlotUpdated.Broadcast();
 	}
 	if (ItemData.ItemType == EItemType::IT_QuestItem)
 	{
@@ -163,6 +164,7 @@ bool UInventoryComponent::RemoveItem(FName ItemID, int32 Quantity)
 
 	// 인벤토리가 변경되었음을 알림
 	OnInventoryUpdated.Broadcast();
+	OnQuickSlotUpdated.Broadcast();
 
 	return true;
 }
@@ -919,6 +921,7 @@ bool UInventoryComponent::HandleConsumableUse(const FItemData& Data, FName ItemI
 			Data.Cooldown,
 			false
 		);
+		OnAdrenalineUsed.Broadcast();
 		UE_LOG(LogTemp, Warning, TEXT("Used Adrenaline Consumable ItemID %s"), *ItemID.ToString());
 		bUseSuccessful = true;
 		break;

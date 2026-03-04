@@ -71,6 +71,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Weapon|Get")
 	int32 GetMaxAmmo() const { return MaxAmmo; }
 
+	UFUNCTION(BlueprintCallable, Category = "Weapon|Get")
+	int32 GetAmmoInInventory() const;
+
 	UFUNCTION(BlueprintCallable, Category = "Weapon|Set")
 	void SetCurrentAmmo(int32 NewAmmo) { 
 		CurrentAmmo = FMath::Clamp(NewAmmo, 0, MaxAmmo); 
