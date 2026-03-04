@@ -25,6 +25,9 @@ enum class ECharacterState : uint8
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStaminaChanged, float, Stamina);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHealthChanged, float, Health);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWhiteKarmaChanged, float, WhiteKarma);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBlackKarmaChanged, float, BlackKarma);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPlayerDead);
 
 UCLASS(Blueprintable, BlueprintType)
@@ -71,6 +74,12 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnStaminaChanged OnStaminaChanged;
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnHealthChanged OnHealthChanged;
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnWhiteKarmaChanged OnWhiteKarmaChanged;
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnBlackKarmaChanged OnBlackKarmaChanged;
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void StartAiming();
@@ -144,6 +153,15 @@ public:
 	float MaxHealth = 100.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat Config")
+	float Armor = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat Config")
+	float BlackKarma = 0.f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat Config")
+	float WhiteKarma = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat Config")
 	float SprintCostPerSecond = 10.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stat Config")
@@ -179,6 +197,8 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Transient, Category = "Interaction")
 	AActor* CurrentFocusItem;
+
+	bool bIsEquippedArmor = false;
 
 	void UpdateInteractableFocus();
 

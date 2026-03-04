@@ -556,6 +556,34 @@ void UInventoryMainWidget::UpdateWeaponPanel()
 			Txt_Stock->SetVisibility(ESlateVisibility::Hidden);
 		}
 		break;
+	case EWeaponType::WT_RocketLauncher:
+		UE_LOG(LogTemp, Warning, TEXT("UpdateWeaponPanel: WeaponType=RocketLauncher"));
+		if (Slot_Scope && Txt_Scope)
+		{
+			Slot_Scope->SetVisibility(ESlateVisibility::Hidden);
+			Txt_Scope->SetVisibility(ESlateVisibility::Hidden);
+		}
+		if (Slot_Barrel && Txt_Barrel)
+		{
+			Slot_Barrel->SetVisibility(ESlateVisibility::Hidden);
+			Txt_Barrel->SetVisibility(ESlateVisibility::Hidden);
+		}
+		if (Slot_Magazine && Txt_Magazine)
+		{
+			Slot_Magazine->SetVisibility(ESlateVisibility::Hidden);
+			Txt_Magazine->SetVisibility(ESlateVisibility::Hidden);
+		}
+		if (Slot_Underbarrel && Txt_Underbarrel)
+		{
+			Slot_Underbarrel->SetVisibility(ESlateVisibility::Hidden);
+			Txt_Underbarrel->SetVisibility(ESlateVisibility::Hidden);
+		}
+		if (Slot_Stock && Txt_Stock)
+		{
+			Slot_Stock->SetVisibility(ESlateVisibility::Hidden);
+			Txt_Stock->SetVisibility(ESlateVisibility::Hidden);
+		}
+		break;
 	}
 
 	const TMap<EAttachmentType, FName>& Attachments = CurrentWeapon->GetAttachmentState();

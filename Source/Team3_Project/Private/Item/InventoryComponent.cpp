@@ -890,6 +890,7 @@ bool UInventoryComponent::HandleConsumableUse(const FItemData& Data, FName ItemI
 			return false;
 		}
 		StatComp->SetCurrentStatValue("Health", StatComp->GetCurrentStatValue("Health") + Data.PowerAmount);
+		Character->OnHealthChanged.Broadcast(StatComp->GetCurrentStatValue("Health"));
 		UE_LOG(LogTemp, Warning, TEXT("Used Health Consumable ItemID %s"), *ItemID.ToString());
 		bUseSuccessful = true;
 		break;
@@ -910,7 +911,7 @@ bool UInventoryComponent::HandleConsumableUse(const FItemData& Data, FName ItemI
 			return false;
 		}
 		bIsAdrenalineOnCooldown = true;
-		//Character->ActiveAdrenaline(Data.Cooldown);
+		Character->ApplyAdrenaline(Data.Cooldown);
 		GetWorld()->GetTimerManager().SetTimer(
 			AdrenalineCooldownTimerHandle, 
 			this,

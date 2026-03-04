@@ -139,7 +139,7 @@ protected:
 	TArray<FInventoryItem> InventoryContents;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 Capacity = 20;
+	int32 Capacity = 40;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
 	AWeaponItem* EquippedWeapon;

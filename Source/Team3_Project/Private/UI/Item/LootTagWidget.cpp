@@ -51,6 +51,23 @@ void ULootTagWidget::InitLootTag(FName InItemID, int32 InQuantity)
 		UE_LOG(LogTemp, Warning, TEXT("InitLootTag: Txt_Quantity widget is null"));
 	}
 
+	if (Img_Icon)
+	{
+		UTexture2D* IconTexture = ItemData.Icon.LoadSynchronous();
+		if (IconTexture)
+		{
+			Img_Icon->SetBrushFromTexture(IconTexture);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("InitLootTag: Failed to load icon texture for ItemID %s"), *InItemID.ToString());
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("InitLootTag: Img_Icon widget is null"));
+	}
+
 	if (HB_Attachments)
 	{
 		if (ItemData.ItemType == EItemType::IT_Weapon)
