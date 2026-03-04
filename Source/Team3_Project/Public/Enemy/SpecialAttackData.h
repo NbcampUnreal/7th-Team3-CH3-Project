@@ -11,10 +11,6 @@ class TEAM3_PROJECT_API USpecialAttackData : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
 public:
-    // 전체 쿨타임 Tick
-    UFUNCTION(BlueprintCallable, Category = "Special Attack")
-    void TickCooldowns(float DeltaTime);
-
     // 특수 공격 목록
     UPROPERTY(EditDefaultsOnly, Instanced, Category = "Special Attacks")
     TArray<USpecialAttackBase*> SpecialAttacks;
@@ -34,12 +30,4 @@ public:
     // 랜덤 공격 선택
     UFUNCTION(BlueprintPure, Category = "Special Attack")
     USpecialAttackBase* GetRandomAvailableAttack(class AEnemyCharacter* Owner, AActor* Target) const;
-
-    // 특정 공격의 남은 쿨타임
-    UFUNCTION(BlueprintPure, Category = "Special Attack")
-    float GetCooldownLeft(FName AttackID) const;
-
-    // 특정 공격이 준비되었는지
-    UFUNCTION(BlueprintPure, Category = "Special Attack")
-    bool IsAttackReady(FName AttackID) const;
 };

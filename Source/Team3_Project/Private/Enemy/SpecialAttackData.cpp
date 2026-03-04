@@ -1,16 +1,5 @@
 ﻿#include "Enemy/SpecialAttackData.h"
 
-void USpecialAttackData::TickCooldowns(float DeltaTime)
-{
-    for (USpecialAttackBase* Attack : SpecialAttacks)
-    {
-        if (Attack)
-        {
-            Attack->OnTick(DeltaTime);
-        }
-    }
-}
-
 USpecialAttackBase* USpecialAttackData::GetAttackByID(FName AttackID) const
 {
     for (USpecialAttackBase* Attack : SpecialAttacks)
@@ -58,16 +47,4 @@ USpecialAttackBase* USpecialAttackData::GetRandomAvailableAttack(class AEnemyCha
 
     int32 Index = FMath::RandRange(0, Available.Num() - 1);
     return Available[Index];
-}
-
-float USpecialAttackData::GetCooldownLeft(FName AttackID) const
-{
-    USpecialAttackBase* Attack = GetAttackByID(AttackID);
-    return Attack ? Attack->GetLeftCooldown() : 0.f;
-}
-
-bool USpecialAttackData::IsAttackReady(FName AttackID) const
-{
-    USpecialAttackBase* Attack = GetAttackByID(AttackID);
-    return Attack ? Attack->IsReady() : false;
 }

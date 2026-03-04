@@ -25,19 +25,6 @@ public:
     bool CanExecute(AEnemyCharacter* Owner, AActor* TargetActor) const;
     virtual bool CanExecute_Implementation(AEnemyCharacter* Owner, AActor* TargetActor) const;
 
-
-    UFUNCTION(BlueprintCallable, Category = "Special Attack")
-    void OnTick(float DelatTime);
-    
-    UFUNCTION(BlueprintCallable, Category = "Special Attack")
-    void StartCooldown();
-    
-    UFUNCTION(BlueprintPure, Category = "Special Attack")
-    bool IsReady() const { return LeftCooldown <= 0.f; }
-    
-    UFUNCTION(BlueprintPure, Category = "Special Attack")
-    float GetLeftCooldown() const { return LeftCooldown; }
-
     // Getters
     // 고유 ID
     UFUNCTION(BlueprintPure, Category = "Special Attack")
@@ -79,9 +66,6 @@ protected:
     // 쿨다운 (초)
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Config")
     float Cooldown = 5.f;
-
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Config")
-    float LeftCooldown = 0.f;
 
     // 재생할 몽타주
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Config")
