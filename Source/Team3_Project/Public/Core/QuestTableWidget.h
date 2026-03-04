@@ -26,8 +26,16 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<class UButton> BT_Close;
 
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<class UTextBlock> TextCount;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<class UImage> ItemIcon;
+
 	UPROPERTY()
 	TObjectPtr<UInventoryComponent> Inventory;
+
+
 
 	UFUNCTION()
 	void OnClickedAccept();

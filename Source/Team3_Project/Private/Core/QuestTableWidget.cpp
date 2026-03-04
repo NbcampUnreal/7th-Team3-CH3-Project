@@ -6,6 +6,9 @@
 #include "Item/InventoryComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/Button.h"
+#include "Core/ItemDataSubsystem.h"
+#include "Components/TextBlock.h"
+#include "Components/Image.h"
 
 void UQuestTableWidget::NativeOnInitialized()
 {
@@ -38,7 +41,27 @@ void UQuestTableWidget::NativeConstruct()
 	}
 
 	if (!Inventory) return;
+	
+	UGameInstance* GameInstance = UGameplayStatics::GetGameInstance(GetWorld());
+	if (!GameInstance) return;
+	UItemDataSubsystem* ItemDataSubsystem = GameInstance->GetSubsystem<UItemDataSubsystem>();
+	if (!ItemDataSubsystem) return;
 
+	FItemData QuestItemData = ItemDataSubsystem->GetItemDataByID(FName("Explosive"));
+
+	if (ItemIcon)
+	{
+		ItemIcon->SetBrushFromTexture(QuestItemData.Icon.LoadSynchronous());
+	}
+
+	if (Inventory->HasItem(FName("Explosive"), 1))
+	{
+		TextCount->SetText(NSLOCTEXT("QuestTableWidget", "ItemCount", "1 / 1"));
+	}
+	else
+	{
+		TextCount->SetText(NSLOCTEXT("QuestTableWidget", "ItemCount", "0 / 1"));
+	}
 	//TODO_@Core : 인벤 컴포넌트에서 bool 인자를 가진 퀘스트 아이템 획득 델리게이트 수신받기; 
 }
 
