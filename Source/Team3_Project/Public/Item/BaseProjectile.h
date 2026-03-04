@@ -43,6 +43,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|Config")
 	UParticleSystem* ExplosionEffect;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|Config")
+	USoundBase* ExplosionSound;
+
 	UFUNCTION()
 	virtual void OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 
