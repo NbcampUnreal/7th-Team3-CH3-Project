@@ -10,8 +10,8 @@ class UStatComponent;
 class USphereComponent;
 class UDamageType;
 struct FDamageEvent;
-class USpecialAttackData;
 class USplineComponent;
+class USpecialAttackComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnEnemyHealthChanged, float, NewValue, float, MaxValue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMovableChanged, bool, NewValue);
@@ -59,15 +59,12 @@ public:
 	// 공격 시 호출
 	void ResetHitActors();
 	
-	// ID로 특수 공격 실행
-	UFUNCTION(BlueprintCallable, Category = "Combat|Special")
-	bool ExecuteSpecialAttackByID(FName AttackID, AActor* TargetActor);
-
 	// 특수 공격 효과 발동
 	UFUNCTION(BlueprintCallable, Category = "Combat|Special")
 	void TriggerSpecialAttackEffect();
 
-	bool IsSpecialAttackEnd(FName AttackID);
+	UFUNCTION(BlueprintPure, Category = "Combat|Special")
+	USpecialAttackComponent* GetSpecialAttackComponent() const { return SpecialAttackComp; }
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void OnHitted();
@@ -118,10 +115,6 @@ public:
 
 	void ActiveMove();
 	void DeactiveMove();
-
-
-	UFUNCTION(BlueprintPure, Category = "Combat|Special")
-	USpecialAttackData* GetSpecialAttackData() const;
 
 	float GetAttackCoolTime() const;
 	UAnimMontage* GetAttackMontage() const;
@@ -184,21 +177,14 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Patrol")
 	USplineComponent* PatrolSpline;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	USpecialAttackComponent* SpecialAttackComp;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy")
 	FName EnemyName;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Data")
 	TObjectPtr<UEnemyTypeData> TypeData;
-
-	// Special Attack Data
-	// TObjectPtr로 하면 공유 인스턴싱이 된다고 합니다.
-	// 개별적으로 생성해야 하니 raw 포인터로 변경하고 Instanced를 추가했습니다. 
-	UPROPERTY(EditDefaultsOnly, Instanced, BlueprintReadOnly, Category = "Data")
-	USpecialAttackData* SpecialAttackData;
-
-	/** 현재 실행 중인 SpecialAttack */
-	UPROPERTY()
-	USpecialAttackBase* CurrentSpecialAttack = nullptr;
 
 	/** 현재 공격 대상 */
 	UPROPERTY()

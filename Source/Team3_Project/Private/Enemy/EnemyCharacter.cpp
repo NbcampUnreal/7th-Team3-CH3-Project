@@ -13,6 +13,7 @@
 #include "GameFramework/DamageType.h"
 #include "Engine/DamageEvents.h"
 #include "Components/SplineComponent.h"
+#include "Shared/Component/SpecialAttackComponent.h"
 
 AEnemyCharacter::AEnemyCharacter()
 {
@@ -22,6 +23,8 @@ AEnemyCharacter::AEnemyCharacter()
 
 	StatComp = CreateDefaultSubobject<UStatComponent>(TEXT("StatComponent"));
 	
+	SpecialAttackComp = CreateDefaultSubobject<USpecialAttackComponent>(TEXT("SpecialAttackComponent"));
+
 	PatrolSpline = CreateDefaultSubobject<USplineComponent>(TEXT("PatrolSpline"));
 	PatrolSpline->SetupAttachment(RootComponent);
 
@@ -92,11 +95,6 @@ void AEnemyCharacter::Tick(float DeltaTime)
 	{
 		LeftAttackCoolTime = LeftAttackCoolTime - DeltaTime;
 		if (LeftAttackCoolTime < 0.f) LeftAttackCoolTime = 0.f;
-	}
-
-	if (SpecialAttackData)
-	{
-		SpecialAttackData->TickCooldowns(DeltaTime);
 	}
 
 #if WITH_EDITOR
@@ -233,11 +231,6 @@ void AEnemyCharacter::Attack()
 void AEnemyCharacter::OnFinishAttack()
 {
 	bIsAttacking = false;
-	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
-	{
-		// 이동 속도 감소
-		MoveComp->MaxWalkSpeed = GetChaseSpeed();
-	}
 
 	OnFinishAttackSignature.Broadcast();
 }
@@ -245,6 +238,11 @@ void AEnemyCharacter::OnFinishAttack()
 void AEnemyCharacter::OnFinishSpecialAttack()
 {
 	bIsAttacking = false;
+	if (SpecialAttackComp)
+	{
+		SpecialAttackComp->OnFinishSpecialAttack();
+	}
+
 	OnFinishSpecialAttackSignature.Broadcast();
 }
 
@@ -280,80 +278,12 @@ void AEnemyCharacter::ResetHitActors()
 	UE_LOG(LogTemp, Log, TEXT("[Combat] Hit actors reset"));
 }
 
-bool AEnemyCharacter::ExecuteSpecialAttackByID(FName AttackID, AActor* TargetActor)
-{
-	if (!CurrentSpecialAttack || !bIsAttacking)
-	{
-		UE_LOG(LogTemp, Error, TEXT("[SpecialAttack] Already Attacking!"));
-		return false;
-	}
-
-	if (!SpecialAttackData)
-	{
-		UE_LOG(LogTemp, Error, TEXT("[SpecialAttack] No SpecialAttackData"));
-		return false;
-	}
-
-	// ID로 공격 찾기
-	CurrentSpecialAttack = SpecialAttackData->GetAttackByID(AttackID);
-
-	if (!CurrentSpecialAttack)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[SpecialAttack] Attack ID '%s' not found"), *AttackID.ToString());
-		return false;
-	}
-
-	if (!CurrentSpecialAttack->CanExecute(this, TargetActor))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[SpecialAttack] Cannot execute '%s'"), *AttackID.ToString());
-		return false;
-	}
-
-	// 몽타주 재생
-	if (UAnimMontage* Montage = CurrentSpecialAttack->GetMontage())
-	{
-		PlayAnimMontage(Montage);
-	}
-
-	// 이동 제어
-	if (!CurrentSpecialAttack->CanMoveWhileAttacking())
-	{
-		DeactiveMove();
-	}
-
-	// 공격 실행
-	CurrentSpecialAttack->Execute(this, TargetActor);
-	CurrentSpecialAttack->StartCooldown();
-	bIsAttacking = true;
-	OnSepcialAttackSignature.Broadcast();
-
-	UE_LOG(LogTemp, Log, TEXT("[SpecialAttack] Executed: %s"), *AttackID.ToString());
-
-	return true;
-}
-
 void AEnemyCharacter::TriggerSpecialAttackEffect()
 {
-	if (!CurrentSpecialAttack)
+	if (SpecialAttackComp)
 	{
-		UE_LOG(LogTemp, Error, TEXT("[SpecialAttack] No CurrentSpecialAttack!"));
-		return;
+		SpecialAttackComp->TriggerSpecialAttackEffect();
 	}
-
-	// 실제 공격 실행
-	CurrentSpecialAttack->Execute(this, CurrentTargetActor);
-
-	UE_LOG(LogTemp, Log, TEXT("[SpecialAttack] Effect triggered: %s"),
-		*CurrentSpecialAttack->GetAttackID().ToString());
-}
-
-bool AEnemyCharacter::IsSpecialAttackEnd(FName AttackID)
-{
-	if (CurrentSpecialAttack && CurrentSpecialAttack->GetAttackID() == AttackID)
-	{
-		return false;
-	}
-	return true;
 }
 
 void AEnemyCharacter::OnHitted()
@@ -583,11 +513,6 @@ UAnimMontage* AEnemyCharacter::GetHittedMontage() const
 UAnimMontage* AEnemyCharacter::GetDeadMontage() const
 {
 	return TypeData ? TypeData->DeadMontage : nullptr;
-}
-
-USpecialAttackData* AEnemyCharacter::GetSpecialAttackData() const
-{
-	return SpecialAttackData;
 }
 
 float AEnemyCharacter::GetAttackCoolTime() const
