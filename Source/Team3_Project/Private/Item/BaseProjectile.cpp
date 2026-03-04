@@ -94,6 +94,11 @@ void ABaseProjectile::Explode()
 		);
 	}
 
+	if (ExplosionSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, ExplosionSound, GetActorLocation());
+	}
+
 	if (ExplosionRadius > 0.0f)
 	{
 		TArray<FOverlapResult> OverlapResults;
@@ -186,15 +191,15 @@ void ABaseProjectile::Explode()
 			}
 		}
 
-		DrawDebugSphere(
-			GetWorld(),
-			GetActorLocation(),
-			ExplosionRadius,
-			16,
-			FColor::Red,
-			false,
-			2.0f
-		);
+		//DrawDebugSphere(
+		//	GetWorld(),
+		//	GetActorLocation(),
+		//	ExplosionRadius,
+		//	16,
+		//	FColor::Red,
+		//	false,
+		//	2.0f
+		//);
 	}
 	else
 	{
