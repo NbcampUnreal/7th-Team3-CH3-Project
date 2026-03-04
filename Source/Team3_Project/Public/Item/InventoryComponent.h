@@ -139,6 +139,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Crafting")
 	bool CraftItem(const FCraftingRecipe& Recipe);
 
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	void RestoreInventoryData(const TArray<FInventoryItem>& SavedInventory, const TArray<FName>& SavedSlots);
+
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
 	TArray<FInventoryItem> InventoryContents;

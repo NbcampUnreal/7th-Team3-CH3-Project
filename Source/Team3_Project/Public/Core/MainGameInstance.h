@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
+#include "Shared/ItemTypes.h"
 #include "MainGameInstance.generated.h"
 
 /**
@@ -36,7 +37,23 @@ public:
 	//게임종료시점 플레이어가 획득한 총 점수
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PlayerStat")
 	int32 TotalScore;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PlayerStat")
+	int32 TotalKills;
 
+	UPROPERTY(BlueprintReadWrite, Category = "SaveData")
+	bool bHasSavedData = false;
+
+	UPROPERTY(BlueprintReadWrite, Category = "SaveData")
+	TArray<FInventoryItem> SavedInventoryContents;
+
+	UPROPERTY(BlueprintReadWrite, Category = "SaveData")
+	TArray<FName> SavedQuickSlots;
+
+	UPROPERTY(BlueprintReadWrite, Category = "SaveData")
+	FInventoryItem SavedWeapon;
+
+	UPROPERTY(BlueprintReadWrite, Category = "SaveData")
+	FInventoryItem SavedArmor;
 
 	//함수
 

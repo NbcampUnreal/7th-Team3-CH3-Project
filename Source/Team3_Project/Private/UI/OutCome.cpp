@@ -1,4 +1,4 @@
-#include "UI/OutCome.h"
+﻿#include "UI/OutCome.h"
 #include "Components/TextBlock.h"
 #include "Components/Button.h"
 #include "Kismet/GameplayStatics.h"
@@ -57,7 +57,8 @@ void UOutCome::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 
 void UOutCome::OnRestartClicked()
 {
-    UGameplayStatics::OpenLevel(this, FName("StartMenuLevelName")); // 첫 화면 레벨명 입력 
+	UGameplayStatics::SetGamePaused(GetWorld(), false); // 게임 일시정지 해제
+    UGameplayStatics::OpenLevel(this, FName("Soul_Slum")); // 첫 화면 레벨명 입력 
 }
 
 void UOutCome::OnQuitClicked()

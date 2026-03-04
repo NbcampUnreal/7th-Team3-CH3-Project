@@ -107,7 +107,7 @@ void AMainGameState::SpawnMonster(const int32 Id)
 }
 void AMainGameState::WaveStart()
 {
-	OnWaveStart.Broadcast(TEXT("WaveStart!!"), MaxWaveTime);
+	OnWaveStart.Broadcast(TEXT("Wave Start!!"), MaxWaveTime);
 	OnWaveFire.Broadcast();
 	//PlayerState = PointMode
 	bIsRunningSpawner = true;
@@ -126,7 +126,6 @@ void AMainGameState::WaveStart()
 		MaxWaveTime,
 		false
 	);
-	OnWaveStart.Broadcast(TEXT("Wave Started!"), MaxWaveTime);
 }
 void AMainGameState::WaveEnd()
 {
@@ -139,7 +138,7 @@ void AMainGameState::WaveEnd()
 	GetWorldTimerManager().ClearTimer(WaveStartTimer); // 스폰 타이머 삭제
 	EnemySpawnDelegate.Unbind(); // 바인딩 된 함수 해제
 	bIsRunningSpawner = false;
-	//UMainGameInstance::Get(GetWorld())->TotalScore += CurrentScore; // GI에 현재 웨이브에서 얻은 점수 전달
+	UMainGameInstance::Get(GetWorld())->TotalScore += CurrentScore; // GI에 현재 웨이브에서 얻은 점수 전달
 
 }
 

@@ -833,6 +833,14 @@ bool UInventoryComponent::CraftItem(const FCraftingRecipe& Recipe)
 	return true;
 }
 
+void UInventoryComponent::RestoreInventoryData(const TArray<FInventoryItem>& SavedInventory, const TArray<FName>& SavedSlots)
+{
+	InventoryContents = SavedInventory;
+	QuickSlots = SavedSlots;
+	OnInventoryUpdated.Broadcast();
+	OnQuickSlotUpdated.Broadcast();
+}
+
 
 bool UInventoryComponent::HandleAttachmentEquip(const FItemData& Data, FName ItemID)
 {

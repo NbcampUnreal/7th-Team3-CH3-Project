@@ -687,7 +687,7 @@ void AWeaponItem::FireHitScan()
 			CameraHit,
 			CameraLocation,
 			CameraTraceEnd,
-			ECC_Visibility,
+			ECC_Weapon,
 			CameraQueryParams
 		);
 
