@@ -49,11 +49,8 @@ void ADoorNPC::Interact_Implementation(AActor* Interactor)
 	OpenDoorInteractUI(PC);
 
 	if (bHasInteracted) return;
-
 	bHasInteracted = true;
 	OnInteractDoor.Broadcast();
-
-
 }
 
 void ADoorNPC::SetInteractFocus_Implementation(bool bIsFocus)
@@ -74,7 +71,6 @@ void ADoorNPC::SetInteractFocus_Implementation(bool bIsFocus)
 
 void ADoorNPC::DestroyActor()
 {
-	Debug::Print(TEXT("DestroyActor 호출"));
 	AMainGameState* CurrentGameState = AMainGameState::Get(GetWorld());
 	if (CurrentGameState == nullptr) return;
 	CurrentGameState->OnWaveFire.RemoveDynamic(this, &ADoorNPC::DestroyActor);
@@ -99,8 +95,6 @@ void ADoorNPC::BindDestroy()
 {
 	AMainGameState* CurrentGameState = AMainGameState::Get(GetWorld());
 	if (CurrentGameState == nullptr) return;
-
-	Debug::Print(TEXT("BindDestroy 바인딩"));
 
 	CurrentGameState->OnWaveFire.AddDynamic(this, &ADoorNPC::DestroyActor);
 }

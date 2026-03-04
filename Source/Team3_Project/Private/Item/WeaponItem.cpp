@@ -111,26 +111,18 @@ void AWeaponItem::Tick(float DeltaTime)
 	}
 }
 
-
-
-
-
-
-
-
-
 void AWeaponItem::StartFire()
 {
 	if (bIsReloading)
 	{
 		//if (GEngine)
 		//{
-		//	GEngine->AddOnScreenDebugMessage(
-		//		-1,
-		//		1.5f,
-		//		FColor::Yellow,
-		//		FString::Printf(TEXT("Cannot fire while reloading!"))
-		//	);
+			//GEngine->AddOnScreenDebugMessage(
+			//	-1,
+			//	1.5f,
+			//	FColor::Yellow,
+			//	FString::Printf(TEXT("Cannot fire while reloading!"))
+			//);
 		//}
 		return;
 	}
@@ -171,10 +163,6 @@ void AWeaponItem::StopFire()
 	//	);
 	//}
 }
-
-
-
-
 
 void AWeaponItem::FireWeapon()
 {
@@ -236,8 +224,6 @@ void AWeaponItem::FireWeapon()
 	//발사 이펙트 및 사운드 재생 등 추가 구현 가능
 }
 
-
-
 void AWeaponItem::ReloadWeapon()
 {
 	if (bIsReloading)
@@ -275,12 +261,6 @@ void AWeaponItem::ReloadWeapon()
 		return;
 	}
 
-	ACharacter* Character = Cast<ACharacter>(OwnerActor);
-	if (Character && ReloadMontage)
-	{
-		Character->PlayAnimMontage(ReloadMontage);
-	}
-
 	UInventoryComponent* InventoryComp = OwnerActor->FindComponentByClass<UInventoryComponent>();
 	if (!InventoryComp)
 	{
@@ -288,8 +268,6 @@ void AWeaponItem::ReloadWeapon()
 		return;
 	}
 	 
-
-
 	int32 AmmoNeeded = MaxAmmo - CurrentAmmo;
 
 	int32 AmmoAvailable = InventoryComp->GetItemQuantity(AmmoItemID);
@@ -300,6 +278,13 @@ void AWeaponItem::ReloadWeapon()
 		//총알이 부족한 경우 처리 추가 가능
 		return;
 	}
+
+	ACharacter* Character = Cast<ACharacter>(OwnerActor);
+	if (Character && ReloadMontage)
+	{
+		Character->PlayAnimMontage(ReloadMontage);
+	}
+
 
 	bIsReloading = true;
 	StopFire();
@@ -407,14 +392,6 @@ void AWeaponItem::FinishReloading()
 
 	OnAmmoChanged.Broadcast(CurrentAmmo, GetAmmoInInventory());
 }
-
-
-
-
-
-
-
-
 
 //반환값 : 이전에 장착된 부착물의 ItemID, 없으면 NAME_None
 FName AWeaponItem::EquipAttachment(FName AttachmentID)
@@ -846,8 +823,6 @@ void AWeaponItem::FireHitScan()
 	}
 }
 
-
-
 void AWeaponItem::FireProjectile()
 {
 	if (ProjectileClass)
@@ -946,12 +921,6 @@ void AWeaponItem::ApplyRecoil()
 	CurrentRecoilPitch += FMath::Abs(VerticalRecoil);
 }
 
-
-
-
-
-
-
 UStaticMeshComponent* AWeaponItem::GetAttachmentComponentByType(EAttachmentType Type) const
 {
 	switch (Type)
@@ -972,8 +941,6 @@ UStaticMeshComponent* AWeaponItem::GetAttachmentComponentByType(EAttachmentType 
 		return nullptr;
 	}
 }
-
-
 
 void AWeaponItem::RecalculateStats()
 {

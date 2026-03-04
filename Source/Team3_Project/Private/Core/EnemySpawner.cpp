@@ -19,12 +19,8 @@ void AEnemySpawner::SpawnEnemy(TSubclassOf<AEnemyCharacter> EnemyClass)
 	{
 		if (!EnemyClass)
 		{
-			Debug::Print(TEXT("Enemy 클래스를 찾을 수 없습니다."));
 			return;
 		}
-
-		Debug::Print(EnemyClass->GetName());
-		Debug::Print(FString::FromInt(Id) + TEXT("EnemySpawner 작동중"), FColor::Blue);
 
 		AEnemyCharacter* SpawnMonster = GetWorld()->SpawnActor<AEnemyCharacter>(
 			EnemyClass,
@@ -42,7 +38,7 @@ void AEnemySpawner::SpawnEnemy(TSubclassOf<AEnemyCharacter> EnemyClass)
 	}
 	else
 	{
-		Debug::Print(TEXT("현재 스폰된 몬스터 수가 최대입니다."));
+		return;
 	}
 }
 

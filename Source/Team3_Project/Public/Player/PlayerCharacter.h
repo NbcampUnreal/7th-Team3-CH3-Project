@@ -132,6 +132,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void Die();
 
+	bool IsDead() { return bIsDead; }
+
 	// --- Input Actions ---
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
 	UInputAction* SprintAction;

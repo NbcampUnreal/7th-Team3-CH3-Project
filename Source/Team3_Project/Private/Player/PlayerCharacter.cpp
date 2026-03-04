@@ -508,7 +508,7 @@ void APlayerCharacter::HandleSprintCost()
 		NewStamina = 0.f;
 		bIsExhausted = true;
 		StopSprint();
-		if (GEngine) GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Red, TEXT("탈진! (Stamina Depleted)"));
+		// if (GEngine) GEngine->AddOnScreenDebugMessage(1, 1.0f, FColor::Red, TEXT("탈진! (Stamina Depleted)"));
 	}
 
 	OnStaminaChanged.Broadcast(NewStamina);

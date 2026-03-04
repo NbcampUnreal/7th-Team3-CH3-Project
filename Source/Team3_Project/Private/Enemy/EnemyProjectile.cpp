@@ -9,6 +9,7 @@
 
 AEnemyProjectile::AEnemyProjectile()
 {
+    PrimaryActorTick.bCanEverTick = true;
 }
 
 void AEnemyProjectile::SetHoming(bool IsHoming, AActor* TargetActor, float InHomingAcceleration)
@@ -38,6 +39,41 @@ void AEnemyProjectile::BeginPlay()
             *OwnerEnemy->GetName().ToString());
     }
 
+    if (ProjectileMovementComponent)
+    {
+        // UpdatedComponent 재설정
+        if (!ProjectileMovementComponent->UpdatedComponent)
+        {
+            ProjectileMovementComponent->SetUpdatedComponent(CollisionComponent);
+            UE_LOG(LogTemp, Warning, TEXT("[EnemyProjectile] UpdatedComponent was null, reassigned"));
+        }
+
+        // 활성화 확인
+        if (!ProjectileMovementComponent->IsActive())
+        {
+            ProjectileMovementComponent->Activate();
+            UE_LOG(LogTemp, Warning, TEXT("[EnemyProjectile] ProjectileMovement was inactive, activated"));
+        }
+
+        // Velocity가 0인 경우 방향으로 재설정
+        if (ProjectileMovementComponent->Velocity.IsNearlyZero())
+        {
+            FVector LaunchDirection = GetActorForwardVector();
+            ProjectileMovementComponent->Velocity = LaunchDirection * ProjectileMovementComponent->InitialSpeed;
+            UE_LOG(LogTemp, Warning, TEXT("[EnemyProjectile] Velocity was zero, set to: %s"),
+                *ProjectileMovementComponent->Velocity.ToString());
+        }
+
+        UE_LOG(LogTemp, Log, TEXT("[EnemyProjectile] BeginPlay - Speed: %.1f, Velocity: %s, Active: %d, UpdatedComp: %s"),
+            ProjectileMovementComponent->InitialSpeed,
+            *ProjectileMovementComponent->Velocity.ToString(),
+            ProjectileMovementComponent->IsActive(),
+            *GetNameSafe(ProjectileMovementComponent->UpdatedComponent));
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("[EnemyProjectile] No ProjectileMovementComponent!"));
+    }
     CollisionComponent->OnComponentHit.Clear();  // 기존 바인딩 제거
     CollisionComponent->OnComponentHit.AddDynamic(this, &AEnemyProjectile::OnHit);
 }

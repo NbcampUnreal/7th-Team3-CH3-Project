@@ -35,8 +35,9 @@ EBTNodeResult::Type UBTTask_ExecuteSpecialAttack::ExecuteTask(
         return EBTNodeResult::Failed;
     }
 
-    // 타겟 바라보기
     AActor* TargetActor = Cast<AActor>(BB->GetValueAsObject(TargetActorKey.SelectedKeyName));
+    
+    // 타겟 바라보기
     if (TargetActor)
     {
         FVector Direction = TargetActor->GetActorLocation() - Enemy->GetActorLocation();

@@ -4,6 +4,7 @@
 #include "Enemy/EnemyCharacter.h"
 #include "Shared/Component/SpecialAttackComponent.h"
 #include "Enemy/SpecialAttack/SpecialAttackBase.h"
+#include "Player/PlayerCharacter.h"
 
 UBTDecorator_CanUseSpecialAttack::UBTDecorator_CanUseSpecialAttack()
 {
@@ -54,7 +55,8 @@ bool UBTDecorator_CanUseSpecialAttack::CalculateRawConditionValue(UBehaviorTreeC
     }
 
     // 4. Target 가져오기
-    AActor* TargetActor = Cast<AActor>(BB->GetValueAsObject(TargetActorKey.SelectedKeyName));
+    APlayerCharacter* TargetActor = Cast<APlayerCharacter>(BB->GetValueAsObject(TargetActorKey.SelectedKeyName));
+    if (!TargetActor || TargetActor->IsDead()) return false;
 
     // 5. CanExecute 체크 (거리, 남은 시간 등)
     if (!Attack->CanExecute(Enemy, TargetActor))
