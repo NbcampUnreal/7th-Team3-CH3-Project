@@ -15,7 +15,7 @@ void UQuestTableWidget::NativeOnInitialized()
 	Super::NativeOnInitialized();
 
 	//기본적으로 버튼 비활성화 해놓는 부분인데 아이템 미구현이라 주석처리 해놨습니다.
-	//BT_Accept->SetIsEnabled(false);
+	BT_Accept->SetIsEnabled(false);
 
 	if (BT_Accept)
 	{
@@ -57,6 +57,7 @@ void UQuestTableWidget::NativeConstruct()
 	if (Inventory->HasItem(FName("Explosive"), 1))
 	{
 		TextCount->SetText(NSLOCTEXT("QuestTableWidget", "ItemCount", "1 / 1"));
+		UpdateButton(true);
 	}
 	else
 	{

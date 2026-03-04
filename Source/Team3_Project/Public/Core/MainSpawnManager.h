@@ -29,8 +29,10 @@ public:
 
 	void SpawnEventZone();
 	void SpawnEnemySpawner();
-	void SpawnQuestItem();
 	void BindSpawnQuestItem();
+
+	UFUNCTION()
+	void SpawnQuestItem();
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SpawnLocation")

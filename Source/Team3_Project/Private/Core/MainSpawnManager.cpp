@@ -9,6 +9,7 @@
 #include "Core/DoorNPC.h"
 #include "Core/MainGameInstance.h"
 #include "Core/ItemDataSubsystem.h"
+#include "Core/DebugHelper.h"
 #include "Item/BaseItem.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -78,17 +79,20 @@ void AMainSpawnManager::SpawnEnemySpawner()
 
 void AMainSpawnManager::SpawnQuestItem()
 {
-	UMainGameInstance* CurrentGameInstance = UMainGameInstance::Get(GetWorld());
+	UGameInstance* CurrentGameInstance = UGameplayStatics::GetGameInstance(GetWorld());
 	if (CurrentGameInstance == nullptr)
 	{
+		Debug::Print(TEXT("no Gameinstance"));
 		return;
 	}
 
 	UItemDataSubsystem* ItemDataSubSystem = CurrentGameInstance->GetSubsystem<UItemDataSubsystem>();
 	if (ItemDataSubSystem == nullptr)
 	{
+		Debug::Print(TEXT("no ItemDataSubSystem"));
 		return;
 	}
+
 
 	FItemData GunpowderItemData = ItemDataSubSystem->GetItemDataByID("Gunpowder");
 	FItemData PlasticItemData = ItemDataSubSystem->GetItemDataByID("Plastic");
@@ -101,7 +105,7 @@ void AMainSpawnManager::SpawnQuestItem()
 		AActor* OwnerActor = GetOwner();
 
 		FTransform GunpowderTransform(FRotator::ZeroRotator, GunpowderItemLocation);
-		FTransform PlasticTransform(FRotator::ZeroRotator, GunpowderItemLocation);
+		FTransform PlasticTransform(FRotator::ZeroRotator, PlasticItemLocation);
 
 		ABaseItem* SpawnGunpowder = GetWorld()->SpawnActorDeferred<ABaseItem>(
 			GunpowderItemClass,
@@ -130,26 +134,9 @@ void AMainSpawnManager::SpawnQuestItem()
 		{
 			SpawnPlastic->SetItemID("Plastic");
 			SpawnPlastic->SetQuantity(1);
-			SpawnPlastic->FinishSpawning(GunpowderTransform);
+			SpawnPlastic->FinishSpawning(PlasticTransform);
 		}
 	}
-
-	//if (SpawnQuestItemClass == nullptr) return;
-
-	//TODO_@Core : NPC가 대화창열렸다는 신호 수신시 델리게이트 받아서 아이템 스폰하기 1번만,
-
-	/*GetWorld()->SpawnActor<AQuestItem>(
-		QuestItemClass1,
-		FirstQuestItemLocation,
-		FRotator::ZeroRotator
-	);
-
-	GetWorld()->SpawnActor<AQuestItem>(
-		QuestItemClass2,
-		SecondQuestItemLocation,
-		FRotator::ZeroRotator
-	);*/
-
 }
 
 void AMainSpawnManager::BindSpawnQuestItem()
@@ -175,5 +162,4 @@ void AMainSpawnManager::BeginPlay()
 	BindSpawnQuestItem();
 	SpawnEventZone();
 	SpawnEnemySpawner();
-	SpawnQuestItem();
 }
