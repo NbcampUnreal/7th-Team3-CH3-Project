@@ -98,7 +98,7 @@ void AEnemyCharacter::Tick(float DeltaTime)
 	}
 
 #if WITH_EDITOR
-	if (WeaponCollision && WeaponCollision->IsCollisionEnabled())
+	/*if (WeaponCollision && WeaponCollision->IsCollisionEnabled())
 	{
 		DrawDebugSphere(
 			GetWorld(),
@@ -111,7 +111,7 @@ void AEnemyCharacter::Tick(float DeltaTime)
 			0,
 			2.f
 		);
-	}
+	}*/
 #endif
 }
 
