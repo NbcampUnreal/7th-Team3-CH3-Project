@@ -16,6 +16,7 @@ class USpecialAttackComponent;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnEnemyHealthChanged, float, NewValue, float, MaxValue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMovableChanged, bool, NewValue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWaveMode, bool, NewValue);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHit, bool, IsDead);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAttack);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnFinishAttack);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSpecialAttack);
@@ -35,6 +36,8 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
 	virtual void Tick(float DeltaTime) override;
 
 	bool DropItem();
@@ -161,6 +164,8 @@ public:
 	FOnSpecialAttack OnSepcialAttackSignature;
 	UPROPERTY(BlueprintAssignable)
 	FOnFinishSpecialAttack OnFinishSpecialAttackSignature;
+	UPROPERTY(BlueprintAssignable)
+	FOnHit OnHitSignature;
 	UPROPERTY(BlueprintAssignable)
 	FOnHitted OnHittedSignature;
 	UPROPERTY(BlueprintAssignable)

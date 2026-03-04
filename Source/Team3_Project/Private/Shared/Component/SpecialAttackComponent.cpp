@@ -152,10 +152,10 @@ bool USpecialAttackComponent::ExecuteSpecialAttackByID(FName AttackID, AActor* T
     {
         OwnerEnemy->DeactiveMove();
 
-        if (UCharacterMovementComponent* MoveComp = OwnerEnemy->GetCharacterMovement())
-        {
-            MoveComp->SetMovementMode(MOVE_Flying);  // Root Motion 적용 위해 Flying 모드로 전환
-        }
+        //if (UCharacterMovementComponent* MoveComp = OwnerEnemy->GetCharacterMovement())
+        //{
+        //    MoveComp->SetMovementMode(MOVE_Flying);  // Root Motion 적용 위해 Flying 모드로 전환
+        //}
     }
 
     // ========================================
@@ -214,10 +214,10 @@ void USpecialAttackComponent::OnFinishSpecialAttack()
         OwnerEnemy->ActiveMove();
 
         // Movement 모드 복구
-        if (UCharacterMovementComponent* MoveComp = OwnerEnemy->GetCharacterMovement())
+        /*if (UCharacterMovementComponent* MoveComp = OwnerEnemy->GetCharacterMovement())
         {
             MoveComp->SetMovementMode(MOVE_Walking);
-        }
+        }*/
     }
 
     // ========================================

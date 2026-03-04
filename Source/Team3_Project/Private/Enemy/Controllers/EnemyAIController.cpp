@@ -144,6 +144,24 @@ void AEnemyAIController::SetWaveMode(bool bEnabled)
     }
 }
 
+void AEnemyAIController::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+    // 1. 비헤이비어 트리(AI의 뇌) 강제 정지!
+    if (UBehaviorTreeComponent* BTComp = Cast<UBehaviorTreeComponent>(BrainComponent))
+    {
+        BTComp->StopTree(EBTStopMode::Safe);
+    }
+
+    // 2. 인지 시스템(Perception - 시각/청각) 감각 완벽 차단!
+    if (PerceptionComponent)
+    {
+        PerceptionComponent->ForgetAll();
+    }
+
+    // 3. 부모 클래스의 EndPlay 정상 호출 (필수)
+    Super::EndPlay(EndPlayReason);
+}
+
 void AEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
     APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(Actor);

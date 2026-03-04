@@ -87,6 +87,13 @@ void AEnemyCharacter::BeginPlay()
 	ActiveMove();
 }
 
+void AEnemyCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	GetWorld()->GetTimerManager().ClearAllTimersForObject(this);
+
+	Super::EndPlay(EndPlayReason);
+}
+
 void AEnemyCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -201,7 +208,7 @@ bool AEnemyCharacter::DropItem()
 		if (DroppedItem)
 		{
 			DroppedItem->SetItemID(Row.ItemID);
-			DroppedItem->SetQuantity(1);  // ⭐ 각 아이템은 1개씩
+			DroppedItem->SetQuantity(Quantity);
 			DroppedItem->FinishSpawning(SpawnTransform);
 
 			SpawnCnt++;
@@ -290,6 +297,7 @@ void AEnemyCharacter::OnHitted()
 {
 	StopAnimMontage();
 	OnHittedSignature.Broadcast();
+	OnHitSignature.Broadcast(false);
 
 	bIsAttacking = false;
 	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
@@ -320,6 +328,7 @@ void AEnemyCharacter::OnDead(bool bShouldPlayMontage)
 	StopAnimMontage();
 	DeactiveMove();
 	OnDeadSignature.Broadcast();
+	OnHitSignature.Broadcast(true);
 
 	// KillCountUp
 	UMainGameInstance* MainGameInstance = UMainGameInstance::Get(GetWorld());

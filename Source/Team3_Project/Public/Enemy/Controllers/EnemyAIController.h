@@ -23,6 +23,7 @@ public:
     UFUNCTION(BlueprintCallable, Category = "AI")
     void SetWaveMode(bool bEnabled);
 
+    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 protected:
     virtual void BeginPlay() override;
 
