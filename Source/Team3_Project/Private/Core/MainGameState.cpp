@@ -4,9 +4,10 @@
 #include "Core/MainGameState.h"
 #include "Core/EnemySpawner.h"
 #include "Core/EventZone.h"
-#include "Kismet/GameplayStatics.h"
 #include "Core/DebugHelper.h"
 #include "Core/MainGameInstance.h"
+#include "Blueprint/UserWidget.h"
+#include "Kismet/GameplayStatics.h"
 
 AMainGameState::AMainGameState()
 {
@@ -37,7 +38,7 @@ void AMainGameState::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	OnGameStart();
+	//OnGameStart();
 
 }
 
@@ -151,12 +152,63 @@ void AMainGameState::WaveEnd()
 
 void AMainGameState::OnGameStart()
 {
+	APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
+
+	UGameplayStatics::SetGamePaused(this, true);
+	FInputModeUIOnly InputMode;
+	PC->SetInputMode(InputMode);
+	PC->bShowMouseCursor = true;
+
+	if (!GameStartWidgetClass || !PC)
+	{
+		return;
+	}
+
+	UUserWidget* GameStartWidget = CreateWidget<UUserWidget>(PC, GameStartWidgetClass);
+	if (GameStartWidget)
+	{
+		GameStartWidget->AddToViewport();
+	}
 }
 
-void AMainGameState::OnGameOver()
+void AMainGameState::OnGameOver(bool bIsDeadPlayer)
 {
+	APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
+
+	UGameplayStatics::SetGamePaused(this, true);
+	FInputModeUIOnly InputMode;
+	PC->SetInputMode(InputMode);
+	PC->bShowMouseCursor = true;
+
+	if (!GameOverWidgetClass || !PC)
+	{
+		return;
+	}
+
+	UUserWidget* GameOverWidget = CreateWidget<UUserWidget>(PC, GameOverWidgetClass);
+	if (GameOverWidget)
+	{
+		GameOverWidget->AddToViewport();
+	}
 }
 
 void AMainGameState::OnOpenMenu()
 {
+	APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
+
+	UGameplayStatics::SetGamePaused(this, true);
+	FInputModeUIOnly InputMode;
+	PC->SetInputMode(InputMode);
+	PC->bShowMouseCursor = true;
+
+	if (!MainMenuWidgetClass || !PC)
+	{
+		return;
+	}
+
+	UUserWidget* MainMenuWidget = CreateWidget<UUserWidget>(PC, MainMenuWidgetClass);
+	if (MainMenuWidget)
+	{
+		MainMenuWidget->AddToViewport();
+	}
 }

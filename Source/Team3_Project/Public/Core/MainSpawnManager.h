@@ -40,10 +40,10 @@ protected:
 	TArray<FVector> SpawnerLocation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SpawnLocation | QuestItem_1")
-	TArray<FVector> FirstQuestItemLocation;
+	FVector GunpowderItemLocation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SpawnLocation | QuestItem_2")
-	TArray<FVector> SecondQuestItemLocation;
+	FVector PlasticItemLocation;
 
 	virtual void BeginPlay() override;
 

@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -17,7 +17,7 @@ class TEAM3_PROJECT_API AMainGameMode : public AGameMode
 public:
 	AMainGameMode();
 
-	//Á¤Àû GetÇÔ¼ö
+	//ì •ì  Getí•¨ìˆ˜
 	static AMainGameMode* Get(const UWorld* WorldObject);
 
 

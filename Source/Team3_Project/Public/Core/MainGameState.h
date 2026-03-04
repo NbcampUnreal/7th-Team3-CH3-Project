@@ -42,6 +42,15 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SpawnMonsterClass")
 	TSubclassOf<AEnemyCharacter> EnemyClass;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Door | UI", meta = (AllowPrivateAccess))
+	TSubclassOf<UUserWidget> MainMenuWidgetClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Door | UI", meta = (AllowPrivateAccess))
+	TSubclassOf<UUserWidget> GameStartWidgetClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Door | UI", meta = (AllowPrivateAccess))
+	TSubclassOf<UUserWidget> GameOverWidgetClass;
 
 	UPROPERTY(VisibleAnywhere, Category = "SpanwedActors")
 	TMap<int32, TWeakObjectPtr<AEnemySpawner>> EnemySpawners;
@@ -78,7 +87,7 @@ public:
 	void WaveEnd();
 
 	void OnGameStart();
-	void OnGameOver();
+	void OnGameOver(bool bIsDeadPlayer);
 	void OnOpenMenu();
 
 private:

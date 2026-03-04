@@ -4,35 +4,28 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "InteractDoorWidget.generated.h"
-
-
+#include "NextLevelWidget.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class TEAM3_PROJECT_API UInteractDoorWidget : public UUserWidget
+class TEAM3_PROJECT_API UNextLevelWidget : public UUserWidget
 {
 	GENERATED_BODY()
-	
 
+public:
+	UPROPERTY(EditAnywhere, Category = "Level | Name")
+	FName OpenLevelName;
 
-protected:
 	virtual void NativeOnInitialized() override;
 	virtual void NativeConstruct() override;
 
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<class UButton> BT_OpenTable;
+	TObjectPtr<class UButton> BT_Open;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<class UButton> BT_Close;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Class | OpenUI")
-	TSubclassOf<UUserWidget> QuestTableWidgetClass;
-
-	UPROPERTY()
-	TObjectPtr<UUserWidget> QuestTableWidgetInstance;
 
 	UFUNCTION()
 	void OnClickedOpen();
