@@ -1,6 +1,7 @@
 ﻿#include "Enemy/Services/BTService_UpdateTargetLocation.h"
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "Player/PlayerCharacter.h"
 
 UBTService_UpdateTargetLocation::UBTService_UpdateTargetLocation()
 {
@@ -27,8 +28,8 @@ void UBTService_UpdateTargetLocation::TickNode(
     // ========================================
     // TargetActor 가져오기
     // ========================================
-    AActor* TargetActor = Cast<AActor>(BB->GetValueAsObject(TargetActorKey.SelectedKeyName));
-    if (!TargetActor)
+    APlayerCharacter* TargetActor = Cast<APlayerCharacter>(BB->GetValueAsObject(TargetActorKey.SelectedKeyName));
+    if (!TargetActor || TargetActor->IsDead())
     {
         // 타겟 없음 → TargetLocation 클리어
         BB->ClearValue(TargetLocationKey.SelectedKeyName);
