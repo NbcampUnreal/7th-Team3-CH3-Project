@@ -51,7 +51,6 @@ void APlayerCharacter::BeginPlay()
 void APlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	PrintDebugInfo();
 	UpdateInteractableFocus();
 }
 
@@ -389,11 +388,11 @@ void APlayerCharacter::PrintDebugInfo()
 	// Key값이 0이면 메시지가 쌓이지 않고 한 줄에서 숫자만 바뀜 (갱신)
 	FString Msg = FString::Printf(TEXT("[%s] Stamina: %.1f / %.0f"), *StateStr, Current, MaxStamina);
 
-	if (GEngine)
-	{
-		// Key: 0 (고정된 위치), Time: 0.0f (즉시 갱신)
-		GEngine->AddOnScreenDebugMessage(0, 0.0f, TextColor, Msg);
-	}
+	//if (GEngine)
+	//{
+	//	// Key: 0 (고정된 위치), Time: 0.0f (즉시 갱신)
+	//	GEngine->AddOnScreenDebugMessage(0, 0.0f, TextColor, Msg);
+	//}
 }
 
 void APlayerCharacter::EquipItemByData(const FInventoryItem& ItemData, ESlotType SlotType)
