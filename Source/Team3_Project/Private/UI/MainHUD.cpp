@@ -26,6 +26,8 @@ UMainHUD::UMainHUD(const FObjectInitializer& ObjectInitializer) : Super(ObjectIn
     PendingBonus = 100;
     bPendingSuccess = true;
     CurrentAdrenalineTime = 30;
+    CurrentScore = 0;
+    CurrentKills = 0;
 }
 
 void UMainHUD::NativeConstruct()
@@ -77,6 +79,9 @@ void UMainHUD::NativeConstruct()
         PlayerChar->OnWhiteKarmaChanged.AddDynamic(this, &UMainHUD::UpdateWhiteKarma);
         PlayerChar->OnBlackKarmaChanged.AddDynamic(this, &UMainHUD::UpdateBlackKarma);
 		PlayerChar->OnPlayerDead.AddDynamic(this, &UMainHUD::HandlePlayerDeath);
+		PlayerChar->OnHitTarget.AddDynamic(this, &UMainHUD::UpdateHitMarker);
+		PlayerChar->OnScoreChanged.AddDynamic(this, &UMainHUD::UpdateScore);
+		PlayerChar->OnKillsChanged.AddDynamic(this, &UMainHUD::UpdateKills);
 	}
    
     /*APlayerCharacter* PlayerChar = Cast<APlayerCharacter>(PlayerPawn);
@@ -106,6 +111,13 @@ void UMainHUD::NativeConstruct()
     if (Txt_Qty_5) QtyTextArray.Add(Txt_Qty_5);
     if (Txt_Qty_6) QtyTextArray.Add(Txt_Qty_6);
     if (Txt_Qty_7) QtyTextArray.Add(Txt_Qty_7);
+
+	AActor* FoundActor = UGameplayStatics::GetActorOfClass(GetWorld(), ADoorNPC::StaticClass());
+
+    if (ADoorNPC* DoorNPC = Cast<ADoorNPC>(FoundActor))
+    {
+        //DoorNPC->OnInteractDoor.AddDynamic(this, &UMainHUD::AddNewQuest);
+	}
 }
 
 void UMainHUD::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -239,9 +251,7 @@ void UMainHUD::HandlePlayerDeath()
 	UMainGameInstance* GameInstance = Cast<UMainGameInstance>(GetGameInstance());
     if (GameInstance)
     {
-		int32 FinalScore = GameInstance->TotalScore;
-        int32 FinalKill = GameInstance->TotalKills;
-		ShowOutcomeUI(false, FinalScore, FinalKill);
+		ShowOutcomeUI(false, CurrentScore, CurrentKills);
 	}
     else
     {
@@ -251,19 +261,19 @@ void UMainHUD::HandlePlayerDeath()
 
 void UMainHUD::UpdateScore(int32 Score)
 {
-    CurrentScore = Score;
+    CurrentScore += Score;
     if (TotalScore)
     {
-        TotalScore->SetText(FText::Format(FText::FromString("Score : {0}"), Score));
+        TotalScore->SetText(FText::Format(FText::FromString("Score : {0}"), CurrentScore));
     }
 }
 
 void UMainHUD::UpdateKills(int32 Kills) 
 {
-    CurrentKills = Kills; 
+    CurrentKills += Kills; 
     if (TotalKills)
     {
-        TotalKills->SetText(FText::Format(FText::FromString("Kill : {0}"), Kills));
+        TotalKills->SetText(FText::Format(FText::FromString("Kill : {0}"), CurrentKills));
     }
 }
 
@@ -522,7 +532,7 @@ void UMainHUD::OnWeaponEquipChanged(bool bIsEquipping, FName ItemID)
                 if (bIsEquipping)
                 {
                     EquippedWeapon->OnAmmoChanged.AddDynamic(this, &UMainHUD::OnAmmoChanged);
-                    OnAmmoChanged(0,0);
+                    OnAmmoChanged(EquippedWeapon->GetCurrentAmmo(), EquippedWeapon->GetAmmoInInventory());
                 }
                 else
                 {
@@ -586,7 +596,7 @@ void UMainHUD::UpdateHitMarker(bool bIsDead)
     Img_HitMarker->SetRenderOpacity(1.0f);
 
     GetWorld()->GetTimerManager().ClearTimer(HitMarkerTimerHandle);
-    GetWorld()->GetTimerManager().SetTimer(HitMarkerTimerHandle, this, &UMainHUD::HideHitMarker, 0.1f, false);
+    GetWorld()->GetTimerManager().SetTimer(HitMarkerTimerHandle, this, &UMainHUD::HideHitMarker, 0.05f, false);
 }
 
 void UMainHUD::HideHitMarker()

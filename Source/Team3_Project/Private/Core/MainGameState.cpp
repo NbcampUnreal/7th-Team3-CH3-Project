@@ -8,6 +8,7 @@
 #include "Core/MainGameInstance.h"
 #include "Blueprint/UserWidget.h"
 #include "Kismet/GameplayStatics.h"
+#include "Player/PlayerCharacter.h"
 
 AMainGameState::AMainGameState()
 {
@@ -139,6 +140,12 @@ void AMainGameState::WaveEnd()
 	EnemySpawnDelegate.Unbind(); // 바인딩 된 함수 해제
 	bIsRunningSpawner = false;
 	UMainGameInstance::Get(GetWorld())->TotalScore += CurrentScore; // GI에 현재 웨이브에서 얻은 점수 전달
+
+	APlayerCharacter* PC = Cast<APlayerCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
+	if (PC)
+	{
+		PC->NotifyScoreChanged(CurrentScore);
+	}
 
 }
 

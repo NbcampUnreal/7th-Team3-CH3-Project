@@ -14,6 +14,7 @@
 #include "Engine/DamageEvents.h"
 #include "Components/SplineComponent.h"
 #include "Shared/Component/SpecialAttackComponent.h"
+#include "Perception/AIPerceptionStimuliSourceComponent.h"
 
 AEnemyCharacter::AEnemyCharacter()
 {
@@ -89,8 +90,11 @@ void AEnemyCharacter::BeginPlay()
 
 void AEnemyCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	GetWorld()->GetTimerManager().ClearAllTimersForObject(this);
-
+	UAIPerceptionStimuliSourceComponent* StimuliComp = FindComponentByClass<UAIPerceptionStimuliSourceComponent>();
+	if (StimuliComp)
+	{
+		StimuliComp->UnregisterFromPerceptionSystem();
+	}
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -334,12 +338,28 @@ void AEnemyCharacter::OnDead(bool bShouldPlayMontage)
 	UMainGameInstance* MainGameInstance = UMainGameInstance::Get(GetWorld());
 	if (MainGameInstance)
 	{
-		// Kill Count 중가 - 아직 구현 안 됨.
+		MainGameInstance->TotalKills++;
+		MainGameInstance->TotalScore += 100;
 	}
 
 	UCapsuleComponent* Capsule = GetCapsuleComponent();
 	Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	GetMesh()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+	if (GetMesh())
+	{
+		// 래그돌 프로필로 변경 (기본적으로 지형과는 충돌함)
+		GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
+
+		// [핵심] 지형(WorldStatic, WorldDynamic) 이외의 모든 채널을 무시하도록 설정
+		// 먼저 모든 채널을 무시(Ignore)로 설정한 뒤, 필요한 지형 채널만 다시 켭니다.
+		GetMesh()->SetCollisionResponseToAllChannels(ECR_Ignore);
+
+		// 지형(바닥, 벽 등)과는 충돌해야 래그돌이 바닥에 안착합니다.
+		GetMesh()->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
+		GetMesh()->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Block);
+
+		// 다른 캐릭터(Pawn)나 투사체 등과는 충돌하지 않게 됩니다.
+		// (SetCollisionResponseToAllChannels(ECR_Ignore)에서 이미 처리됨)
+	}
 
 	if (!bShouldPlayMontage)
 	{
@@ -393,6 +413,7 @@ float AEnemyCharacter::TakeDamage(
 	// 데미지 처리
 	ApplyDamageToStat(DamageAmount);
 
+	
 	// Hitted or Dead 처리
 	if (StatComp->GetBaseStatValue(FName("Health")) <= 0.f)
 	{
@@ -403,10 +424,28 @@ float AEnemyCharacter::TakeDamage(
 			*GetActorLabel(), *GetNameSafe(DamageTypeClass));
 		
 		OnDead(bShouldPlayMontage);
+		if (EventInsitagtor)
+		{
+			APlayerCharacter* AttackingPlayer = Cast<APlayerCharacter>(EventInsitagtor->GetPawn());
+			if (AttackingPlayer)
+			{
+				AttackingPlayer->NotifyHitTarget(true);
+				AttackingPlayer->NotifyScoreChanged(100);
+				AttackingPlayer->NotifyKillsChanged(1);
+			}
+		}
 	}
 	else
 	{
 		OnHitted();
+		if (EventInsitagtor)
+		{
+			APlayerCharacter* AttackingPlayer = Cast<APlayerCharacter>(EventInsitagtor->GetPawn());
+			if (AttackingPlayer)
+			{
+				AttackingPlayer->NotifyHitTarget(false);
+			}
+		}
 	}
 
 	return DamageAmount;

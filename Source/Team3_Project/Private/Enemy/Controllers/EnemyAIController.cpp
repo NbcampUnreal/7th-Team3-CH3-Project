@@ -9,6 +9,7 @@
 #include "Enemy/EnemyCharacter.h"
 #include "Components/SplineComponent.h"
 #include "Player/PlayerCharacter.h"
+#include "Perception/AIPerceptionStimuliSourceComponent.h"
 
 AEnemyAIController::AEnemyAIController()
 {
@@ -64,7 +65,7 @@ void AEnemyAIController::OnPossess(APawn* InPawn)
     Super::OnPossess(InPawn);
 
     AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(InPawn);
-    if (!Enemy)
+    if (!IsValid(Enemy))
     {
         UE_LOG(LogTemp, Error, TEXT("[AI] OnPossess: Not an EnemyCharacter"));
         return;
@@ -146,19 +147,39 @@ void AEnemyAIController::SetWaveMode(bool bEnabled)
 
 void AEnemyAIController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-    // 1. 비헤이비어 트리(AI의 뇌) 강제 정지!
-    if (UBehaviorTreeComponent* BTComp = Cast<UBehaviorTreeComponent>(BrainComponent))
+    UBlackboardComponent* BB = GetBlackboardComponent();
+    if (BB)
     {
-        BTComp->StopTree(EBTStopMode::Safe);
+        BB->ClearValue(FName("TargetActor"));
     }
 
-    // 2. 인지 시스템(Perception - 시각/청각) 감각 완벽 차단!
-    if (PerceptionComponent)
+    if (UBrainComponent* Brain = GetBrainComponent())
     {
-        PerceptionComponent->ForgetAll();
+        Brain->StopLogic(TEXT("Level Transition"));
     }
 
-    // 3. 부모 클래스의 EndPlay 정상 호출 (필수)
+    if (AIPerceptionComponent)
+    {
+        AIPerceptionComponent->Deactivate();
+
+        AIPerceptionComponent->OnTargetPerceptionUpdated.Clear();
+        AIPerceptionComponent->OnTargetPerceptionForgotten.Clear();
+    }
+    AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(GetPawn());
+    if (!IsValid(Enemy))
+    {
+        UE_LOG(LogTemp, Error, TEXT("[AI] OnPossess: Not an EnemyCharacter"));
+		Super::EndPlay(EndPlayReason);
+    }
+    else
+    {
+		Enemy->OnWaveModeSignature.RemoveDynamic(this, &AEnemyAIController::SetWaveMode);
+        Enemy->OnMovableChangedSignature.RemoveDynamic(this, &AEnemyAIController::SetMovable);
+        Enemy->OnHittedSignature.RemoveDynamic(this, &AEnemyAIController::OnHitted);
+        Enemy->OnFinishHittedSignature.RemoveDynamic(this, &AEnemyAIController::OnFinishHitted);
+        Enemy->OnDeadSignature.RemoveDynamic(this, &AEnemyAIController::OnDead);
+        Enemy->OnFinishDeadSignature.RemoveDynamic(this, &AEnemyAIController::OnFinishDead);
+    }
     Super::EndPlay(EndPlayReason);
 }
 
@@ -212,7 +233,8 @@ void AEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus St
 void AEnemyAIController::OnTargetPerceptionForgotten(AActor* Actor)
 {
     AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(GetPawn());
-    if (!Enemy) return;
+    if (!IsValid(Enemy)) return;
+	if (!IsValid(Actor)) return;
 
     // Wave 모드는 타겟 유지
     if (Enemy->IsForWave()) return;

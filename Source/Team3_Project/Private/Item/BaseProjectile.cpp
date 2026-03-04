@@ -8,6 +8,7 @@
 #include "DrawDebugHelpers.h"
 #include "Engine/OverlapResult.h"
 #include "GameFramework/Character.h"
+#include "Shared/DamageType_Explosion.h"
 
 #define ECC_Weapon ECC_GameTraceChannel1
 
@@ -16,10 +17,11 @@ ABaseProjectile::ABaseProjectile()
  	PrimaryActorTick.bCanEverTick = false;
 
 	CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionComponent"));
-	CollisionComponent->InitSphereRadius(5.0f);
-	CollisionComponent->SetCollisionProfileName(TEXT("BlockAll"));
+	CollisionComponent->InitSphereRadius(10.0f);
+	CollisionComponent->SetCollisionProfileName(TEXT("Projectile"));
 	CollisionComponent->SetNotifyRigidBodyCollision(true);
 	CollisionComponent->BodyInstance.SetInstanceNotifyRBCollision(true);
+	CollisionComponent->BodyInstance.bUseCCD = true;
 
 	CollisionComponent->OnComponentHit.AddDynamic(this, &ABaseProjectile::OnHit);
 	RootComponent = CollisionComponent;
@@ -151,7 +153,7 @@ void ABaseProjectile::Explode()
 						Damage,
 						GetInstigatorController(),
 						this,
-						UDamageType::StaticClass()
+						UDamageType_Explosion::StaticClass()
 					);
 
 					USkeletalMeshComponent* MeshComp = HitCharacter->GetMesh();

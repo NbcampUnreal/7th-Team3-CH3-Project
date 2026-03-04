@@ -8,6 +8,10 @@
 #include "Item/InventoryComponent.h"
 #include "Player/PlayerCharacter.h"
 #include "Item/WeaponItem.h"
+#include "shared/Component/StatComponent.h"
+#include "Perception/AIPerceptionComponent.h"
+#include "Perception/AIPerceptionStimuliSourceComponent.h"
+#include "EngineUtils.h"
 
 void UNextLevelWidget::NativeOnInitialized()
 {
@@ -59,6 +63,7 @@ void UNextLevelWidget::OnClickedOpen()
 
 	GameInstance->SavedInventoryContents = InventoryComponent->GetInventoryContents();
 	GameInstance->SavedQuickSlots = InventoryComponent->QuickSlots;
+	GameInstance->CurrentPlayerHP = PlayerCharacter->StatComp->GetCurrentStatValue("Health");
 
 	if (PlayerCharacter->CurrentWeapon)
 	{

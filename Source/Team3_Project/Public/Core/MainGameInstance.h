@@ -26,6 +26,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PlayerStat")
 	float MaxPlayerHP;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PlayerStat")
+	float CurrentPlayerHP;
+
 	//플레이어 공격력
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PlayerStat")
 	float PlayerAttackDamage;

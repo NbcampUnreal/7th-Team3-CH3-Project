@@ -3,6 +3,10 @@
 #include "Components/Button.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "AIController.h"
+#include "EngineUtils.h"
+#include "Perception/AIPerceptionComponent.h"
+#include "Perception/AIPerceptionStimuliSourceComponent.h"
 
 UOutCome::UOutCome(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -27,7 +31,7 @@ void UOutCome::SetupOutcome(bool bIsVictory, int32 Score, int32 Kill)
     // 1. 결과 텍스트 및 색상 설정 
     if (bIsVictory)
     {
-        Txt_ResultTitle->SetText(FText::FromString(TEXT("Your WIN!")));
+        Txt_ResultTitle->SetText(FText::FromString(TEXT("You WIN!")));
         Txt_ResultTitle->SetColorAndOpacity(FLinearColor::Green);
     }
     else
@@ -57,11 +61,21 @@ void UOutCome::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 
 void UOutCome::OnRestartClicked()
 {
-	UGameplayStatics::SetGamePaused(GetWorld(), false); // 게임 일시정지 해제
+
+    UGameplayStatics::SetGamePaused(GetWorld(), false); // 게임 일시정지 해제
+    APlayerController* PC = GetWorld()->GetFirstPlayerController();
+    if (PC)
+            {
+        PC->bShowMouseCursor = false; // 마우스 커서 숨김
+        FInputModeGameOnly InputMode;
+        PC->SetInputMode(InputMode); // 게임 입력 모드로 전환
+	}
+	RemoveFromParent(); // UI 제거
     UGameplayStatics::OpenLevel(this, FName("Soul_Slum")); // 첫 화면 레벨명 입력 
 }
 
 void UOutCome::OnQuitClicked()
 {
+	UGameplayStatics::SetGamePaused(GetWorld(), false); // 게임 일시정지 해제
     UKismetSystemLibrary::QuitGame(GetWorld(), GetWorld()->GetFirstPlayerController(), EQuitPreference::Quit, false);
 }

@@ -29,6 +29,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHealthChanged, float, Health);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWhiteKarmaChanged, float, WhiteKarma);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBlackKarmaChanged, float, BlackKarma);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPlayerDead);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHitTarget, bool, bIsDead);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnKillsChanged, int32, kills);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnScoreChanged, int32, score);
 
 UCLASS(Blueprintable, BlueprintType)
 class TEAM3_PROJECT_API APlayerCharacter : public ACharacter, public IEquipableInterface
@@ -179,6 +182,24 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnPlayerDead OnPlayerDead;
 
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnHitTarget OnHitTarget;
+
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnKillsChanged OnKillsChanged;
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnScoreChanged OnScoreChanged;
+
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void NotifyHitTarget(bool bIsTargetDead) { OnHitTarget.Broadcast(bIsTargetDead); }
+
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void NotifyKillsChanged(int32 NewKills) { OnKillsChanged.Broadcast(NewKills); }
+
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void NotifyScoreChanged(int32 NewScore) { OnScoreChanged.Broadcast(NewScore); }
+
+	void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	bool bIsEquippedArmor = false;
 

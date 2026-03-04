@@ -4,6 +4,7 @@
 #include "Core/EnemySpawner.h"
 #include "Enemy/EnemyCharacter.h"
 #include "Core/DebugHelper.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 AEnemySpawner::AEnemySpawner()
@@ -22,11 +23,18 @@ void AEnemySpawner::SpawnEnemy(TSubclassOf<AEnemyCharacter> EnemyClass)
 			return;
 		}
 
-		AEnemyCharacter* SpawnMonster = GetWorld()->SpawnActor<AEnemyCharacter>(
+		AEnemyCharacter* SpawnMonster = GetWorld()->SpawnActorDeferred<AEnemyCharacter>(
 			EnemyClass,
-			GetActorLocation(),
-			FRotator::ZeroRotator
+			GetActorTransform(),
+			this,
+			nullptr,
+			ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn
 		);
+		if (SpawnMonster)
+		{
+			SpawnMonster->ApplyWaveFlag(true);
+			UGameplayStatics::FinishSpawningActor(SpawnMonster, GetActorTransform());
+		}
 
 		//TODO_@Enemy : OnDead 델리게이트를 통해 CurrentSpawnMonster -1 전달해주어야함
 		if (IsValid(SpawnMonster))

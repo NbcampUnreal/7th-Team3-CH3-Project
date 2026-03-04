@@ -153,23 +153,8 @@ EBTNodeResult::Type UBTTask_PatrolRandom::ExecuteTask(
             {
                 if (Result.IsSuccess())
                 {
-                    // 도착 → 대기 시작
-                    float WaitTime = FMath::RandRange(WaitMin, WaitMax);
-
-                    UE_LOG(LogTemp, Log, TEXT("[Patrol] Arrived, waiting %.1fs"), WaitTime);
-
-                    // Timer로 대기
-                    FTimerHandle WaitTimerHandle;
-                    AIController->GetWorld()->GetTimerManager().SetTimer(
-                        WaitTimerHandle,
-                        [this, &OwnerComp]()
-                        {
-                            UE_LOG(LogTemp, Log, TEXT("[Patrol] Wait complete"));
-                            FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
-                        },
-                        WaitTime,
-                        false
-                    );
+                    UE_LOG(LogTemp, Log, TEXT("[Patrol] Arrived successfully"));
+                    FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
                 }
                 else
                 {

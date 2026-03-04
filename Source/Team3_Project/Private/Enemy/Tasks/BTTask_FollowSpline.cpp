@@ -129,17 +129,8 @@ EBTNodeResult::Type UBTTask_FollowSpline::ExecuteTask(
 
                     BB->SetValueAsInt(SplineIndexKey.SelectedKeyName, NextIndex);
 
-                    // 대기 후 완료
-                    FTimerHandle WaitTimerHandle;
-                    AIController->GetWorld()->GetTimerManager().SetTimer(
-                        WaitTimerHandle,
-                        [this, &OwnerComp]()
-                        {
-                            FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
-                        },
-                        WaitTime,
-                        false
-                    );
+                    UE_LOG(LogTemp, Log, TEXT("[FollowSpline] Arrived successfully"));
+                    FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
                 }
                 else
                 {

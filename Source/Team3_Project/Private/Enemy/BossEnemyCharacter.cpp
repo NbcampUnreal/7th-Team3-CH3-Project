@@ -39,6 +39,12 @@ void ABossEnemyCharacter::Tick(float DeltaTime)
     }
 }
 
+void ABossEnemyCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	GetWorld()->GetTimerManager().ClearTimer(PhaseTransitionTimerHandle);
+	Super::EndPlay(EndPlayReason);
+}
+
 void ABossEnemyCharacter::CheckPhaseTransition()
 {
     if (!StatComp) return;

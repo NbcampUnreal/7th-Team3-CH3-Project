@@ -67,24 +67,6 @@ void ULootTagWidget::InitLootTag(FName InItemID, int32 InQuantity)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("InitLootTag: Img_Icon widget is null"));
 	}
-
-	if (HB_Attachments)
-	{
-		if (ItemData.ItemType == EItemType::IT_Weapon)
-		{
-			HB_Attachments->SetVisibility(ESlateVisibility::Visible);
-			UE_LOG(LogTemp, Warning, TEXT("InitLootTag: ItemID %s is a weapon, showing attachment icons"), *InItemID.ToString());
-		}
-		else
-		{
-			HB_Attachments->SetVisibility(ESlateVisibility::Collapsed);
-			UE_LOG(LogTemp, Warning, TEXT("InitLootTag: ItemID %s is not a weapon, hiding attachment icons"), *InItemID.ToString());
-		}
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("InitLootTag: HB_Attachments widget is null"));
-	}
 }
 
 void ULootTagWidget::UpdateAttachmentIcons(const TMap<EAttachmentType, FName>& Attachments)
@@ -141,6 +123,8 @@ void ULootTagWidget::UpdateAttachmentIcons(const TMap<EAttachmentType, FName>& A
 		return;
 	}
 
+	int32 ValidAttachmentCount = 0;
+
 	for (const auto& pair : Attachments)
 	{
 		EAttachmentType Type = pair.Key;
@@ -150,6 +134,8 @@ void ULootTagWidget::UpdateAttachmentIcons(const TMap<EAttachmentType, FName>& A
 		{
 			continue;
 		}
+
+		ValidAttachmentCount++;
 
 		FItemData AttachmentData = ItemDataSubsystem->GetItemDataByID(AttachmentID);
 		UTexture2D* IconTexture = AttachmentData.Icon.LoadSynchronous();
@@ -180,7 +166,7 @@ void ULootTagWidget::UpdateAttachmentIcons(const TMap<EAttachmentType, FName>& A
 				LTImg_Magazine->SetBrushFromTexture(IconTexture);
 				LTImg_Magazine->SetVisibility(ESlateVisibility::Visible);
 				SB_Magazine->SetVisibility(ESlateVisibility::Visible);
-				UE_LOG(LogTemp, Warning, TEXT("UpdateAttachmentIcons: Setting magazine icon for attachment %s"), *AttachmentID.ToString());	
+				UE_LOG(LogTemp, Warning, TEXT("UpdateAttachmentIcons: Setting magazine icon for attachment %s"), *AttachmentID.ToString());
 			}
 			break;
 		case EAttachmentType::AT_Underbarrel:
@@ -206,12 +192,20 @@ void ULootTagWidget::UpdateAttachmentIcons(const TMap<EAttachmentType, FName>& A
 		}
 	}
 
-	if (Attachments.Num() <= 0)
+	if (ValidAttachmentCount <= 0)
 	{
 		if (HB_Attachments)
 		{
 			HB_Attachments->SetVisibility(ESlateVisibility::Collapsed);
 			UE_LOG(LogTemp, Warning, TEXT("UpdateAttachmentIcons: No attachments, hiding attachment icons"));
+		}
+	}
+	else
+	{
+		if (HB_Attachments)
+		{
+			HB_Attachments->SetVisibility(ESlateVisibility::Visible);
+			UE_LOG(LogTemp, Warning, TEXT("UpdateAttachmentIcons: %d valid attachments, showing attachment icons"), ValidAttachmentCount);
 		}
 	}
 }

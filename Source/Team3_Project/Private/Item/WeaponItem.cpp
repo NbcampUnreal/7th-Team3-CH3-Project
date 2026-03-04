@@ -695,13 +695,25 @@ void AWeaponItem::FireHitScan()
 
 		FVector DirectionToTarget = (DesiredTargetPoint - MuzzleLocation).GetSafeNormal();
 
-		float DotProduct = FVector::DotProduct(DirectionToTarget, MuzzleForward);
+		float DistCamToTarget = bCameraHit ? FVector::Dist(CameraLocation, CameraHit.ImpactPoint) : WeaponRange;
+		float DistCamToMuzzle = FVector::Dist(CameraLocation, MuzzleLocation);
+		bool bIsPointBlank = bCameraHit && (DistCamToTarget <= DistCamToMuzzle + 50.0f);
 
-		if (DotProduct < 0.5f) //총구 방향과 카메라 기준 발사 방향이 너무 다르면 총구 기준으로 발사 방향 보정
+		if (bIsPointBlank)
 		{
-			DirectionToTarget = MuzzleForward;
-			DesiredTargetPoint = MuzzleLocation + (DirectionToTarget * WeaponRange);
-			bCameraHit = false; //카메라 기준으로는 명중이지만 총구 기준으로는 명중이 아니므로 피해 적용 안함
+			// 초근접 시에는 총구 방향 연산을 무시하고, 타격 방향을 카메라 기준으로 강제 고정!
+			DirectionToTarget = (CameraHit.ImpactPoint - CameraLocation).GetSafeNormal();
+		}
+		else
+		{
+			// 초근접이 아닐 때만 기존의 시야각 보정 로직을 안전하게 수행
+			float DotProduct = FVector::DotProduct(DirectionToTarget, MuzzleForward);
+			if (DotProduct < 0.5f)
+			{
+				DirectionToTarget = MuzzleForward;
+				DesiredTargetPoint = MuzzleLocation + (DirectionToTarget * WeaponRange);
+				bCameraHit = false; // 카메라 기준 명중 무시
+			}
 		}
 
 		FHitResult MuzzleHit;
@@ -752,6 +764,13 @@ void AWeaponItem::FireHitScan()
 			if (bCameraHit)
 			{
 				bCanApplyDamage = true;
+				FinalImpactPoint = CameraHit.ImpactPoint;
+
+				// 초근접 관통 상태라면 Muzzle 기준으로 데미지를 주면 방향이 역주행하므로 카메라 기준으로 덮어씌움
+				if (bIsPointBlank)
+				{
+					DirectionToTarget = (CameraHit.ImpactPoint - CameraLocation).GetSafeNormal();
+				}
 			}
 		}
 

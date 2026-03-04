@@ -20,6 +20,8 @@
 #include "Shared/InteractionInterface.h"
 #include "Item/InventoryComponent.h"
 #include "Core/MainGameInstance.h"	
+#include "Kismet/KismetSystemLibrary.h"
+#include "Perception/AIPerceptionStimuliSourceComponent.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -38,6 +40,7 @@ void APlayerCharacter::SetCharacterState(ECharacterState NewState)
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+	UGameplayStatics::SetGamePaused(this, false); // 게임이 일시정지 상태로 시작하는 경우 방지
 
 	if (StatComp)
 	{
@@ -58,7 +61,8 @@ void APlayerCharacter::BeginPlay()
 		{
 			EquipItemByData(GI->SavedArmor, ESlotType::ST_Armor);
 		}
-
+		StatComp->SetCurrentStatValue("Health", GI->CurrentPlayerHP);
+		OnHealthChanged.Broadcast(GI->CurrentPlayerHP);
 		GI->bHasSavedData = false;
 	}
 }
@@ -466,7 +470,7 @@ void APlayerCharacter::EquipItemByData(const FInventoryItem& ItemData, ESlotType
 
 			InventoryComponent->SetEquippedWeapon(SpawnedWeapon);
 			InventoryComponent->OnWeaponChanged.Broadcast(true, CurrentWeaponItemID);
-			SpawnedWeapon->OnAmmoChanged.Broadcast(SpawnedWeapon->GetCurrentAmmo(), SpawnedWeapon->GetMaxAmmo());
+			SpawnedWeapon->OnAmmoChanged.Broadcast(SpawnedWeapon->GetCurrentAmmo(), SpawnedWeapon->GetAmmoInInventory());
 		}
 	}
 	else if (Data.ItemType == EItemType::IT_Armor)
@@ -514,6 +518,22 @@ FInventoryItem APlayerCharacter::UnequipItemBySlot(ESlotType SlotType)
 	}
 
 	return FInventoryItem();
+}
+
+void APlayerCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	// 타이머 정리
+	GetWorld()->GetTimerManager().ClearTimer(SprintTimerHandle);
+	GetWorld()->GetTimerManager().ClearTimer(StaminaRecoveryTimerHandle);
+	GetWorld()->GetTimerManager().ClearTimer(AdrenalineTimerHandle);
+	GetWorld()->GetTimerManager().ClearTimer(DeadTimerHandle);
+	UAIPerceptionStimuliSourceComponent* StimuliComp = FindComponentByClass<UAIPerceptionStimuliSourceComponent>();
+	if (StimuliComp)
+	{
+		StimuliComp->UnregisterFromPerceptionSystem();
+	}
+
+	Super::EndPlay(EndPlayReason);
 }
 
 void APlayerCharacter::HandleSprintCost()

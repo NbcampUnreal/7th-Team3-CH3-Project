@@ -117,7 +117,10 @@ void ABaseItem::BeginPlay()
 				{
 					ItemMesh->SetStaticMesh(Mesh);
 					ItemMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-					ItemMesh->SetCollisionProfileName(TEXT("PhysicsActor"));
+					ItemMesh->SetCollisionObjectType(ECC_PhysicsBody);
+					ItemMesh->SetCollisionResponseToAllChannels(ECR_Block);
+					ItemMesh->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore); // 캐릭터와의 충돌 무시
+					ItemMesh->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore); // 카메라와의 충돌 무시
 					ItemMesh->SetSimulatePhysics(true);
 					ItemMesh->SetMaxDepenetrationVelocity(NAME_None, 10.f); // 최대 탈출 속도 설정
 					ItemMesh->SetLinearDamping(1.5f); // 선형 감쇠 설정
