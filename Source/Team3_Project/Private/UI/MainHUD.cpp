@@ -1,4 +1,4 @@
-#include "UI/MainHUD.h"
+﻿#include "UI/MainHUD.h"
 #include "Components/TextBlock.h"
 #include "Components/ProgressBar.h"
 #include "Components/Image.h"
@@ -60,7 +60,7 @@ void UMainHUD::NativeConstruct()
             MyInventory->OnQuickSlotItemChanged.AddDynamic(this, &UMainHUD::OnQuickSlotItemChanged);
             MyInventory->OnQuickSlotHighlight.AddDynamic(this, &UMainHUD::HighlightQuickSlot);
             MyInventory->OnWeaponChanged.AddDynamic(this, &UMainHUD::OnWeaponEquipChanged);
-
+			MyInventory->OnAdrenalineUsed.AddDynamic(this, &UMainHUD::StartAdrenalineTimer);
             UpdateQuickSlotUI();
         }
     }
@@ -344,7 +344,8 @@ void UMainHUD::UpdateQuickSlotImage(int32 SlotIndex, UTexture2D* IconTexture)
         else
         {
             // 아이템 X 
-            SlotArray[SlotIndex]->SetOpacity(0.2f);
+			SlotArray[SlotIndex]->SetBrushFromTexture(nullptr);
+            SlotArray[SlotIndex]->SetOpacity(0.24f);
         }
     }
 }
@@ -380,11 +381,13 @@ void UMainHUD::OnQuickSlotItemChanged(int32 SlotIndex, FName ItemID)
         {
             UTexture2D* LoadedIcon = ItemData.Icon.LoadSynchronous();
             UpdateQuickSlotImage(SlotIndex, LoadedIcon);
+			RefreshQuickSlotQuantity(SlotIndex, ItemID);
             return;
         }
     }
 
     UpdateQuickSlotImage(SlotIndex, nullptr);
+    RefreshQuickSlotQuantity(SlotIndex, NAME_None);
 }
 
 void UMainHUD::UpdateQuickSlotUI()
@@ -451,16 +454,13 @@ void UMainHUD::OnWeaponEquipChanged(bool bIsEquipping, FName ItemID)
             {
                 Img_GunInformation->SetBrushFromTexture(IconTexture);  
             }
-
-            if (bIsEquipping)
-            {
                 Img_GunInformation->SetOpacity(1.0f);
-            }
-            else
-            {
-                Img_GunInformation->SetOpacity(0.3f);
-            }
         }
+    }
+    else
+    {
+		Img_GunInformation->SetBrushFromTexture(nullptr);
+        Img_GunInformation->SetOpacity(0.24f);
     }
     /*else
     {
@@ -517,7 +517,7 @@ void UMainHUD::OnAmmoChanged(int32 CurrentAmmo, int32 MaxAmmo)
         FString AmmoStr = FString::Printf(TEXT("%d / %d"), CurrentAmmo, MaxAmmo);
         
 
-        if (CurrentAmmo <= 10)
+        if (CurrentAmmo <= 0)
         {
             Txt_CurrentAmmo->SetColorAndOpacity(FSlateColor(FLinearColor::Red));
         }
@@ -566,12 +566,18 @@ void UMainHUD::RefreshQuickSlotQuantity(int32 SlotIndex, FName ItemID)
 {
     if (!MyInventory || !QtyTextArray.IsValidIndex(SlotIndex)) return;
 
+    if (ItemID.IsNone())
+    {
+        QtyTextArray[SlotIndex]->SetVisibility(ESlateVisibility::Collapsed);
+        return;
+	}
+
     int32 CurrentQuantity = MyInventory->GetItemQuantity(ItemID);
 
     if (CurrentQuantity > 1) 
     {
         QtyTextArray[SlotIndex]->SetText(FText::AsNumber(CurrentQuantity));
-        QtyTextArray[SlotIndex]->SetVisibility(ESlateVisibility::HitTestInvisible);
+        QtyTextArray[SlotIndex]->SetVisibility(ESlateVisibility::Visible);
     }
     else if (CurrentQuantity == 1)
     {
@@ -581,27 +587,6 @@ void UMainHUD::RefreshQuickSlotQuantity(int32 SlotIndex, FName ItemID)
     {
         QtyTextArray[SlotIndex]->SetVisibility(ESlateVisibility::Collapsed);
     }
-
-	APawn* PlayerPawn = GetOwningPlayerPawn();
-    if (PlayerPawn)
-    {
-        UInventoryComponent* InvComp = PlayerPawn->FindComponentByClass<UInventoryComponent>();
-        if (InvComp)
-        {
-			AWeaponItem* EquippedWeapon = InvComp->GetEquippedWeapon();
-            if (EquippedWeapon)
-            {
-                if (bIsEquipped)
-                {
-                    EquippedWeapon->OnAmmoChanged.AddDynamic(this, &UMainHUD::OnAmmoChanged);
-                }
-                else
-                {
-                    EquippedWeapon->OnAmmoChanged.RemoveDynamic(this, &UMainHUD::OnAmmoChanged);
-				}
-            }
-        }
-	}
 }
 
 void UMainHUD::StartAdrenalineTimer()

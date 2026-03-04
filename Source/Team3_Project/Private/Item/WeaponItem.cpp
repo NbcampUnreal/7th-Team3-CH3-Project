@@ -123,15 +123,15 @@ void AWeaponItem::StartFire()
 {
 	if (bIsReloading)
 	{
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(
-				-1,
-				1.5f,
-				FColor::Yellow,
-				FString::Printf(TEXT("Cannot fire while reloading!"))
-			);
-		}
+		//if (GEngine)
+		//{
+		//	GEngine->AddOnScreenDebugMessage(
+		//		-1,
+		//		1.5f,
+		//		FColor::Yellow,
+		//		FString::Printf(TEXT("Cannot fire while reloading!"))
+		//	);
+		//}
 		return;
 	}
 
@@ -147,29 +147,29 @@ void AWeaponItem::StartFire()
 		bIsAutomatic,
 		FirstDelay
 	);
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(
-			-1,
-			1.5f,
-			FColor::Green,
-			FString::Printf(TEXT("Start Fire Triggered"))
-		);
-	}
+	//if (GEngine)
+	//{
+	//	GEngine->AddOnScreenDebugMessage(
+	//		-1,
+	//		1.5f,
+	//		FColor::Green,
+	//		FString::Printf(TEXT("Start Fire Triggered"))
+	//	);
+	//}
 }
 
 void AWeaponItem::StopFire()
 {
 	GetWorldTimerManager().ClearTimer(AutoFireTimerHandle);
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(
-			-1,
-			1.5f,
-			FColor::Red,
-			FString::Printf(TEXT("Stop Fire Triggered"))
-		);
-	}
+	//if (GEngine)
+	//{
+	//	GEngine->AddOnScreenDebugMessage(
+	//		-1,
+	//		1.5f,
+	//		FColor::Red,
+	//		FString::Printf(TEXT("Stop Fire Triggered"))
+	//	);
+	//}
 }
 
 
@@ -208,7 +208,7 @@ void AWeaponItem::FireWeapon()
 	LastFireTime = GetWorld()->TimeSeconds;
 	
 	// 탄약 감소 델리게이트 송신
-	OnAmmoChanged.Broadcast(CurrentAmmo, MaxAmmo);
+	OnAmmoChanged.Broadcast(CurrentAmmo, GetAmmoInInventory());
 
 	//발사 방식에 따른 처리
 	if (bIsProjectile)
@@ -224,15 +224,15 @@ void AWeaponItem::FireWeapon()
 	ApplyRecoil();
 
 	//디버그 메시지 출력
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(
-			-1,
-			1.5f,
-			FColor::Red,
-			FString::Printf(TEXT("Fired! Current Ammo: %d"), CurrentAmmo)
-		);
-	}
+	//if (GEngine)
+	//{
+	//	GEngine->AddOnScreenDebugMessage(
+	//		-1,
+	//		1.5f,
+	//		FColor::Red,
+	//		FString::Printf(TEXT("Fired! Current Ammo: %d"), CurrentAmmo)
+	//	);
+	//}
 	//발사 이펙트 및 사운드 재생 등 추가 구현 가능
 }
 
@@ -242,29 +242,29 @@ void AWeaponItem::ReloadWeapon()
 {
 	if (bIsReloading)
 	{
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(
-				-1,
-				1.5f,
-				FColor::Yellow,
-				FString::Printf(TEXT("Already reloading!"))
-			);
-		}
+		//if (GEngine)
+		//{
+		//	GEngine->AddOnScreenDebugMessage(
+		//		-1,
+		//		1.5f,
+		//		FColor::Yellow,
+		//		FString::Printf(TEXT("Already reloading!"))
+		//	);
+		//}
 		return;
 	}
 
 	if (CurrentAmmo >= MaxAmmo)
 	{
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(
-				-1,
-				1.5f,
-				FColor::Yellow,
-				FString::Printf(TEXT("Ammo is already full!"))
-			);
-		}
+		//if (GEngine)
+		//{
+		//	GEngine->AddOnScreenDebugMessage(
+		//		-1,
+		//		1.5f,
+		//		FColor::Yellow,
+		//		FString::Printf(TEXT("Ammo is already full!"))
+		//	);
+		//}
 		return;
 	}
 
@@ -312,15 +312,15 @@ void AWeaponItem::ReloadWeapon()
 		false
 	);
 
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(
-			-1,
-			1.5f,
-			FColor::Green,
-			FString::Printf(TEXT("Reloading started"))
-		);
-	}
+	//if (GEngine)
+	//{
+	//	GEngine->AddOnScreenDebugMessage(
+	//		-1,
+	//		1.5f,
+	//		FColor::Green,
+	//		FString::Printf(TEXT("Reloading started"))
+	//	);
+	//}
 }
 
 void AWeaponItem::StopReload()
@@ -333,15 +333,15 @@ void AWeaponItem::StopReload()
 
 	bIsReloading = false;
 	GetWorldTimerManager().ClearTimer(ReloadTimerHandle);
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(
-			-1,
-			1.5f,
-			FColor::Red,
-			FString::Printf(TEXT("Reloading cancelled"))
-		);
-	}
+	//if (GEngine)
+	//{
+	//	GEngine->AddOnScreenDebugMessage(
+	//		-1,
+	//		1.5f,
+	//		FColor::Red,
+	//		FString::Printf(TEXT("Reloading cancelled"))
+	//	);
+	//}
 
 	//추후 추가 로직 사용 가능(애니메이션 캔슬 등)
 
@@ -380,32 +380,32 @@ void AWeaponItem::FinishReloading()
 	if (AmountToReload > 0 && InventoryComp->RemoveItem(AmmoItemID, AmountToReload))
 	{
 		CurrentAmmo += AmountToReload;
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(
-				-1,
-				1.5f,
-				FColor::Green,
-				FString::Printf(TEXT("Reloaded %d ammo. Current Ammo: %d"), AmountToReload, CurrentAmmo)
-			);
-		}
+		//if (GEngine)
+		//{
+		//	GEngine->AddOnScreenDebugMessage(
+		//		-1,
+		//		1.5f,
+		//		FColor::Green,
+		//		FString::Printf(TEXT("Reloaded %d ammo. Current Ammo: %d"), AmountToReload, CurrentAmmo)
+		//	);
+		//}
 
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(
-				-1,
-				1.5f,
-				FColor::Cyan,
-				FString::Printf(TEXT("Remaining ammo in inventory: %d"), InventoryComp->GetItemQuantity(AmmoItemID))
-			);
-		}
+		//if (GEngine)
+		//{
+		//	GEngine->AddOnScreenDebugMessage(
+		//		-1,
+		//		1.5f,
+		//		FColor::Cyan,
+		//		FString::Printf(TEXT("Remaining ammo in inventory: %d"), InventoryComp->GetItemQuantity(AmmoItemID))
+		//	);
+		//}
 	}
 	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Failed to reload ammo"));
 	}
 
-	OnAmmoChanged.Broadcast(CurrentAmmo, MaxAmmo);
+	OnAmmoChanged.Broadcast(CurrentAmmo, GetAmmoInInventory());
 }
 
 
@@ -485,7 +485,7 @@ FName AWeaponItem::EquipAttachment(FName AttachmentID)
 		UE_LOG(LogTemp, Warning, TEXT("No valid attachment component for type %d"), (int32)AttachmentData.AttachmentType);
 	}
 
-	OnAmmoChanged.Broadcast(CurrentAmmo, MaxAmmo);
+	OnAmmoChanged.Broadcast(CurrentAmmo, GetAmmoInInventory());
 
 	return ReturnedItem;
 }
@@ -527,7 +527,7 @@ void AWeaponItem::UnequipAttachment(FName AttachmentID)
 		EquippedAttachments.Remove(AttachmentData.AttachmentType);
 	}
 	RecalculateStats();
-	OnAmmoChanged.Broadcast(CurrentAmmo, MaxAmmo);
+	OnAmmoChanged.Broadcast(CurrentAmmo, GetAmmoInInventory());
 }
 
 
@@ -633,6 +633,21 @@ void AWeaponItem::SetEquippedState()
 	{
 		WeaponMesh->SetVisibility(true);
 	}
+}
+
+int32 AWeaponItem::GetAmmoInInventory() const
+{
+	AActor* OwnerActor = GetOwner();
+	if (!OwnerActor)
+	{
+		return 0;
+	}
+	UInventoryComponent* InventoryComp = OwnerActor->FindComponentByClass<UInventoryComponent>();
+	if (!InventoryComp)
+	{
+		return 0;
+	}
+	return InventoryComp->GetItemQuantity(AmmoItemID);
 }
 
 
@@ -807,27 +822,27 @@ void AWeaponItem::FireHitScan()
 				}
 			}
 			//디버그용 점 그리기
-			DrawDebugPoint(
-				GetWorld(),
-				FinalImpactPoint,
-				10.0f,
-				FColor::Red,
-				false,
-				2.0f
-			);
+			//DrawDebugPoint(
+			//	GetWorld(),
+			//	FinalImpactPoint,
+			//	10.0f,
+			//	FColor::Red,
+			//	false,
+			//	2.0f
+			//);
 			//임팩트 이펙트 재생 등 추가 구현 가능
 		}
 		//디버그용 라인 그리기
-		DrawDebugLine(
-			GetWorld(),
-			MuzzleLocation,
-			FinalImpactPoint,
-			bVisualBlocked ? FColor::Yellow : (bCanApplyDamage ? FColor::Green : FColor::Red),
-			false,
-			2.0f,
-			0,
-			1.0f
-		);
+		//DrawDebugLine(
+		//	GetWorld(),
+		//	MuzzleLocation,
+		//	FinalImpactPoint,
+		//	bVisualBlocked ? FColor::Yellow : (bCanApplyDamage ? FColor::Green : FColor::Red),
+		//	false,
+		//	2.0f,
+		//	0,
+		//	1.0f
+		//);
 	}
 }
 
@@ -1029,5 +1044,5 @@ void AWeaponItem::RecalculateStats()
 			break;
 		}
 	}
-	OnAmmoChanged.Broadcast(CurrentAmmo, MaxAmmo);
+	OnAmmoChanged.Broadcast(CurrentAmmo, GetAmmoInInventory());
 }
