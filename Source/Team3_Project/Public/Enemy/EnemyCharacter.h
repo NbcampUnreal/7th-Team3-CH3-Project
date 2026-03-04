@@ -10,7 +10,8 @@ class UStatComponent;
 class USphereComponent;
 class UDamageType;
 struct FDamageEvent;
-class USpecialAttackData;
+class USplineComponent;
+class USpecialAttackComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnEnemyHealthChanged, float, NewValue, float, MaxValue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMovableChanged, bool, NewValue);
@@ -38,10 +39,11 @@ protected:
 
 	bool DropItem();
 public:
+	UFUNCTION(BlueprintCallable, Category = "Patrol")
+	USplineComponent* GetSplineComponent() const;
+
 	UFUNCTION(BlueprintCallable, Category = "Combat")
-	bool Attack();
-	UFUNCTION(BlueprintCallable, Category = "Combat")
-	bool SpecialAttack();
+	void Attack();
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void OnFinishAttack();
 	UFUNCTION(BlueprintCallable, Category = "Combat")
@@ -57,13 +59,12 @@ public:
 	// 공격 시 호출
 	void ResetHitActors();
 	
-	// ID로 특수 공격 실행
-	UFUNCTION(BlueprintCallable, Category = "Combat|Special")
-	bool ExecuteSpecialAttackByID(FName AttackID, AActor* TargetActor);
-
 	// 특수 공격 효과 발동
 	UFUNCTION(BlueprintCallable, Category = "Combat|Special")
 	void TriggerSpecialAttackEffect();
+
+	UFUNCTION(BlueprintPure, Category = "Combat|Special")
+	USpecialAttackComponent* GetSpecialAttackComponent() const { return SpecialAttackComp; }
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void OnHitted();
@@ -89,6 +90,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Stat")
 	float GetMaxHealth() const;
 	UFUNCTION(BlueprintPure, Category = "Stat")
+	float GetAttackRange() const;
+	UFUNCTION(BlueprintPure, Category = "Stat")
 	float GetAttack() const;
 	UFUNCTION(BlueprintPure, Category = "Stat")
 	float GetDefence() const;
@@ -98,7 +101,7 @@ public:
 	float GetBlackKarma() const;
 
 	UFUNCTION(BlueprintPure, Category = "Combat")
-	bool IsAttackable();
+	bool IsAttackable(AActor* TargetActor);
 	UFUNCTION(BlueprintPure, Category = "Move")
 	bool IsMovable() const;
 	UFUNCTION(BlueprintPure, Category = "Wave")
@@ -115,7 +118,6 @@ public:
 
 	float GetAttackCoolTime() const;
 	UAnimMontage* GetAttackMontage() const;
-	UAnimMontage* GetSpecialAttackMontage() const;
 	UAnimMontage* GetHittedMontage() const;
 	UAnimMontage* GetDeadMontage() const;
 
@@ -125,14 +127,12 @@ public:
 	float GetAttackMoveSpeedRatio() const;
 	float GetHittedMoveSpeedRatio() const;
 
-	float GetItemDropRatio() const;
 	TArray<FEnemyDropItem> GetDropItemTable() const;
 
 	void ApplyDamageToStat(float DamageAmount);
 	void EnableRagdoll();
 
 	void SetForAIMove();
-
 private:
 	// 근접 공격 히트 처리
 	UFUNCTION()
@@ -173,20 +173,18 @@ public:
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
 	UStatComponent* StatComp;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Patrol")
+	USplineComponent* PatrolSpline;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	USpecialAttackComponent* SpecialAttackComp;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy")
 	FName EnemyName;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Data")
 	TObjectPtr<UEnemyTypeData> TypeData;
-
-	// Special Attack Data
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Data")
-	TObjectPtr<USpecialAttackData> SpecialAttackData;
-
-	/** 현재 실행 중인 SpecialAttack */
-	UPROPERTY()
-	USpecialAttackBase* CurrentSpecialAttack = nullptr;
 
 	/** 현재 공격 대상 */
 	UPROPERTY()

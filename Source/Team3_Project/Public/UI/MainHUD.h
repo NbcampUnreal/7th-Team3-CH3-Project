@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
@@ -78,6 +78,9 @@ protected:
     UPROPERTY(meta = (BindWidget)) class UCompassWidget* CompassWidget;
     UPROPERTY(meta = (BindWidget)) class UImage* Img_HitMarker;
     UPROPERTY(BlueprintReadOnly, Category = "Inventory") class UInventoryComponent* MyInventory;
+    UPROPERTY(meta = (BindWidget)) class UImage* Img_Adrenaline;
+    UPROPERTY(meta = (BindWidget)) class UTextBlock* AdrenalineTimer;
+
     // 내부 상태 및 보간 변수 
     float InterpSpeed = 5.0f;
     float CurrWhiteKarma, TargetWhiteKarma;
@@ -90,6 +93,7 @@ protected:
     int32 CurrentScore;
     int32 TempWaveKills, TempWaveScore;
     int32 PendingBonus;
+    int32 CurrentAdrenalineTime;
     float CurrentRemainingTime;
     bool bIsTimerActive;
     bool bPendingSuccess;
@@ -98,6 +102,8 @@ protected:
     UPROPERTY() TMap<int32, class UQuestItemWidget*> QuestMap;
     TArray<UImage*> SlotArray;
     FTimerHandle HitMarkerTimerHandle;
+    FTimerHandle AdrenalineTimerHandle;
+    
 
 public:
     // --- 외부 호출 가능 함수 --- 
@@ -128,4 +134,7 @@ public:
     UFUNCTION(BlueprintCallable, Category = "HUD") void UpdateHitMarker(bool bIsDead);
     UFUNCTION(BlueprintCallable, Category = "HUD") void HideHitMarker();
     UFUNCTION(BlueprintCallable, Category = "HUD") void RefreshQuickSlotQuantity(int32 SlotIndex, FName ItemID);
+
+    UFUNCTION(BlueprintCallable, Category = "Adrenaline") void StartAdrenalineTimer();
+    UFUNCTION(BlueprintCallable, Category = "Adrenaline") void UpdateTimer();
 };

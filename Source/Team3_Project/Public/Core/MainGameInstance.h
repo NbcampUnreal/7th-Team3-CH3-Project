@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -19,26 +19,25 @@ public:
 
 	static UMainGameInstance* Get(const UWorld* WorldObject);
 
-	//º¯¼ö
+	//ë³€ìˆ˜
 
-	//·¹º§ÀÌ ÀüÈ¯µÇ¾îµµ Ä³¸¯ÅÍÀÇ ½ºÅÈÀº À¯Áö µ¥ÀÌÅÍ Å×ÀÌºí·Î ¹Ù²ğ ¿¹Á¤
+	//ë ˆë²¨ì´ ì „í™˜ë˜ì–´ë„ ìºë¦­í„°ì˜ ìŠ¤íƒ¯ì€ ìœ ì§€ ë°ì´í„° í…Œì´ë¸”ë¡œ ë°”ë€” ì˜ˆì •
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PlayerStat")
 	float MaxPlayerHP;
 
-	//ÇÃ·¹ÀÌ¾î °ø°İ·Â
+	//í”Œë ˆì´ì–´ ê³µê²©ë ¥
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PlayerStat")
 	float PlayerAttackDamage;
 
-	//Ä«¸£¸¶ ½ºÅÈ
+	//ì¹´ë¥´ë§ˆ ìŠ¤íƒ¯
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PlayerStat")
 	int32 KarmaStat;
 
-
-	//°ÔÀÓÁ¾·á½ÃÁ¡ ÇÃ·¹ÀÌ¾î°¡ È¹µæÇÑ ÃÑ Á¡¼ö
+	//ê²Œì„ì¢…ë£Œì‹œì  í”Œë ˆì´ì–´ê°€ íšë“í•œ ì´ ì ìˆ˜
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PlayerStat")
 	int32 TotalScore;
 
 
-	//ÇÔ¼ö
+	//í•¨ìˆ˜
 
 };

@@ -9,21 +9,9 @@
 UBTTask_FollowSpline::UBTTask_FollowSpline()
 {
     NodeName = "Follow Spline";
-    bNotifyTick = true;
+    bNotifyTick = false;
 
     SplineIndexKey.SelectedKeyName = FName("SplineIndex");
-    CurrentState = ESplineState::MovingToPoint;
-}
-
-USplineComponent* UBTTask_FollowSpline::GetSplineComponent(AAIController* Controller) const
-{
-    if (!Controller) return nullptr;
-
-    AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(Controller->GetPawn());
-    if (!Enemy) return nullptr;
-
-    // Enemy에 붙어있는 SplineComponent 찾기
-    return Enemy->FindComponentByClass<USplineComponent>();
 }
 
 EBTNodeResult::Type UBTTask_FollowSpline::ExecuteTask(
@@ -40,19 +28,27 @@ EBTNodeResult::Type UBTTask_FollowSpline::ExecuteTask(
     if (!BB) return EBTNodeResult::Failed;
 
     // ========================================
-    // SplineComponent 가져오기
+    // 이동 가능 체크
     // ========================================
-    SplineComponent = GetSplineComponent(AIController);
-    if (!SplineComponent)
+    if (!Enemy->IsMovable())
     {
-        UE_LOG(LogTemp, Error, TEXT("[BT] Follow Spline: No SplineComponent found"));
         return EBTNodeResult::Failed;
     }
 
-    int32 NumPoints = SplineComponent->GetNumberOfSplinePoints();
+    // ========================================
+    // SplineComponent 가져오기
+    // ========================================
+    USplineComponent* Spline = Enemy->FindComponentByClass<USplineComponent>();
+    if (!Spline)
+    {
+        UE_LOG(LogTemp, Error, TEXT("[FollowSpline] No SplineComponent"));
+        return EBTNodeResult::Failed;
+    }
+
+    int32 NumPoints = Spline->GetNumberOfSplinePoints();
     if (NumPoints < 2)
     {
-        UE_LOG(LogTemp, Error, TEXT("[BT] Follow Spline: Not enough spline points (%d)"), NumPoints);
+        UE_LOG(LogTemp, Error, TEXT("[FollowSpline] Not enough points: %d"), NumPoints);
         return EBTNodeResult::Failed;
     }
 
@@ -67,9 +63,8 @@ EBTNodeResult::Type UBTTask_FollowSpline::ExecuteTask(
     // ========================================
     // 현재 인덱스 가져오기
     // ========================================
-    CurrentIndex = BB->GetValueAsInt(SplineIndexKey.SelectedKeyName);
+    int32 CurrentIndex = BB->GetValueAsInt(SplineIndexKey.SelectedKeyName);
 
-    // 유효성 체크
     if (CurrentIndex < 0 || CurrentIndex >= NumPoints)
     {
         CurrentIndex = 0;
@@ -79,117 +74,93 @@ EBTNodeResult::Type UBTTask_FollowSpline::ExecuteTask(
     // ========================================
     // 다음 포인트로 이동
     // ========================================
-    FVector TargetLocation = SplineComponent->GetLocationAtSplinePoint(
+    FVector TargetLocation = Spline->GetLocationAtSplinePoint(
         CurrentIndex,
         ESplineCoordinateSpace::World
     );
 
-    UE_LOG(LogTemp, Log, TEXT("[BT] Follow Spline: Moving to point %d/%d at %s"),
-        CurrentIndex, NumPoints - 1, *TargetLocation.ToString());
+    UE_LOG(LogTemp, Log, TEXT("[FollowSpline] Moving to point %d/%d"), CurrentIndex, NumPoints - 1);
 
-    EPathFollowingRequestResult::Type MoveResult = AIController->MoveToLocation(
-        TargetLocation,
-        AcceptanceRadius,
-        true,  // bStopOnOverlap
-        true,  // bUsePathfinding
-        false,
-        true,
-        nullptr,
-        true   // bAllowPartialPath
-    );
+    FAIMoveRequest MoveRequest;
+    MoveRequest.SetGoalLocation(TargetLocation);
+    MoveRequest.SetAcceptanceRadius(AcceptanceRadius);
+    MoveRequest.SetUsePathfinding(true);
+    MoveRequest.SetAllowPartialPath(true);
 
-    if (MoveResult == EPathFollowingRequestResult::Failed)
+    FPathFollowingRequestResult MoveResult = AIController->MoveTo(MoveRequest);
+
+    if (MoveResult.Code == EPathFollowingRequestResult::Failed)
     {
-        UE_LOG(LogTemp, Error, TEXT("[BT] Follow Spline: MoveToLocation failed"));
         return EBTNodeResult::Failed;
     }
 
-    CurrentState = ESplineState::MovingToPoint;
-    return EBTNodeResult::InProgress;
-}
-
-void UBTTask_FollowSpline::TickTask(
-    UBehaviorTreeComponent& OwnerComp,
-    uint8* NodeMemory,
-    float DeltaSeconds)
-{
-    AAIController* AIController = OwnerComp.GetAIOwner();
-    if (!AIController || !SplineComponent)
+    // Lambda로 완료 처리
+    UPathFollowingComponent* PathComp = AIController->GetPathFollowingComponent();
+    if (PathComp)
     {
-        FinishLatentTask(OwnerComp, EBTNodeResult::Failed);
-        return;
-    }
+        PathComp->OnRequestFinished.RemoveAll(this);
 
-    UBlackboardComponent* BB = OwnerComp.GetBlackboardComponent();
-    if (!BB)
-    {
-        FinishLatentTask(OwnerComp, EBTNodeResult::Failed);
-        return;
-    }
-
-    switch (CurrentState)
-    {
-        case ESplineState::MovingToPoint:
-        {
-            EPathFollowingStatus::Type Status = AIController->GetMoveStatus();
-
-            if (Status == EPathFollowingStatus::Idle)
+        PathComp->OnRequestFinished.AddWeakLambda(this,
+            [this, &OwnerComp, AIController, BB, NumPoints, CurrentIndex, WaitTime = WaitTimeAtPoint]
+            (FAIRequestID RequestID, const FPathFollowingResult& Result)
             {
-                // ✅ 도착했는지 확인
-                UPathFollowingComponent* PathComp = AIController->GetPathFollowingComponent();
-                if (PathComp && PathComp->DidMoveReachGoal())
+                if (Result.IsSuccess())
                 {
-                    // 성공적으로 도착
-                    UE_LOG(LogTemp, Log, TEXT("[BT] Spline: Arrived at point %d"), CurrentIndex);
+                    UE_LOG(LogTemp, Log, TEXT("[FollowSpline] Arrived at point %d"), CurrentIndex);
 
-                    AIController->StopMovement();
+                    // 다음 인덱스 계산
+                    int32 NextIndex = CurrentIndex + 1;
 
-                    WaitStartTime = AIController->GetWorld()->GetTimeSeconds();
-                    CurrentState = ESplineState::Waiting;
+                    if (NextIndex >= NumPoints)
+                    {
+                        if (bLoopPath)
+                        {
+                            NextIndex = 0;
+                            UE_LOG(LogTemp, Log, TEXT("[FollowSpline] Looping back to start"));
+                        }
+                        else
+                        {
+                            UE_LOG(LogTemp, Log, TEXT("[FollowSpline] Reached end"));
+                            BB->SetValueAsInt(SplineIndexKey.SelectedKeyName, 0);
+                            FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
+                            return;
+                        }
+                    }
+
+                    BB->SetValueAsInt(SplineIndexKey.SelectedKeyName, NextIndex);
+
+                    // 대기 후 완료
+                    FTimerHandle WaitTimerHandle;
+                    AIController->GetWorld()->GetTimerManager().SetTimer(
+                        WaitTimerHandle,
+                        [this, &OwnerComp]()
+                        {
+                            FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
+                        },
+                        WaitTime,
+                        false
+                    );
                 }
                 else
                 {
-                    // 실패
-                    UE_LOG(LogTemp, Warning, TEXT("[BT] Spline: Failed to reach point %d"), CurrentIndex);
                     FinishLatentTask(OwnerComp, EBTNodeResult::Failed);
                 }
             }
-        }
-        break;
-
-        case ESplineState::Waiting:
-        {
-            float CurrentTime = AIController->GetWorld()->GetTimeSeconds();
-            float ElapsedTime = CurrentTime - WaitStartTime;
-
-            if (ElapsedTime >= WaitTimeAtPoint)
-            {
-                // 대기 완료 → 다음 포인트로
-                int32 NumPoints = SplineComponent->GetNumberOfSplinePoints();
-                CurrentIndex++;
-
-                if (CurrentIndex >= NumPoints)
-                {
-                    if (bLoopPath)
-                    {
-                        CurrentIndex = 0;
-                        UE_LOG(LogTemp, Log, TEXT("[BT] Spline: Looping back to start"));
-                    }
-                    else
-                    {
-                        UE_LOG(LogTemp, Log, TEXT("[BT] Spline: Reached end, no loop"));
-                        BB->SetValueAsInt(SplineIndexKey.SelectedKeyName, 0);
-                        FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
-                        return;
-                    }
-                }
-
-                BB->SetValueAsInt(SplineIndexKey.SelectedKeyName, CurrentIndex);
-
-                UE_LOG(LogTemp, Log, TEXT("[BT] Spline: Moving to next point"));
-                FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
-            }
-        }
-        break;
+        );
     }
+
+    return EBTNodeResult::InProgress;
+}
+
+EBTNodeResult::Type UBTTask_FollowSpline::AbortTask(
+    UBehaviorTreeComponent& OwnerComp,
+    uint8* NodeMemory)
+{
+    AAIController* AIController = OwnerComp.GetAIOwner();
+    if (AIController)
+    {
+        AIController->StopMovement();
+    }
+
+    return EBTNodeResult::Aborted;
 }

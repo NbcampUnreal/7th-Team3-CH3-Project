@@ -2,13 +2,13 @@
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Enemy/EnemyCharacter.h"
+#include "Shared/Component/SpecialAttackComponent.h"
 
 UBTTask_ExecuteSpecialAttack::UBTTask_ExecuteSpecialAttack()
 {
     NodeName = "Execute Special Attack";
     bNotifyTick = true;
 
-    LastSpecialAttackTimeKey.SelectedKeyName = FName("LastSpecialAttackTime");
     ConsecutiveAttacksKey.SelectedKeyName = FName("ConsecutiveAttacks");
     TargetActorKey.SelectedKeyName = FName("TargetActor");
     AttackID = FName("None");
@@ -26,6 +26,14 @@ EBTNodeResult::Type UBTTask_ExecuteSpecialAttack::ExecuteTask(
 
     UBlackboardComponent* BB = OwnerComp.GetBlackboardComponent();
     if (!BB) return EBTNodeResult::Failed;
+
+    // Component 가져오기
+    USpecialAttackComponent* SpecialAttackComp = Enemy->GetSpecialAttackComponent();
+    if (!SpecialAttackComp)
+    {
+        UE_LOG(LogTemp, Error, TEXT("[BT] No SpecialAttackComponent"));
+        return EBTNodeResult::Failed;
+    }
 
     // 타겟 바라보기
     AActor* TargetActor = Cast<AActor>(BB->GetValueAsObject(TargetActorKey.SelectedKeyName));
@@ -48,17 +56,13 @@ EBTNodeResult::Type UBTTask_ExecuteSpecialAttack::ExecuteTask(
         return EBTNodeResult::Failed;
     }
 
-    bool bSuccess = Enemy->ExecuteSpecialAttackByID(AttackID, TargetActor);
+    bool bSuccess = SpecialAttackComp->ExecuteSpecialAttackByID(AttackID, TargetActor);
 
     if (!bSuccess)
     {
         UE_LOG(LogTemp, Warning, TEXT("[BT] SpecialAttack '%s' failed"), *AttackID.ToString());
         return EBTNodeResult::Failed;
     }
-
-    // 쿨타임 기록
-    float CurrentTime = AIController->GetWorld()->GetTimeSeconds();
-    BB->SetValueAsFloat(LastSpecialAttackTimeKey.SelectedKeyName, CurrentTime);
 
     // 공격 횟수 리셋
     BB->SetValueAsInt(ConsecutiveAttacksKey.SelectedKeyName, 0);
@@ -86,11 +90,17 @@ void UBTTask_ExecuteSpecialAttack::TickTask(
         FinishLatentTask(OwnerComp, EBTNodeResult::Failed);
         return;
     }
+    
+    USpecialAttackComponent* SpecialAttackComp = Enemy->GetSpecialAttackComponent();
+    if (!SpecialAttackComp)
+    {
+        UE_LOG(LogTemp, Error, TEXT("[BT] No SpecialAttackComponent"));
+        return;
+    }
 
-    // ========================================
     // 공격 애니메이션 끝났는지 체크
-    // ========================================
-    if (Enemy->IsAttackable())
+    if (SpecialAttackComp->GetCurrentAttack() == nullptr
+        || SpecialAttackComp->GetCurrentAttack()->GetAttackID() != AttackID)
     {
         UE_LOG(LogTemp, Warning, TEXT("[BT] Special Attack Finished"));
         FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);

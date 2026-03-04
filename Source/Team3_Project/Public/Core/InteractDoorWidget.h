@@ -16,6 +16,8 @@ class TEAM3_PROJECT_API UInteractDoorWidget : public UUserWidget
 {
 	GENERATED_BODY()
 	
+
+
 protected:
 	virtual void NativeOnInitialized() override;
 	virtual void NativeConstruct() override;
@@ -31,7 +33,6 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UUserWidget> QuestTableWidgetInstance;
-	
 
 	UFUNCTION()
 	void OnClickedOpen();

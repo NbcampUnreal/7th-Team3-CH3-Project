@@ -271,6 +271,27 @@ void APlayerCharacter::OnWeaponClassLoaded(FName ItemID)
 	CurrentOverlayState = Data.WeaponType; // EWeaponType 그대로 사용
 }
 
+FName APlayerCharacter::GetTargetSocketName(EWeaponType WeaponType) const
+{
+	switch (WeaponType)
+	{
+	case EWeaponType::WT_Pistol:
+		return FName("Pistol_Socket");
+	case EWeaponType::WT_Rifle:
+		return FName("Rifle_Socket");
+	case EWeaponType::WT_Shotgun:
+		return FName("Shotgun_Socket");
+	case EWeaponType::WT_RocketLauncher:
+		return FName("RocketLauncher_Socket");
+	case EWeaponType::WT_Sniper:
+		return FName("Sniper_Socket");
+	case EWeaponType::WT_Melee:
+		return FName("Melee_Socket");
+	default:
+		return WeaponSocketName;
+	}
+}
+
 void APlayerCharacter::StartSprint()
 {
 	// 달리기 시작하니까 회복 타이머 중지
@@ -408,10 +429,12 @@ void APlayerCharacter::EquipItemByData(const FInventoryItem& ItemData, ESlotType
 
 			if (GetMesh())
 			{
+				FName TargetSocket = GetTargetSocketName(Data.WeaponType);
+
 				SpawnedWeapon->AttachToComponent(
 					GetMesh(),
 					FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-					WeaponSocketName
+					TargetSocket
 				);
 				CurrentWeapon = SpawnedWeapon;
 				CurrentWeaponItemID = ItemID;

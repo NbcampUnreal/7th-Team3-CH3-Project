@@ -15,7 +15,8 @@ public:
     UBTTask_FollowSpline();
 
     virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
-    virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
+    // virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
+    EBTNodeResult::Type AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory);
 
 protected:
     UPROPERTY(EditAnywhere, Category = "Spline")
@@ -29,18 +30,4 @@ protected:
 
     UPROPERTY(EditAnywhere, Category = "Blackboard")
     FBlackboardKeySelector SplineIndexKey;
-
-private:
-    enum class ESplineState : uint8
-    {
-        MovingToPoint,
-        Waiting
-    };
-
-    ESplineState CurrentState;
-    USplineComponent* SplineComponent = nullptr;
-    int32 CurrentIndex = 0;
-    float WaitStartTime = 0.f;
-
-    USplineComponent* GetSplineComponent(AAIController* Controller) const;
 };
