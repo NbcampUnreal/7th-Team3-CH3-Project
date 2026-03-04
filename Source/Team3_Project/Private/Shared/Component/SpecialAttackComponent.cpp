@@ -129,7 +129,20 @@ bool USpecialAttackComponent::ExecuteSpecialAttackByID(FName AttackID, AActor* T
     // ========================================
     if (UAnimMontage* Montage = Attack->GetMontage())
     {
-        OwnerEnemy->PlayAnimMontage(Montage);
+        UAnimInstance* AnimInstance = OwnerEnemy->GetMesh()->GetAnimInstance();
+        if (AnimInstance)
+        {
+            // ⭐ Root Motion 활성화 (Montage에서만)
+            AnimInstance->Montage_Play(Montage);
+            AnimInstance->RootMotionMode = ERootMotionMode::RootMotionFromMontagesOnly;
+
+            UE_LOG(LogTemp, Log, TEXT("[SpecialAttack] Playing Montage with Root Motion: %s"),
+                *Montage->GetName());
+        }
+        else
+        {
+            OwnerEnemy->PlayAnimMontage(Montage);
+        }
     }
 
     // ========================================
@@ -183,6 +196,15 @@ void USpecialAttackComponent::OnFinishSpecialAttack()
 {
     if (!OwnerEnemy)
         return;
+
+    // ========================================
+    // Root Motion 복구
+    // ========================================
+    if (UAnimInstance* AnimInstance = OwnerEnemy->GetMesh()->GetAnimInstance())
+    {
+        AnimInstance->RootMotionMode = ERootMotionMode::NoRootMotionExtraction;
+        UE_LOG(LogTemp, Log, TEXT("[SpecialAttack] Root Motion disabled"));
+    }
 
     // ========================================
     // 이동 복구

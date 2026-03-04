@@ -2,6 +2,7 @@
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Enemy/EnemyCharacter.h"
+#include "Player/PlayerCharacter.h"
 
 UBTDecorator_CanAttack::UBTDecorator_CanAttack()
 {
@@ -23,7 +24,8 @@ bool UBTDecorator_CanAttack::CalculateRawConditionValue(UBehaviorTreeComponent& 
     AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(AIController->GetPawn());
     if (!Enemy) return false;
 
-    AActor* TargetActor = Cast<AActor>(BB->GetValueAsObject(TargetActorKey.SelectedKeyName));
+    APlayerCharacter* TargetActor = Cast<APlayerCharacter>(BB->GetValueAsObject(TargetActorKey.SelectedKeyName));
+    if (!TargetActor || TargetActor->IsDead()) return false;
 
     // IsAttackable() 체크 (쿨타임 + 공격 중 아님)
     return Enemy->IsAttackable(TargetActor);
