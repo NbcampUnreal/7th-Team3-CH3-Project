@@ -5,6 +5,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/DamageType.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "Components/SphereComponent.h"
 
 AEnemyProjectile::AEnemyProjectile()
 {
@@ -36,6 +37,9 @@ void AEnemyProjectile::BeginPlay()
         UE_LOG(LogTemp, Warning, TEXT("[EnemyProjectile] No InstigatorController! Owner: %s"),
             *OwnerEnemy->GetName().ToString());
     }
+
+    CollisionComponent->OnComponentHit.Clear();  // 기존 바인딩 제거
+    CollisionComponent->OnComponentHit.AddDynamic(this, &AEnemyProjectile::OnHit);
 }
 
 void AEnemyProjectile::Tick(float DeltaTime)

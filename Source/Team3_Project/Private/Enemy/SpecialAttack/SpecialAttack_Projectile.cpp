@@ -2,6 +2,8 @@
 #include "Enemy/EnemyCharacter.h"
 #include "Enemy/EnemyProjectile.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "Components/SphereComponent.h"
+#include "Components/CapsuleComponent.h"
 
 USpecialAttack_Projectile::USpecialAttack_Projectile()
 {
@@ -32,10 +34,23 @@ void USpecialAttack_Projectile::Execute_Implementation(AEnemyCharacter* Owner, A
     if (Owner->GetMesh()->DoesSocketExist(SpawnSocket))
     {
         SpawnLocation = Owner->GetMesh()->GetSocketLocation(SpawnSocket);
+        FVector ForwardOffset = Owner->GetActorForwardVector() * 50.f;  // 추가로 앞으로
+        SpawnLocation += ForwardOffset;
     }
     else
     {
-        SpawnLocation = Owner->GetActorLocation() + Owner->GetActorForwardVector() * 100.f + FVector(0, 0, 50.f);
+        // Socket 없으면 Capsule 밖으로 Spawn
+        UCapsuleComponent* Capsule = Owner->GetCapsuleComponent();
+        float CapsuleRadius = Capsule ? Capsule->GetScaledCapsuleRadius() : 50.f;
+
+        FVector Forward = Owner->GetActorForwardVector();
+        FVector Up = Owner->GetActorUpVector();
+
+        // Capsule 반지름 + 추가 오프셋만큼 앞으로
+        SpawnLocation = Owner->GetActorLocation()
+            + Forward * (CapsuleRadius + SpawnForwardOffset)
+            + Up * SpawnHeightOffset;
+        // pawnLocation = Owner->GetActorLocation() + Owner->GetActorForwardVector() * 100.f + FVector(0, 0, 50.f);
     }
 
     FVector Direction = (TargetActor->GetActorLocation() - SpawnLocation).GetSafeNormal();
@@ -46,6 +61,9 @@ void USpecialAttack_Projectile::Execute_Implementation(AEnemyCharacter* Owner, A
     SpawnParams.Owner = Owner;
     SpawnParams.Instigator = Owner;
     SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+    
+    // 충돌 처리: 발사 시점에 Owner와 겹쳐도 무시
+    SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
     for (int32 i = 0; i < ProjectileCount; ++i)
     {
@@ -61,7 +79,7 @@ void USpecialAttack_Projectile::Execute_Implementation(AEnemyCharacter* Owner, A
         FRotator SpawnRotation = BaseRotation;
         SpawnRotation.Yaw += AngleOffset;
 
-        // BaseProjectile Spawn
+        // EnemyProjectile Spawn
         AEnemyProjectile* Projectile = Owner->GetWorld()->SpawnActor<AEnemyProjectile>(
             ProjectileClass,
             SpawnLocation,
@@ -71,7 +89,7 @@ void USpecialAttack_Projectile::Execute_Implementation(AEnemyCharacter* Owner, A
 
         if (Projectile)
         {
-            // BaseProjectile 초기화
+            // EnemyProjectile 초기화
 
             // Damage 설정 (BaseProjectile에 있는 프로퍼티)
             Projectile->Damage = Owner->GetAttack();
@@ -79,7 +97,7 @@ void USpecialAttack_Projectile::Execute_Implementation(AEnemyCharacter* Owner, A
             // 유도 설정
             if (bIsHoming)
             {
-                Projectile->SetHoming(true, TargetActor, HomingAcceleration);
+                Projectile->SetHoming(bIsHoming, TargetActor, HomingAcceleration);
             }
 
             // 생존 시간
@@ -89,6 +107,17 @@ void USpecialAttack_Projectile::Execute_Implementation(AEnemyCharacter* Owner, A
             {
                 ProjMovement->InitialSpeed = ProjectileSpeed;
                 ProjMovement->MaxSpeed = ProjectileSpeed;
+
+                UE_LOG(LogTemp, Warning, TEXT("[Projectile] Speed: %.1f, Velocity: %s, Active: %d"),
+                    ProjMovement->InitialSpeed,
+                    *ProjMovement->Velocity.ToString(),
+                    ProjMovement->IsActive());
+            }
+            // ⭐ BeginPlay 이전에 Owner 무시 설정
+            if (USphereComponent* CollisionComp = Projectile->FindComponentByClass<USphereComponent>())
+            {
+                CollisionComp->IgnoreActorWhenMoving(Owner, true);
+                CollisionComp->MoveIgnoreActors.AddUnique(Owner);
             }
 
             // ProjectileMovement 속도 설정

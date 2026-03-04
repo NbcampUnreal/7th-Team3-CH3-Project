@@ -2,7 +2,7 @@
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Enemy/EnemyCharacter.h"
-#include "Enemy/SpecialAttackData.h"
+#include "Shared/Component/SpecialAttackComponent.h"
 #include "Enemy/SpecialAttack/SpecialAttackBase.h"
 
 UBTDecorator_CanUseSpecialAttack::UBTDecorator_CanUseSpecialAttack()
@@ -37,16 +37,16 @@ bool UBTDecorator_CanUseSpecialAttack::CalculateRawConditionValue(UBehaviorTreeC
         return false;
     }
 
-    // 2. SpecialAttackData 가져오기
-    const USpecialAttackData* const SpecialAttackData = Enemy->GetSpecialAttackData();
-    if (!SpecialAttackData)
+    // 2. SpecialAttackComponent 가져오기
+    const USpecialAttackComponent* const SpecialAttackComponent = Enemy->GetSpecialAttackComponent();
+    if (!SpecialAttackComponent)
     {
-        UE_LOG(LogTemp, Error, TEXT("[Decorator] No SpecialAttackData"));
+        UE_LOG(LogTemp, Error, TEXT("[Decorator] No SpecialAttackComponent"));
         return false;
     }
 
     // 3. AttackID로 공격 찾기
-    USpecialAttackBase* Attack = SpecialAttackData->GetAttackByID(AttackID);
+    USpecialAttackBase* Attack = SpecialAttackComponent->GetAttackByID(AttackID);
     if (!Attack)
     {
         UE_LOG(LogTemp, Warning, TEXT("[Decorator] Attack '%s' not found"), *AttackID.ToString());

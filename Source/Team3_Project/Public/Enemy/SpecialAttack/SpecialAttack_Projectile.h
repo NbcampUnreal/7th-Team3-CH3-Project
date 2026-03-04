@@ -27,7 +27,15 @@ protected:
     // Spawn Socket
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Projectile")
     FName SpawnSocket = FName("hand_r_socket");
+    
+    // Spawn 오프셋 (Owner 기준, Forward 방향)
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Projectile")
+    float SpawnForwardOffset = 150.f;
 
+    // Spawn 높이 오프셋
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Projectile")
+    float SpawnHeightOffset = 50.f;
+    
     // 발사 속도
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Projectile")
     float ProjectileSpeed = 1000.f;

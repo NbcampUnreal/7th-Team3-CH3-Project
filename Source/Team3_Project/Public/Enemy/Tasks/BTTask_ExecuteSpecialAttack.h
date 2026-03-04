@@ -19,9 +19,6 @@ protected:
     FName AttackID = FName("None");
 
     UPROPERTY(EditAnywhere, Category = "Blackboard")
-    FBlackboardKeySelector LastSpecialAttackTimeKey;
-
-    UPROPERTY(EditAnywhere, Category = "Blackboard")
     FBlackboardKeySelector ConsecutiveAttacksKey;
 
     UPROPERTY(EditAnywhere, Category = "Blackboard")

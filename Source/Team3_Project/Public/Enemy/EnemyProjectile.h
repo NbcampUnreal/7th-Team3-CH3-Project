@@ -30,7 +30,7 @@ protected:
         UPrimitiveComponent* OtherComp,
         FVector NormalImpulse,
         const FHitResult& Hit
-    );
+    ) override;
 
 protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Damage")
