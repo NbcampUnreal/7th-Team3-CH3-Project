@@ -2,11 +2,16 @@
 
 [여기에 게임의 한 줄 소개를 적어주세요. 예: 파쿠르 액션과 크래프팅 시스템이 결합된 3D 액션 어드벤처 게임입니다.]
 
+
+
 📖 프로젝트 개요
 
 이 프로젝트는 언리얼 엔진(Unreal Engine 5.5)과 C++를 기반으로 개발된 액션 RPG/어드벤처 게임입니다. 체계적인 스탯 관리 시스템, 드래그 앤 드롭을 지원하는 인벤토리 및 크래프팅, 그리고 비헤이비어 트리(Behavior Tree)를 활용한 정교한 적 AI를 특징으로 합니다.
 
+
+
 ✨ 주요 기능 (Key Features)
+
 
 🗡️ 전투 및 파쿠르 시스템
 
@@ -34,6 +39,8 @@
 
 직관적인 HUD: 나침반(CompassWidget), 퀘스트 마커(QuestItemWidget), 결과 화면 등 플레이어 편의성을 고려한 UI 구성.
 
+
+
 📂 프로젝트 구조 (Directory Structure)
 
 Team3_Project/
@@ -43,6 +50,8 @@ Team3_Project/
 ├── Item/       # 무기, 투사체, 인벤토리 컴포넌트, 크래프팅 베이스
 ├── UI/         # 메인 HUD, 인벤토리, 크래프팅, 시작/일시정지 메뉴 위젯
 └── Shared/     # 공통 인터페이스(Interaction, Equipable), 스탯 및 범용 컴포넌트
+
+
 
 
 🚀 시작하기 (Getting Started)
@@ -80,6 +89,8 @@ RMB - 줌
 F - 상호작용 (아이템 줍기, 문 열기 등)
 
 I 또는 Tab - 인벤토리 열기
+
+
 
 👥 팀원 및 역할 (Team Members)
 
